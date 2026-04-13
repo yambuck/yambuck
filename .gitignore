@@ -1,0 +1,37 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Environment/local config
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+target/
+out/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Local reference material
+reference-systems/
+
+# Coverage
+coverage/
