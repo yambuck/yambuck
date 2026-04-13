@@ -45,8 +45,8 @@ npm --prefix "$GUI_DIR" ci
 log "Building frontend"
 npm --prefix "$GUI_DIR" run build
 
-log "Building Tauri binary"
-cargo build --release --manifest-path "${TAURI_DIR}/Cargo.toml"
+log "Building Tauri binary (custom protocol enabled)"
+cargo build --release --features custom-protocol --manifest-path "${TAURI_DIR}/Cargo.toml"
 
 BIN_SOURCE="${TAURI_DIR}/target/release/yambuck-gui"
 if [[ ! -x "$BIN_SOURCE" ]]; then
