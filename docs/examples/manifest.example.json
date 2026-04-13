@@ -1,0 +1,13 @@
+{
+  "packageUuid": "2e1e7f8d-7b30-48f4-8ee5-04291d64d5ef",
+  "appId": "com.voquill.app",
+  "appUuid": "6b61815c-66c5-4cc6-85ba-ec0736ecef4c",
+  "displayName": "Voquill",
+  "version": "1.3.1",
+  "publisher": "Voquill Project",
+  "trustStatus": "unverified",
+  "entrypoint": "bin/voquill",
+  "icons": {
+    "primary": "icons/128x128.png"
+  }
+}

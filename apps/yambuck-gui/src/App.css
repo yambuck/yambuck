@@ -1,0 +1,359 @@
+:root {
+  font-family: "Sora", "DM Sans", "Segoe UI", sans-serif;
+  color: #e7eff8;
+  background: radial-gradient(circle at 20% 0%, #154067 0%, #0c1724 45%, #070d16 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(151, 195, 227, 0.24);
+  border-radius: 16px;
+  background: linear-gradient(120deg, rgba(19, 42, 69, 0.93), rgba(10, 22, 38, 0.9));
+  backdrop-filter: blur(8px);
+}
+
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-pill {
+  border-radius: 999px;
+  border: 1px solid rgba(132, 182, 219, 0.45);
+  background: rgba(17, 34, 52, 0.72);
+  color: #c6e3fd;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.toggle-pill.active {
+  background: linear-gradient(135deg, rgba(95, 223, 255, 0.95), rgba(87, 241, 191, 0.95));
+  border-color: rgba(128, 244, 218, 0.92);
+  color: #072032;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #84c7ff;
+}
+
+.headline {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.runtime-pill {
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.78rem;
+  border: 1px solid rgba(96, 171, 224, 0.44);
+  background: rgba(19, 69, 108, 0.4);
+  color: #b8dbfb;
+}
+
+.notice-banner {
+  border: 1px solid rgba(255, 149, 149, 0.55);
+  background: rgba(74, 16, 21, 0.65);
+  color: #ffd9dd;
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+.notice-banner.info {
+  border-color: rgba(145, 212, 255, 0.45);
+  background: rgba(17, 53, 80, 0.62);
+  color: #d4ecff;
+}
+
+.notice-banner.error {
+  border-color: rgba(255, 149, 149, 0.55);
+  background: rgba(74, 16, 21, 0.65);
+  color: #ffd9dd;
+}
+
+.panel {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  border-radius: 24px;
+  border: 1px solid rgba(153, 198, 228, 0.2);
+  padding: 1.5rem;
+  background: linear-gradient(160deg, rgba(16, 30, 48, 0.95), rgba(10, 20, 32, 0.92));
+  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.35);
+  animation: fade-up 220ms ease;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.subtitle {
+  margin: 0.35rem 0 1rem;
+  color: #a8c4de;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0 0;
+}
+
+.meta-grid.compact {
+  margin-top: 0.35rem;
+}
+
+.meta-grid div {
+  border-radius: 12px;
+  border: 1px solid rgba(150, 193, 222, 0.2);
+  padding: 0.7rem;
+  background: rgba(17, 35, 56, 0.56);
+}
+
+dt {
+  margin: 0;
+  color: #8fbadf;
+  font-size: 0.77rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+dd {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.trust-box {
+  border-radius: 14px;
+  padding: 0.95rem;
+  border: 1px solid;
+}
+
+.trust-box.warning {
+  border-color: rgba(255, 211, 135, 0.65);
+  background: rgba(94, 63, 9, 0.45);
+}
+
+.trust-box.verified {
+  border-color: rgba(138, 241, 195, 0.5);
+  background: rgba(17, 86, 60, 0.42);
+}
+
+.trust-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.scope-grid {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.scope-card {
+  display: block;
+  border-radius: 14px;
+  border: 1px solid rgba(139, 180, 212, 0.38);
+  padding: 0.8rem;
+  background: rgba(13, 28, 44, 0.75);
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.scope-card.active {
+  border-color: #67b3f0;
+  transform: translateY(-1px);
+}
+
+.scope-card input {
+  margin-right: 0.5rem;
+}
+
+.scope-card span {
+  font-weight: 600;
+}
+
+.scope-card small {
+  display: block;
+  color: #9ab8d2;
+  margin-top: 0.25rem;
+}
+
+.progress-shell {
+  margin-top: 1rem;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(18, 42, 64, 0.78);
+  border: 1px solid rgba(127, 173, 206, 0.25);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #45e3b7, #3ca3ff);
+  transition: width 180ms linear;
+}
+
+.progress-value {
+  margin: 0.55rem 0 0;
+  color: #abd4f5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+.actions.start {
+  justify-content: flex-start;
+}
+
+.button {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 0.58rem 0.95rem;
+  font-size: 0.93rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button.primary {
+  color: #03111d;
+  background: linear-gradient(135deg, #61d7ff, #55f0c0);
+}
+
+.button.ghost {
+  color: #d2e8fa;
+  border-color: rgba(143, 180, 209, 0.45);
+  background: rgba(20, 36, 56, 0.72);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.installed-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.installed-card {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr auto;
+  gap: 0.9rem;
+  border-radius: 14px;
+  border: 1px solid rgba(147, 194, 225, 0.26);
+  background: rgba(15, 31, 49, 0.78);
+  padding: 0.85rem;
+}
+
+.installed-card p {
+  margin: 0.3rem 0 0;
+  color: #a9c5db;
+}
+
+.installed-actions {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 0.8rem;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .topbar-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .runtime-pill {
+    width: 100%;
+  }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .installed-card {
+    grid-template-columns: 1fr;
+  }
+
+  .installed-actions {
+    justify-content: flex-start;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
