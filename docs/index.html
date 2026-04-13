@@ -76,10 +76,31 @@
       const copyButton = document.getElementById("copy-command");
       const command = document.getElementById("install-command");
 
+      async function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        if (!ok) {
+          throw new Error("copy failed");
+        }
+      }
+
       copyButton?.addEventListener("click", async () => {
         if (!command) return;
         try {
-          await navigator.clipboard.writeText(command.textContent || "");
+          await copyText(command.textContent || "");
           copyButton.textContent = "Copied";
           setTimeout(() => {
             copyButton.textContent = "Copy";
