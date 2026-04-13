@@ -90,6 +90,10 @@ done
 need_cmd curl
 need_cmd tar
 
+if [[ ! -t 0 ]]; then
+  non_interactive=true
+fi
+
 arch="$(resolve_arch)"
 os="linux"
 
@@ -133,6 +137,8 @@ if [[ "$non_interactive" == false ]]; then
   if [[ "${answer:-}" != "y" && "${answer:-}" != "Y" ]]; then
     fail "installation cancelled"
   fi
+else
+  log "Non-interactive mode detected, continuing automatically"
 fi
 
 tmp_dir="$(mktemp -d)"
