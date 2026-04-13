@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useMemo, useState } from "preact/hooks";
 import "./App.css";
 
@@ -57,6 +58,7 @@ function App() {
   const [loadingInstalled, setLoadingInstalled] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [messageTone, setMessageTone] = useState<MessageTone>("info");
+  const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
     const loadContext = async () => {
@@ -79,6 +81,32 @@ function App() {
     }
   }, [mode]);
 
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const syncMaximizeState = async () => {
+      try {
+        setIsMaximized(await win.isMaximized());
+      } catch {
+        setIsMaximized(false);
+      }
+    };
+
+    void syncMaximizeState();
+
+    let detachResizeListener: (() => void) | undefined;
+    void win.onResized(async () => {
+      await syncMaximizeState();
+    }).then((unlisten) => {
+      detachResizeListener = unlisten;
+    });
+
+    return () => {
+      if (detachResizeListener) {
+        detachResizeListener();
+      }
+    };
+  }, []);
+
   const stepIndex = useMemo(() => {
     const order: WizardStep[] = ["details", "trust", "scope", "progress", "complete"];
     return order.indexOf(step) + 1;
@@ -86,12 +114,25 @@ function App() {
 
   const choosePackage = async () => {
     setMessage("");
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: "Yambuck package", extensions: ["yambuck"] }],
-    });
+    let selected: string | null = null;
 
-    if (!selected || Array.isArray(selected)) {
+    try {
+      const value = await open({
+        multiple: false,
+        filters: [{ name: "Yambuck package", extensions: ["yambuck"] }],
+      });
+      if (Array.isArray(value)) {
+        selected = value[0] ?? null;
+      } else {
+        selected = value;
+      }
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to open file picker. Check app permissions and try again.");
+      return;
+    }
+
+    if (!selected) {
       return;
     }
 
@@ -216,6 +257,57 @@ function App() {
     } catch {
       setMessageTone("error");
       setMessage("Install finished with issues. Could not update installed apps index.");
+    }
+  };
+
+  const handleTitlebarMouseDown = async (event: any) => {
+    if (event.buttons !== 1) {
+      return;
+    }
+
+    if (event.target?.closest("button, a, input, [data-no-drag='true']")) {
+      return;
+    }
+
+    try {
+      await getCurrentWindow().startDragging();
+    } catch {
+      // no-op if drag is unavailable
+    }
+  };
+
+  const handleMinimize = async () => {
+    try {
+      await getCurrentWindow().minimize();
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to minimize window.");
+    }
+  };
+
+  const handleToggleMaximize = async () => {
+    try {
+      const win = getCurrentWindow();
+      const currentlyMaximized = await win.isMaximized();
+      if (currentlyMaximized) {
+        await win.unmaximize();
+        setIsMaximized(false);
+      } else {
+        await win.maximize();
+        setIsMaximized(true);
+      }
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to resize window.");
+    }
+  };
+
+  const handleClose = async () => {
+    try {
+      await getCurrentWindow().close();
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to close window.");
     }
   };
 
@@ -428,7 +520,7 @@ function App() {
 
   return (
     <main class="app-shell">
-      <header class="topbar">
+      <header class="topbar" onMouseDown={(event) => void handleTitlebarMouseDown(event)}>
         <div>
           <p class="kicker">Yambuck Installer</p>
           <p class="headline">
@@ -453,12 +545,36 @@ function App() {
               ? `${context.productName} ${context.appVersion} on ${context.platform}`
               : "Loading runtime"}
           </div>
+          <div class="window-controls" data-no-drag="true">
+            <button class="window-btn" onClick={() => void handleMinimize()} title="Minimize">
+              -
+            </button>
+            <button
+              class="window-btn"
+              onClick={() => void handleToggleMaximize()}
+              title={isMaximized ? "Restore" : "Maximize"}
+            >
+              {isMaximized ? "▢" : "□"}
+            </button>
+            <button class="window-btn close" onClick={() => void handleClose()} title="Close">
+              ×
+            </button>
+          </div>
         </div>
       </header>
 
       {message ? <div class={`notice-banner ${messageTone}`}>{message}</div> : null}
 
       {mode === "install" ? renderInstallStep() : renderInstalledApps()}
+
+      <footer class="app-footer" data-no-drag="true">
+        <span class="footer-version">
+          {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
+        </span>
+        <a class="footer-link" href="https://github.com/yambuck/yambuck" target="_blank" rel="noreferrer">
+          GitHub
+        </a>
+      </footer>
     </main>
   );
 }
