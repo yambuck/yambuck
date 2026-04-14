@@ -1,13 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { IconBrandGithub } from "@tabler/icons-preact";
+import { IconBrandGithub, IconSettings } from "@tabler/icons-preact";
 import { useEffect, useState } from "preact/hooks";
 import "./App.css";
 
 type WizardStep = "details" | "trust" | "scope" | "progress" | "complete";
 type InstallScope = "user" | "system";
-type ScreenMode = "install" | "installed";
+type AppPage = "installer" | "installed" | "settings";
+type SettingsTab = "general" | "debug";
 type MessageTone = "info" | "error";
 
 type InstallerContext = {
@@ -55,8 +56,21 @@ type UpdateCheckResult = {
   sha256?: string;
 };
 
+type SystemInfo = {
+  appVersion: string;
+  os: string;
+  arch: string;
+  kernelVersion: string;
+  distro: string;
+  desktopEnvironment: string;
+  sessionType: string;
+  installPath: string;
+  updateFeedUrl: string;
+};
+
 function App() {
-  const [mode, setMode] = useState<ScreenMode>("install");
+  const [page, setPage] = useState<AppPage>("installer");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [step, setStep] = useState<WizardStep>("details");
   const [scope, setScope] = useState<InstallScope>("user");
   const [progress, setProgress] = useState(0);
@@ -74,6 +88,9 @@ function App() {
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
   const [applyingUpdate, setApplyingUpdate] = useState(false);
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [logText, setLogText] = useState("");
+  const [loadingDebug, setLoadingDebug] = useState(false);
 
   useEffect(() => {
     const loadContext = async () => {
@@ -91,14 +108,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (mode === "installed") {
+    if (page === "installed") {
       void refreshInstalledApps();
     }
-  }, [mode]);
+  }, [page]);
 
   useEffect(() => {
     void checkForUpdates(false);
   }, []);
+
+  useEffect(() => {
+    if (page === "settings" && settingsTab === "debug") {
+      void loadDebugData();
+    }
+  }, [page, settingsTab]);
 
   useEffect(() => {
     const win = getCurrentWindow();
@@ -184,6 +207,91 @@ function App() {
       setMessage("Unable to check for updates right now.");
     } finally {
       setCheckingUpdates(false);
+    }
+  };
+
+  const loadDebugData = async () => {
+    setLoadingDebug(true);
+    try {
+      const [info, logs] = await Promise.all([
+        invoke<SystemInfo>("get_system_info"),
+        invoke<string>("get_recent_logs", { limit: 300 }),
+      ]);
+      setSystemInfo(info);
+      setLogText(logs);
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to load debug data.");
+    } finally {
+      setLoadingDebug(false);
+    }
+  };
+
+  const copyText = async (value: string, successMessage: string) => {
+    if (!value.trim()) {
+      setMessageTone("error");
+      setMessage("Nothing to copy yet.");
+      return;
+    }
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = value;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setMessageTone("info");
+      setMessage(successMessage);
+      await invoke("log_ui_event", { level: "INFO", message: successMessage });
+    } catch {
+      setMessageTone("error");
+      setMessage("Copy failed.");
+    }
+  };
+
+  const copySystemInfo = async () => {
+    if (!systemInfo) {
+      setMessageTone("error");
+      setMessage("System info not loaded yet.");
+      return;
+    }
+
+    const lines = [
+      `Yambuck v${systemInfo.appVersion}`,
+      `OS: ${systemInfo.os}`,
+      `Arch: ${systemInfo.arch}`,
+      `Kernel: ${systemInfo.kernelVersion}`,
+      `Distro: ${systemInfo.distro}`,
+      `Desktop: ${systemInfo.desktopEnvironment}`,
+      `Session: ${systemInfo.sessionType}`,
+      `Install path: ${systemInfo.installPath}`,
+      `Update feed: ${systemInfo.updateFeedUrl}`,
+    ];
+
+    await copyText(lines.join("\n"), "System info copied.");
+  };
+
+  const copyLogs = async () => {
+    await copyText(logText, "Logs copied.");
+  };
+
+  const handleClearLogs = async () => {
+    try {
+      await invoke("clear_logs");
+      setLogText("");
+      setMessageTone("info");
+      setMessage("Logs cleared.");
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to clear logs.");
     }
   };
 
@@ -592,25 +700,117 @@ function App() {
     </section>
   );
 
+  const renderSettingsPage = () => (
+    <section class="panel">
+      <h1>Settings</h1>
+      <p class="subtitle">Configure Yambuck behavior and inspect diagnostics.</p>
+
+      <div class="settings-tabs" data-no-drag="true">
+        <button
+          class={`toggle-pill ${settingsTab === "general" ? "active" : ""}`}
+          onClick={() => setSettingsTab("general")}
+        >
+          General
+        </button>
+        <button
+          class={`toggle-pill ${settingsTab === "debug" ? "active" : ""}`}
+          onClick={() => setSettingsTab("debug")}
+        >
+          Debug
+        </button>
+      </div>
+
+      {settingsTab === "general" ? (
+        <div class="settings-grid">
+          <article class="setting-card">
+            <h2>Updates</h2>
+            <p>Update checks are enabled on startup and can be run manually.</p>
+            <button
+              class="button ghost"
+              onClick={() => void checkForUpdates(true)}
+              disabled={checkingUpdates}
+            >
+              {checkingUpdates ? "Checking..." : "Check now"}
+            </button>
+          </article>
+          <article class="setting-card">
+            <h2>Install behavior</h2>
+            <p>Default install scope is per-user. System scope requires elevation.</p>
+          </article>
+        </div>
+      ) : (
+        <div class="settings-grid">
+          <article class="setting-card">
+            <h2>System info</h2>
+            {loadingDebug ? <p>Loading runtime data...</p> : null}
+            {systemInfo ? (
+              <dl class="debug-list">
+                <div><dt>Version</dt><dd>{systemInfo.appVersion}</dd></div>
+                <div><dt>Distro</dt><dd>{systemInfo.distro}</dd></div>
+                <div><dt>Kernel</dt><dd>{systemInfo.kernelVersion}</dd></div>
+                <div><dt>Desktop</dt><dd>{systemInfo.desktopEnvironment}</dd></div>
+                <div><dt>Session</dt><dd>{systemInfo.sessionType}</dd></div>
+                <div><dt>Arch</dt><dd>{systemInfo.arch}</dd></div>
+              </dl>
+            ) : null}
+            <div class="actions start compact">
+              <button class="button ghost" onClick={() => void loadDebugData()} disabled={loadingDebug}>
+                Refresh
+              </button>
+              <button class="button ghost" onClick={() => void copySystemInfo()}>
+                Copy system info
+              </button>
+            </div>
+          </article>
+          <article class="setting-card">
+            <h2>Logs</h2>
+            <p>Timestamped events for update checks and installer actions.</p>
+            <pre class="log-view">{logText || "No logs yet."}</pre>
+            <div class="actions start compact">
+              <button class="button ghost" onClick={() => void copyLogs()}>
+                Copy logs
+              </button>
+              <button class="button ghost" onClick={() => void handleClearLogs()}>
+                Clear logs
+              </button>
+            </div>
+          </article>
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <main class="app-shell">
       <header class="topbar" onMouseDown={(event) => void handleTitlebarMouseDown(event)}>
         <div class="topbar-left" data-no-drag="true">
           <button
-            class={`toggle-pill ${mode === "install" ? "active" : ""}`}
-            onClick={() => setMode("install")}
+            class={`toggle-pill ${page === "installer" ? "active" : ""}`}
+            onClick={() => setPage("installer")}
           >
             Installer
           </button>
           <button
-            class={`toggle-pill ${mode === "installed" ? "active" : ""}`}
-            onClick={() => setMode("installed")}
+            class={`toggle-pill ${page === "installed" ? "active" : ""}`}
+            onClick={() => setPage("installed")}
           >
             Installed Apps
           </button>
         </div>
-        <div class="topbar-title">Yambuck Installer</div>
+        <div class="topbar-title">
+          {page === "installer" ? "Yambuck Installer" : page === "installed" ? "Installed Apps" : "Settings"}
+        </div>
         <div class="topbar-right" data-no-drag="true">
+          <button
+            class="window-btn icon"
+            onClick={() => {
+              setPage("settings");
+              setSettingsTab("general");
+            }}
+            title="Settings"
+          >
+            <IconSettings size={14} />
+          </button>
           <div class="window-controls" data-no-drag="true">
             <button class="window-btn" onClick={() => void handleMinimize()} title="Minimize">
               -
@@ -664,7 +864,11 @@ function App() {
         </section>
       ) : null}
 
-      {mode === "install" ? renderInstallStep() : renderInstalledApps()}
+      {page === "installer"
+        ? renderInstallStep()
+        : page === "installed"
+          ? renderInstalledApps()
+          : renderSettingsPage()}
 
       <footer class="app-footer" data-no-drag="true">
         <div class="footer-meta">
