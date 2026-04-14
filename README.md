@@ -71,6 +71,7 @@ Core installer flow (v1):
 - Yambuck includes an installed-apps view with uninstall actions.
 - Distribution is direct-download only: vendors/devs host their own files.
 - Bootstrap setup is a single command from the website, followed by GUI-first use.
+- Update UX is user-controlled: notify clearly, then `Update and restart` or `Later`.
 - Package identity includes both:
   - `app_id` (reverse-DNS, e.g. `com.voquill.app`)
   - `app_uuid` (immutable global UUID for future trust and reputation systems)

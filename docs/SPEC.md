@@ -195,6 +195,15 @@ Bootstrap requirements:
 - verification of downloaded artifacts before install
 - least-privilege behavior where possible
 
+## Yambuck Self-Update Model (v1 Direction)
+
+- update checks happen on startup and periodic interval
+- updates are user-controlled, not silent
+- users see `Update and restart` and `Later` options
+- update metadata feed: `https://yambuck.com/updates/stable.json`
+- feed points to GitHub Releases artifact URLs + checksums
+- user install updates without elevation; system install updates require elevation
+
 ## Compatibility Approach
 
 The target is broad Linux distribution support through a stable installer/runtime behavior and package format.
@@ -219,7 +228,6 @@ Reference validation app:
 - final package container format (archive type and layout)
 - final manifest schema and versioning rules
 - signature model and key distribution strategy
-- update and rollback model
 - system-wide vs per-user install defaults
 - UX behavior for missing runtime dependencies
 

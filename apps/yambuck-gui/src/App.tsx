@@ -45,6 +45,16 @@ type InstalledApp = {
   installedAt: string;
 };
 
+type UpdateCheckResult = {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  channel: string;
+  notesUrl?: string;
+  downloadUrl?: string;
+  sha256?: string;
+};
+
 function App() {
   const [mode, setMode] = useState<ScreenMode>("install");
   const [step, setStep] = useState<WizardStep>("details");
@@ -60,6 +70,10 @@ function App() {
   const [message, setMessage] = useState<string>("");
   const [messageTone, setMessageTone] = useState<MessageTone>("info");
   const [isMaximized, setIsMaximized] = useState(false);
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
+  const [applyingUpdate, setApplyingUpdate] = useState(false);
 
   useEffect(() => {
     const loadContext = async () => {
@@ -81,6 +95,10 @@ function App() {
       void refreshInstalledApps();
     }
   }, [mode]);
+
+  useEffect(() => {
+    void checkForUpdates(false);
+  }, []);
 
   useEffect(() => {
     const win = getCurrentWindow();
@@ -144,6 +162,33 @@ function App() {
     } catch {
       setMessageTone("error");
       setMessage("Unable to open package. Choose a valid .yambuck file.");
+    }
+  };
+
+  const checkForUpdates = async (showNoUpdateMessage: boolean) => {
+    if (checkingUpdates) {
+      return;
+    }
+
+    setCheckingUpdates(true);
+    try {
+      const result = await invoke<UpdateCheckResult>("check_for_updates");
+      setUpdateResult(result);
+
+      if (result.updateAvailable) {
+        if (dismissedUpdateVersion !== result.latestVersion) {
+          setMessageTone("info");
+          setMessage(`Update available: ${result.currentVersion} -> ${result.latestVersion}`);
+        }
+      } else if (showNoUpdateMessage) {
+        setMessageTone("info");
+        setMessage(`You're up to date (v${result.currentVersion}).`);
+      }
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to check for updates right now.");
+    } finally {
+      setCheckingUpdates(false);
     }
   };
 
@@ -306,6 +351,44 @@ function App() {
       setMessage("Unable to close window.");
     }
   };
+
+  const dismissUpdateNotice = () => {
+    if (!updateResult) {
+      return;
+    }
+    setDismissedUpdateVersion(updateResult.latestVersion);
+  };
+
+  const handleUpdateAndRestart = async () => {
+    if (!updateResult) {
+      return;
+    }
+
+    if (!updateResult.downloadUrl || !updateResult.sha256) {
+      setMessageTone("error");
+      setMessage("Update metadata is incomplete. Please try again later.");
+      return;
+    }
+
+    setApplyingUpdate(true);
+    setMessageTone("info");
+    setMessage(`Applying update ${updateResult.latestVersion}. Yambuck will restart.`);
+
+    try {
+      await invoke("apply_update_and_restart", {
+        downloadUrl: updateResult.downloadUrl,
+        expectedSha256: updateResult.sha256,
+      });
+      await getCurrentWindow().close();
+    } catch {
+      setMessageTone("error");
+      setMessage("Unable to apply update automatically. Please retry or use website installer.");
+      setApplyingUpdate(false);
+    }
+  };
+
+  const showUpdateBanner =
+    updateResult?.updateAvailable && updateResult.latestVersion !== dismissedUpdateVersion;
 
   const renderInstallStep = () => {
     if (step === "details") {
@@ -553,12 +636,54 @@ function App() {
 
       {message ? <div class={`notice-banner ${messageTone}`}>{message}</div> : null}
 
+      {showUpdateBanner ? (
+        <section class="update-banner" data-no-drag="true">
+          <div>
+            <p class="update-title">Update available</p>
+            <p class="update-subtitle">
+              {`v${updateResult.currentVersion} -> v${updateResult.latestVersion}`}
+            </p>
+          </div>
+          <div class="update-actions">
+            {updateResult.notesUrl ? (
+              <a
+                class="button ghost"
+                href={updateResult.notesUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Release notes
+              </a>
+            ) : null}
+            <button class="button ghost" onClick={() => dismissUpdateNotice()}>
+              Later
+            </button>
+            <button
+              class="button primary"
+              onClick={() => void handleUpdateAndRestart()}
+              disabled={applyingUpdate}
+            >
+              {applyingUpdate ? "Applying..." : "Update and restart"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       {mode === "install" ? renderInstallStep() : renderInstalledApps()}
 
       <footer class="app-footer" data-no-drag="true">
-        <span class="footer-version">
-          {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
-        </span>
+        <div class="footer-meta">
+          <span class="footer-version">
+            {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
+          </span>
+          <button
+            class="footer-action"
+            onClick={() => void checkForUpdates(true)}
+            disabled={checkingUpdates}
+          >
+            {checkingUpdates ? "Checking..." : "Check for updates"}
+          </button>
+        </div>
         <a class="footer-link" href="https://github.com/yambuck/yambuck" target="_blank" rel="noreferrer">
           <IconBrandGithub size={16} />
           GitHub

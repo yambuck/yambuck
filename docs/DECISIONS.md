@@ -28,6 +28,14 @@ Yambuck exists to make Linux app distribution and installation dead simple for n
   - `All users` (optional, elevated)
 - Installed-apps screen includes uninstall
 - Optional checkbox to remove user config/data on uninstall
+- Update flow is user-controlled: `Update and restart` or `Later`
+- Users are always informed of update progress and outcomes
+
+## Update Source (v1)
+
+- Latest update metadata is published at `https://yambuck.com/updates/stable.json`
+- Feed points to immutable GitHub Release artifacts
+- No silent background auto-update in v1
 
 ## Security/Trust (v1)
 

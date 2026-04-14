@@ -8,3 +8,4 @@ description = "Core install and package models for Yambuck"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 zip = "2"
+semver = "1"
