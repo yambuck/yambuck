@@ -9,7 +9,7 @@ type WizardStep = "details" | "trust" | "scope" | "progress" | "complete";
 type InstallScope = "user" | "system";
 type AppPage = "installer" | "installed" | "settings";
 type SettingsTab = "general" | "debug";
-type MessageTone = "info" | "error";
+type ToastTone = "info" | "success" | "warning" | "error";
 
 type InstallerContext = {
   productName: string;
@@ -68,6 +68,12 @@ type SystemInfo = {
   updateFeedUrl: string;
 };
 
+type ToastItem = {
+  id: number;
+  tone: ToastTone;
+  message: string;
+};
+
 function App() {
   const [page, setPage] = useState<AppPage>("installer");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
@@ -81,8 +87,7 @@ function App() {
   const [isBusy, setIsBusy] = useState(false);
   const [installedApps, setInstalledApps] = useState<InstalledApp[]>([]);
   const [loadingInstalled, setLoadingInstalled] = useState(false);
-  const [message, setMessage] = useState<string>("");
-  const [messageTone, setMessageTone] = useState<MessageTone>("info");
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [isMaximized, setIsMaximized] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
@@ -92,6 +97,18 @@ function App() {
   const [logText, setLogText] = useState("");
   const [loadingDebug, setLoadingDebug] = useState(false);
 
+  const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
+    const id = Date.now() + Math.floor(Math.random() * 10000);
+    setToasts((prev) => [...prev.slice(-2), { id, tone, message: toastMessage }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, durationMs);
+  };
+
+  const dismissToast = (id: number) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
   useEffect(() => {
     const loadContext = async () => {
       try {
@@ -99,8 +116,7 @@ function App() {
         setContext(value);
         setScope(value.defaultScope);
       } catch {
-        setMessageTone("error");
-        setMessage("Unable to load installer runtime context.");
+        pushToast("error", "Unable to load installer runtime context.");
       }
     };
 
@@ -150,7 +166,6 @@ function App() {
   }, []);
 
   const choosePackage = async () => {
-    setMessage("");
     let selected: string | null = null;
 
     try {
@@ -164,8 +179,7 @@ function App() {
         selected = value;
       }
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to open file picker. Check app permissions and try again.");
+      pushToast("error", "Unable to open file picker. Check app permissions and try again.");
       return;
     }
 
@@ -180,11 +194,9 @@ function App() {
       setPackageInfo(inspected);
       setStep("details");
       setPreview(null);
-      setMessageTone("info");
-      setMessage(`Loaded package ${inspected.fileName}`);
+      pushToast("success", `Loaded package ${inspected.fileName}`);
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to open package. Choose a valid .yambuck file.");
+      pushToast("error", "Unable to open package. Choose a valid .yambuck file.");
     }
   };
 
@@ -199,12 +211,10 @@ function App() {
       setUpdateResult(result);
 
       if (!result.updateAvailable && showNoUpdateMessage) {
-        setMessageTone("info");
-        setMessage(`You're up to date (v${result.currentVersion}).`);
+        pushToast("info", `You're up to date (v${result.currentVersion}).`);
       }
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to check for updates right now.");
+      pushToast("error", "Unable to check for updates right now.");
     } finally {
       setCheckingUpdates(false);
     }
@@ -220,8 +230,7 @@ function App() {
       setSystemInfo(info);
       setLogText(logs);
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to load debug data.");
+      pushToast("error", "Unable to load debug data.");
     } finally {
       setLoadingDebug(false);
     }
@@ -229,8 +238,7 @@ function App() {
 
   const copyText = async (value: string, successMessage: string) => {
     if (!value.trim()) {
-      setMessageTone("error");
-      setMessage("Nothing to copy yet.");
+      pushToast("warning", "Nothing to copy yet.");
       return;
     }
 
@@ -248,19 +256,16 @@ function App() {
         document.execCommand("copy");
         document.body.removeChild(textArea);
       }
-      setMessageTone("info");
-      setMessage(successMessage);
+      pushToast("success", successMessage);
       await invoke("log_ui_event", { level: "INFO", message: successMessage });
     } catch {
-      setMessageTone("error");
-      setMessage("Copy failed.");
+      pushToast("error", "Copy failed.");
     }
   };
 
   const copySystemInfo = async () => {
     if (!systemInfo) {
-      setMessageTone("error");
-      setMessage("System info not loaded yet.");
+      pushToast("warning", "System info not loaded yet.");
       return;
     }
 
@@ -287,11 +292,9 @@ function App() {
     try {
       await invoke("clear_logs");
       setLogText("");
-      setMessageTone("info");
-      setMessage("Logs cleared.");
+      pushToast("info", "Logs cleared.");
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to clear logs.");
+      pushToast("error", "Unable to clear logs.");
     }
   };
 
@@ -301,8 +304,7 @@ function App() {
       const apps = await invoke<InstalledApp[]>("list_installed_apps");
       setInstalledApps(apps);
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to load installed apps list.");
+      pushToast("error", "Unable to load installed apps list.");
     } finally {
       setLoadingInstalled(false);
     }
@@ -320,25 +322,21 @@ function App() {
         appId: app.appId,
         removeUserData,
       });
-      setMessageTone("info");
-      setMessage(`${app.displayName} removed.`);
+      pushToast("success", `${app.displayName} removed.`);
       await refreshInstalledApps();
     } catch {
-      setMessageTone("error");
-      setMessage(`Failed to uninstall ${app.displayName}.`);
+      pushToast("error", `Failed to uninstall ${app.displayName}.`);
     }
   };
 
   const startInstall = async () => {
     if (!packageInfo) {
-      setMessageTone("error");
-      setMessage("Choose a .yambuck package before installing.");
+      pushToast("warning", "Choose a .yambuck package before installing.");
       return;
     }
 
     const selectedPackage = packageInfo;
 
-    setMessage("");
     setIsBusy(true);
     setStep("progress");
     setProgress(0);
@@ -356,8 +354,7 @@ function App() {
       });
       setPreview(installPreview);
     } catch {
-      setMessageTone("error");
-      setMessage("Failed to generate install preview.");
+      pushToast("error", "Failed to generate install preview.");
       setIsBusy(false);
       setStep("scope");
       return;
@@ -395,12 +392,10 @@ function App() {
         scope: installScope,
         destinationPath: installPreview.destinationPath,
       });
-      setMessageTone("info");
-      setMessage(`${selectedPackage.displayName} installed.`);
+      pushToast("success", `${selectedPackage.displayName} installed.`);
       await refreshInstalledApps();
     } catch {
-      setMessageTone("error");
-      setMessage("Install finished with issues. Could not update installed apps index.");
+      pushToast("error", "Install finished with issues. Could not update installed apps index.");
     }
   };
 
@@ -424,8 +419,7 @@ function App() {
     try {
       await getCurrentWindow().minimize();
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to minimize window.");
+      pushToast("error", "Unable to minimize window.");
     }
   };
 
@@ -441,8 +435,7 @@ function App() {
         setIsMaximized(true);
       }
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to resize window.");
+      pushToast("error", "Unable to resize window.");
     }
   };
 
@@ -450,8 +443,7 @@ function App() {
     try {
       await getCurrentWindow().close();
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to close window.");
+      pushToast("error", "Unable to close window.");
     }
   };
 
@@ -468,14 +460,12 @@ function App() {
     }
 
     if (!updateResult.downloadUrl || !updateResult.sha256) {
-      setMessageTone("error");
-      setMessage("Update metadata is incomplete. Please try again later.");
+      pushToast("error", "Update metadata is incomplete. Please try again later.");
       return;
     }
 
     setApplyingUpdate(true);
-    setMessageTone("info");
-    setMessage(`Applying update ${updateResult.latestVersion}. Yambuck will restart.`);
+    pushToast("info", `Applying update ${updateResult.latestVersion}. Yambuck will restart.`);
 
     try {
       await invoke("apply_update_and_restart", {
@@ -484,8 +474,7 @@ function App() {
       });
       await getCurrentWindow().close();
     } catch {
-      setMessageTone("error");
-      setMessage("Unable to apply update automatically. Please retry or use website installer.");
+      pushToast("error", "Unable to apply update automatically. Please retry or use website installer.");
       setApplyingUpdate(false);
     }
   };
@@ -829,46 +818,57 @@ function App() {
         </div>
       </header>
 
-      {message ? <div class={`notice-banner ${messageTone}`}>{message}</div> : null}
-
-      {showUpdateBanner ? (
-        <section class="update-banner" data-no-drag="true">
-          <div>
-            <p class="update-title">Update available</p>
-            <p class="update-subtitle">
-              {`v${updateResult.currentVersion} -> v${updateResult.latestVersion}`}
-            </p>
+      <div class="toast-host" data-no-drag="true">
+        {toasts.map((toast) => (
+          <div key={toast.id} class={`toast ${toast.tone}`}>
+            <span>{toast.message}</span>
+            <button class="toast-close" onClick={() => dismissToast(toast.id)} aria-label="Dismiss toast">
+              ×
+            </button>
           </div>
-          <div class="update-actions">
-            {updateResult.notesUrl ? (
-              <a
-                class="button ghost"
-                href={updateResult.notesUrl}
-                target="_blank"
-                rel="noreferrer"
+        ))}
+      </div>
+
+      <section class="content-scroll" data-no-drag="true">
+        {showUpdateBanner ? (
+          <section class="update-banner" data-no-drag="true">
+            <div>
+              <p class="update-title">Update available</p>
+              <p class="update-subtitle">
+                {`v${updateResult.currentVersion} -> v${updateResult.latestVersion}`}
+              </p>
+            </div>
+            <div class="update-actions">
+              {updateResult.notesUrl ? (
+                <a
+                  class="button ghost"
+                  href={updateResult.notesUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Release notes
+                </a>
+              ) : null}
+              <button class="button ghost" onClick={() => dismissUpdateNotice()}>
+                Later
+              </button>
+              <button
+                class="button primary"
+                onClick={() => void handleUpdateAndRestart()}
+                disabled={applyingUpdate}
               >
-                Release notes
-              </a>
-            ) : null}
-            <button class="button ghost" onClick={() => dismissUpdateNotice()}>
-              Later
-            </button>
-            <button
-              class="button primary"
-              onClick={() => void handleUpdateAndRestart()}
-              disabled={applyingUpdate}
-            >
-              {applyingUpdate ? "Applying..." : "Update and restart"}
-            </button>
-          </div>
-        </section>
-      ) : null}
+                {applyingUpdate ? "Applying..." : "Update and restart"}
+              </button>
+            </div>
+          </section>
+        ) : null}
 
-      {page === "installer"
-        ? renderInstallStep()
-        : page === "installed"
-          ? renderInstalledApps()
-          : renderSettingsPage()}
+        {page === "installer"
+          ? renderInstallStep()
+          : page === "installed"
+            ? renderInstalledApps()
+            : renderSettingsPage()}
+      </section>
 
       <footer class="app-footer" data-no-drag="true">
         <div class="footer-meta">
