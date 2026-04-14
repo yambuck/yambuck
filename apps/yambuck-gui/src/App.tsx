@@ -26,7 +26,17 @@ type PackageInfo = {
   appId: string;
   appUuid: string;
   version: string;
+  manifestVersion: string;
   publisher: string;
+  description: string;
+  entrypoint: string;
+  iconPath: string;
+  iconDataUrl?: string;
+  screenshots: string[];
+  screenshotDataUrls: string[];
+  homepageUrl?: string;
+  supportUrl?: string;
+  license?: string;
   packageUuid: string;
   trustStatus: string;
 };
@@ -68,6 +78,11 @@ type SystemInfo = {
   updateFeedUrl: string;
 };
 
+type PreflightCheckResult = {
+  status: "ok" | "managed_existing" | "external_conflict";
+  message: string;
+};
+
 type ToastItem = {
   id: number;
   tone: ToastTone;
@@ -96,6 +111,8 @@ function App() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [logText, setLogText] = useState("");
   const [loadingDebug, setLoadingDebug] = useState(false);
+  const [preflightBlockedMessage, setPreflightBlockedMessage] = useState("");
+  const [checkingPreflight, setCheckingPreflight] = useState(false);
 
   const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
@@ -194,6 +211,7 @@ function App() {
       setPackageInfo(inspected);
       setStep("details");
       setPreview(null);
+      setPreflightBlockedMessage("");
       pushToast("success", `Loaded package ${inspected.fileName}`);
     } catch {
       pushToast("error", "Unable to open package. Choose a valid .yambuck file.");
@@ -333,6 +351,38 @@ function App() {
     }
   };
 
+  const handleContinueFromDetails = async () => {
+    if (!packageInfo) {
+      pushToast("warning", "Choose a .yambuck package first.");
+      return;
+    }
+
+    setCheckingPreflight(true);
+    try {
+      const result = await invoke<PreflightCheckResult>("preflight_install_check", {
+        appId: packageInfo.appId,
+      });
+
+      if (result.status === "external_conflict") {
+        setPreflightBlockedMessage(result.message);
+        pushToast("error", result.message, 5200);
+        return;
+      }
+
+      setPreflightBlockedMessage("");
+
+      if (result.status === "managed_existing") {
+        pushToast("info", "Existing Yambuck-managed install detected. Proceeding with replace.");
+      }
+
+      setStep("trust");
+    } catch {
+      pushToast("error", "Could not run install safety checks.");
+    } finally {
+      setCheckingPreflight(false);
+    }
+  };
+
   const startInstall = async () => {
     if (!packageInfo) {
       pushToast("warning", "Choose a .yambuck package before installing.");
@@ -340,6 +390,21 @@ function App() {
     }
 
     const selectedPackage = packageInfo;
+    setPreflightBlockedMessage("");
+
+    try {
+      const preflight = await invoke<PreflightCheckResult>("preflight_install_check", {
+        appId: selectedPackage.appId,
+      });
+      if (preflight.status === "external_conflict") {
+        setPreflightBlockedMessage(preflight.message);
+        pushToast("error", preflight.message, 5200);
+        return;
+      }
+    } catch {
+      pushToast("error", "Could not verify install ownership safety.");
+      return;
+    }
 
     setIsBusy(true);
     setStep("progress");
@@ -500,6 +565,33 @@ function App() {
 
           {packageInfo ? (
             <>
+              {preflightBlockedMessage ? (
+                <div class="trust-box warning">
+                  <p class="trust-title">Install blocked</p>
+                  <p>{preflightBlockedMessage}</p>
+                </div>
+              ) : null}
+
+              <div class="package-overview">
+                {packageInfo.iconDataUrl ? (
+                  <img class="package-icon" src={packageInfo.iconDataUrl} alt={`${packageInfo.displayName} icon`} />
+                ) : (
+                  <div class="package-icon placeholder">No icon</div>
+                )}
+                <div>
+                  <p class="subtitle package-description">{packageInfo.description}</p>
+                  <p class="subtitle">Entrypoint: <code>{packageInfo.entrypoint}</code></p>
+                </div>
+              </div>
+
+              {packageInfo.screenshotDataUrls.length > 0 ? (
+                <div class="screenshot-strip" data-no-drag="true">
+                  {packageInfo.screenshotDataUrls.map((source, index) => (
+                    <img key={`${packageInfo.packageUuid}-${index}`} src={source} alt={`Screenshot ${index + 1}`} />
+                  ))}
+                </div>
+              ) : null}
+
               <dl class="meta-grid">
                 <div>
                   <dt>Package</dt>
@@ -518,6 +610,10 @@ function App() {
                   <dd>{packageInfo.version}</dd>
                 </div>
                 <div>
+                  <dt>Manifest</dt>
+                  <dd>{packageInfo.manifestVersion}</dd>
+                </div>
+                <div>
                   <dt>App UUID</dt>
                   <dd>{packageInfo.appUuid}</dd>
                 </div>
@@ -525,9 +621,21 @@ function App() {
                   <dt>Package UUID</dt>
                   <dd>{packageInfo.packageUuid}</dd>
                 </div>
+                {packageInfo.homepageUrl ? (
+                  <div>
+                    <dt>Homepage</dt>
+                    <dd>{packageInfo.homepageUrl}</dd>
+                  </div>
+                ) : null}
               </dl>
               <div class="actions">
-                <button class="button primary" onClick={() => setStep("trust")}>Continue</button>
+                <button
+                  class="button primary"
+                  onClick={() => void handleContinueFromDetails()}
+                  disabled={checkingPreflight}
+                >
+                  {checkingPreflight ? "Checking..." : "Continue"}
+                </button>
               </div>
             </>
           ) : null}

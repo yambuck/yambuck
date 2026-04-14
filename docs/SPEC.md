@@ -1,258 +1,214 @@
-# Yambuck Specification (Draft v0)
+# Yambuck v1 Specification
 
 ## Mission
 
 Yambuck makes Linux app distribution and installation dead simple for non-technical users, with a GUI-first cross-distro experience and optional CLI tooling, to help accelerate mainstream Linux adoption.
 
-This mission is the primary design constraint for all technical decisions.
+This mission is the primary design constraint for all technical choices.
 
-## Product Emphasis
+## Product Position
 
-Priority order:
+- Linux-first, GUI-first product
+- Direct-download model (developer-hosted `.yambuck` files)
+- No required central store/repository
+- Optional CLI support, secondary to GUI
+- Familiar installer UX inspired by mainstream consumer installers
 
-1. End-user installation simplicity (especially non-technical users)
-2. Cross-distro reliability and predictability
-3. Easy packaging workflow for developers
-4. Optional CLI support (nice to have, not the core product)
+## v1 User Experience Contract
 
-## Product Shape (Locked for v1)
+1. User installs Yambuck once from the website bootstrap command.
+2. User downloads a `.yambuck` file from a publisher website or release page.
+3. User opens the file in Yambuck.
+4. Yambuck shows rich package details (icon, description, screenshots where available), trust state, and install scope.
+5. User installs with a guided flow.
+6. User can later view installed apps and uninstall from Yambuck.
 
-- Linux-first
-- GUI-first installer UX
-- Direct-download distribution (developer-hosted files)
-- No required central repository/store service
-- CLI available as secondary interface
-- Installer UX modeled on familiar consumer installers (step-by-step wizard)
-- Modern, branded UI controlled by Yambuck (not desktop-theme-dependent)
+## Architecture Direction
 
-## Objectives
+- Rust core for package/install/update logic
+- Tauri GUI shell for modern, consistent cross-desktop UI
+- Shared core APIs used by GUI and CLI
 
-### 1) End-user objective
+Current structure:
 
-Provide a straightforward install experience where users can download an app package, open it, and install with a familiar GUI flow.
+- `crates/yambuck-core`
+- `apps/yambuck-gui`
+- `yambuck-cli` planned as secondary interface
 
-### 2) Developer objective
+## Package Format (Locked Direction)
 
-Provide a predictable packaging flow so developers can prepare and distribute Linux apps with minimal distro-specific complexity.
+### Container
 
-### 3) Ecosystem objective
+- A `.yambuck` file is a zip container.
+- Top-level layout is explicit and readable (no required hidden `.yambuck/` root folder).
 
-Reduce Linux software distribution friction and improve confidence for mainstream users.
+Expected layout:
 
-## Non-Objectives (v0)
+```text
+<app>.yambuck
+├── manifest.json
+├── app/
+│   └── ... packaged app payload ...
+└── assets/
+    ├── icon.(png|jpg|webp)
+    └── screenshots/
+        └── ... optional screenshot images ...
+```
 
-- Replace all existing package managers and distro repositories.
-- Solve every containerization or sandboxing use case.
-- Require users to prefer CLI over GUI.
+### Payload Strategy
 
-## High-Level Architecture (Draft)
+- v1 packaging is **bundle-first**.
+- The package should include what the app needs to run after install, rather than relying on distro-specific dependency resolution.
+- Yambuck v1 does not attempt full distro dependency resolution for app runtime.
 
-Yambuck is expected to include:
+### Install Model
 
-- package format definition (`.yambuck` candidate)
-- installer/runtime capable of opening package files
-- GUI install path (primary)
-- CLI install path (secondary)
-- desktop integration hooks
-- package integrity and trust verification
-- installed-apps index for list/uninstall
+- Yambuck installs package contents into managed install paths.
+- This is install-first (not portable-first) for v1.
+- Portable/run-without-install mode is a future enhancement.
+- Yambuck manages only Yambuck-installed apps; it does not modify apps installed by other package systems.
 
-Implementation direction:
+## Manifest Specification (v1)
 
-- Rust for core installer/runtime logic
-- Tauri for GUI shell and visual experience
-- Shared core APIs consumed by both GUI and CLI
+### Versioning and Compatibility
 
-## Package Model (Draft)
+- `manifestVersion` is required and uses semver (example: `1.0.0`).
+- Unknown major versions are rejected.
+- New optional fields may be added in backward-compatible minor/patch updates.
+- `minInstallerVersion` may be provided by packages that require newer Yambuck behavior.
 
-A package should include at minimum:
+### Identity
 
-- app payload (executables/resources)
-- metadata manifest
-- app identity and version information
-- desktop integration assets (icon, launcher metadata where applicable)
-- optional signature metadata
+- `appId` (required): stable reverse-DNS identifier (example: `com.voquill.app`)
+- `appUuid` (required): immutable global UUID for app identity continuity
+- `packageUuid` (required): unique package artifact UUID
 
-### Manifest (Concept)
+### Required v1 fields
 
-The manifest should describe:
+- `manifestVersion`
+- `displayName`
+- `description`
+- `version`
+- `publisher`
+- `appId`
+- `appUuid`
+- `packageUuid`
+- `entrypoint`
+- `iconPath`
 
-- package name and ids
+### Optional v1 fields
+
+- `screenshots` (array of local asset paths)
+- `homepageUrl`
+- `supportUrl`
+- `license`
+- `releaseNotes`
+- `target` / `targets`
+- `runtimeDependencies` (informational only in v1)
+- `trustStatus` (defaults to `unverified` if not present)
+
+## Rich Install Preview Requirements
+
+When opening a package, Yambuck should be able to show:
+
+- app name
+- publisher
 - version
-- target architecture
-- entrypoint(s)
-- install mode requirements (user/system)
-- desktop metadata
-- dependency/runtime expectations
-- checksums/signature references
+- description
+- icon
+- screenshots (if packaged)
+- trust state (`verified` or `unverified`)
 
-Identity requirements for v1:
+This is required to make install decisions easy for non-technical users.
 
-- `app_id` (required): reverse-DNS identifier, stable across versions (e.g. `com.voquill.app`)
-- `app_uuid` (required): immutable UUID for global machine identity and future trust systems
-- `package_uuid` (optional): unique build/release artifact identifier
+## Installation and Uninstallation
 
-Rationale:
+### Scope
 
-- `app_id` is human-readable and support-friendly
-- `app_uuid` provides stable machine identity for future allowlists/reputation layers
+- Default: `Just for me` (user scope)
+- Optional: `All users` (system scope with elevation)
 
-## Installation Model
+### Installed apps experience
 
-### GUI path (primary)
-
-1. User opens a `.yambuck` file.
-2. Installer shows app identity and publisher details.
-3. Installer verifies package integrity/signature.
-4. Installer shows install options (location, scope, shortcuts).
-5. Installer performs install and confirms success.
-
-Default GUI behavior:
-
-- Default scope is `Just for me`.
-- `All users` is optional and requires privilege elevation.
-
-Recommended first screens:
-
-1. package details
-2. trust status and warning (if unverified)
-3. scope selection
-4. install progress
-5. completion actions (launch/close)
-
-### CLI path (secondary)
-
-Example shape (subject to change):
-
-`yambuck install app.yambuck`
-
-CLI must mirror core installer behavior but is not the primary UX target.
-
-## Installed Apps and Uninstall
-
-Yambuck provides a simple installed-apps view that includes:
-
-- app name and version
-- install scope (`user` or `system`)
+- list installed apps
+- show app/version/scope
 - uninstall action
+- optional remove user data/config checkbox
 
-Uninstall behavior:
+### Ownership and conflict policy (v1)
 
-- remove installed application files
-- optionally remove user data/config via explicit checkbox
+- If an app with the same `appId` is already tracked by Yambuck, install proceeds as a clean replace flow.
+- Replace flow for v1 is remove-and-reinstall for cleanliness.
+- If same `appId` appears to be installed outside Yambuck ownership, Yambuck blocks install and tells the user to uninstall with their original package manager first.
 
-Storage model for this feature:
+### Install index
 
-- no distro package repository integration required for v1
-- maintain a minimal Yambuck-managed local install index
-- per-user install metadata under user data directory
-- system install metadata under system data directory
+- Yambuck keeps its own local install index for reliable uninstall/update behavior.
 
-## Desktop Integration
-
-The system should integrate with standard Linux desktop conventions where practical:
+## Desktop Integration (v1 direction)
 
 - launcher/menu entry creation
 - icon registration
-- file association support
+- `.yambuck` file association to Yambuck
 - uninstall visibility
 
-Use established desktop standards where available rather than inventing replacements.
+## Trust and Security
 
-## Security and Trust
-
-Minimum security expectations for v1 direction:
-
-- package integrity checks (checksums)
-- optional/required signature validation model (to be finalized)
-- clear trust prompts in GUI
-- transparent error messages on verification failure
-
-MVP trust policy:
+### MVP policy
 
 - unsigned packages are allowed
-- unsigned packages must display an explicit warning: "Publisher not verified. Only install if you trust this source."
-- user must choose `Cancel` or `Install anyway`
+- unverified packages must show explicit warning and user choice:
+  - `Cancel`
+  - `Install anyway`
 
-Future trust direction (post-MVP):
+### Future policy
 
-- signed package verification by default
-- app reputation signals using `app_uuid` plus signing key continuity
-- optional allowlist/revocation systems
+- signatures by default
+- app reputation/allowlist/revocation systems using `appUuid` and signing identity continuity
 
-## Bootstrap Installation (Yambuck Itself)
+## Bootstrap Installation (Yambuck itself)
 
-V1 onboarding model:
+- Website one-liner installs Yambuck binary.
+- Verification (checksum) is required by default.
+- Per-user install is default; system install is explicit.
+- Re-running bootstrap should safely replace existing binary for updates.
 
-- user runs one install command from the Yambuck website
-- bootstrap installs Yambuck and configures file association for `.yambuck`
-- day-to-day app installation happens through GUI by opening package files
+## Self-Update Model (v1)
 
-Bootstrap requirements:
+- checks on startup and manual check action
+- user-controlled updates only (no silent auto-update)
+- `Update and restart` / `Later`
+- update metadata source: `https://yambuck.com/updates/stable.json`
+- feed points to immutable GitHub Release artifact URLs + checksums
+- in-app apply flow currently targets user installs first
 
-- minimal and auditable script/runtime
-- explicit logging of actions
-- verification of downloaded artifacts before install
-- least-privilege behavior where possible
+## Compatibility and Targets
 
-## Yambuck Self-Update Model (v1 Direction)
+### Product goal
 
-- update checks happen on startup and periodic interval
-- updates are user-controlled, not silent
-- users see `Update and restart` and `Later` options
-- update metadata feed: `https://yambuck.com/updates/stable.json`
-- feed points to GitHub Releases artifact URLs + checksums
-- user install updates without elevation; system install updates require elevation
+- Users should not have to understand distro packaging differences.
+- If package is valid and targeted for the user system, install/run should be predictable.
 
-## Compatibility Approach
+### v1 targeting direction
 
-The target is broad Linux distribution support through a stable installer/runtime behavior and package format.
+- Start with mainstream Linux desktop targets and bundled payloads.
+- Initial validation families:
+  - Debian/Ubuntu-based
+  - Fedora-based
+  - Arch-based
+- Reference app for end-to-end validation: `Voquill`.
 
-Compatibility is defined by outcome:
+## Out of Scope (v1)
 
-- users can install and run successfully on major distributions
-- developers do not need separate packaging logic per distro for core flow
-
-Initial distro target set for validation:
-
-- Ubuntu/Debian-based
-- Fedora-based
-- Arch-based
-
-Reference validation app:
-
-- Voquill (`voquill.yambuck`) used to test end-to-end packaging and install UX
-
-## Open Questions
-
-- final package container format (archive type and layout)
-- final manifest schema and versioning rules
-- signature model and key distribution strategy
-- system-wide vs per-user install defaults
-- UX behavior for missing runtime dependencies
-
-Resolved defaults:
-
-- install scope default is per-user (`Just for me`)
-- system install path is optional with elevation flow
-- package identity is dual-field (`app_id` + `app_uuid`)
-- distribution model is direct-download, developer-hosted
-- unsigned packages are allowed in MVP with explicit warning
-- GUI is primary interface; CLI is secondary
-- modern installer UX is a core requirement, not cosmetic
-
-## Roadmap (Draft)
-
-1. Lock mission and product requirements
-2. Finalize package and manifest schema v0
-3. Build installer/runtime prototype with GUI-first flow
-4. Add CLI parity for core commands
-5. Validate cross-distro behavior on real environments
-6. Iterate on trust model and packaging ergonomics
-7. Add updater design and implementation in post-MVP phase
-
-## Out of Scope for v1
-
-- central app store or hosted package repository
-- mandatory code signing infrastructure
+- central app store requirement
+- replacing distro-native package managers
+- mandatory signing infrastructure on day one
 - Windows support
+- portable-first app execution mode
+
+## Release and Update Operations
+
+Operational release process is documented in:
+
+- `docs/RELEASE_RUNBOOK.md`
+- `docs/UPDATES_SPEC.md`

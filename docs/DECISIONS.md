@@ -30,6 +30,8 @@ Yambuck exists to make Linux app distribution and installation dead simple for n
 - Optional checkbox to remove user config/data on uninstall
 - Update flow is user-controlled: `Update and restart` or `Later`
 - Users are always informed of update progress and outcomes
+- Yambuck only manages Yambuck-installed apps; no cross-manager mutation
+- Existing Yambuck-managed app updates use clean replace (remove then reinstall)
 
 ## Update Source (v1)
 

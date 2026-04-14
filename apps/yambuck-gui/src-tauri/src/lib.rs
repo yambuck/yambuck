@@ -8,7 +8,10 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
-use yambuck_core::{InstallPreview, InstalledApp, InstallerContext, PackageInfo, UpdateCheckResult};
+use yambuck_core::{
+    InstallPreview, InstalledApp, InstallerContext, PackageInfo, PreflightCheckResult,
+    UpdateCheckResult,
+};
 
 const DEFAULT_UPDATE_FEED_URL: &str = "https://yambuck.com/updates/stable.json";
 
@@ -71,6 +74,11 @@ fn complete_install(
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
     yambuck_core::register_install(&package_info, install_scope, destination_path)
         .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, String> {
+    yambuck_core::preflight_install_check(app_id).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -376,6 +384,7 @@ pub fn run() {
             get_recent_logs,
             clear_logs,
             log_ui_event,
+            preflight_install_check,
             list_installed_apps,
             uninstall_installed_app,
             complete_install
