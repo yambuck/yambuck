@@ -106,7 +106,8 @@ function App() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
-  const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
   const [applyingUpdate, setApplyingUpdate] = useState(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [logText, setLogText] = useState("");
@@ -227,19 +228,28 @@ function App() {
     try {
       const result = await invoke<UpdateCheckResult>("check_for_updates");
       setUpdateResult(result);
+      setLastCheckedAt(Date.now());
 
-      if (result.updateAvailable && showNoUpdateMessage) {
-        pushToast("info", `Update available: v${result.currentVersion} -> v${result.latestVersion}`);
-      }
-
-      if (!result.updateAvailable && showNoUpdateMessage) {
-        pushToast("info", `You're up to date (v${result.currentVersion}).`);
+      if (showNoUpdateMessage) {
+        setIsUpdateModalOpen(true);
       }
     } catch {
       pushToast("error", "Unable to check for updates right now.");
     } finally {
       setCheckingUpdates(false);
     }
+  };
+
+  const relativeLastChecked = () => {
+    if (!lastCheckedAt) {
+      return "Not checked yet";
+    }
+    const elapsed = Date.now() - lastCheckedAt;
+    if (elapsed < 60_000) {
+      return "Just now";
+    }
+    const minutes = Math.floor(elapsed / 60_000);
+    return `${minutes}m ago`;
   };
 
   const loadDebugData = async () => {
@@ -516,12 +526,7 @@ function App() {
     }
   };
 
-  const dismissUpdateNotice = () => {
-    if (!updateResult) {
-      return;
-    }
-    setDismissedUpdateVersion(updateResult.latestVersion);
-  };
+  const closeUpdateModal = () => setIsUpdateModalOpen(false);
 
   const handleUpdateAndRestart = async () => {
     if (!updateResult) {
@@ -548,8 +553,7 @@ function App() {
     }
   };
 
-  const showUpdateBanner =
-    updateResult?.updateAvailable && updateResult.latestVersion !== dismissedUpdateVersion;
+  const hasUpdateAvailable = updateResult?.updateAvailable === true;
 
   const renderInstallStep = () => {
     if (step === "details") {
@@ -934,38 +938,6 @@ function App() {
       </header>
 
       <div class="toast-host" data-no-drag="true">
-        {showUpdateBanner && updateResult ? (
-          <div class="toast action info">
-            <div class="toast-body">
-              <p class="update-title">Update available</p>
-              <p class="update-subtitle">
-                {`v${updateResult.currentVersion} -> v${updateResult.latestVersion}`}
-              </p>
-            </div>
-            <div class="update-actions">
-              {updateResult.notesUrl ? (
-                <a
-                  class="button ghost"
-                  href={updateResult.notesUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Release notes
-                </a>
-              ) : null}
-              <button class="button ghost" onClick={() => dismissUpdateNotice()}>
-                Later
-              </button>
-              <button
-                class="button primary"
-                onClick={() => void handleUpdateAndRestart()}
-                disabled={applyingUpdate}
-              >
-                {applyingUpdate ? "Applying..." : "Update and restart"}
-              </button>
-            </div>
-          </div>
-        ) : null}
         {toasts.map((toast) => (
           <div key={toast.id} class={`toast ${toast.tone}`}>
             <span>{toast.message}</span>
@@ -984,18 +956,56 @@ function App() {
             : renderSettingsPage()}
       </section>
 
+      {isUpdateModalOpen && updateResult ? (
+        <div class="modal-overlay" data-no-drag="true" onClick={() => closeUpdateModal()}>
+          <section class="modal-card" onClick={(event) => event.stopPropagation()}>
+            <h2>{updateResult.updateAvailable ? "Update available" : "You're up to date"}</h2>
+            <p class="subtitle">{`Current: v${updateResult.currentVersion}`}</p>
+            <p class="subtitle">{`Latest: v${updateResult.latestVersion}`}</p>
+            <p class="subtitle">{`Last checked: ${relativeLastChecked()}`}</p>
+            <p class="subtitle">
+              {updateResult.updateAvailable
+                ? "A new Yambuck version is ready. You can review notes, then update and restart."
+                : "No update is needed right now."}
+            </p>
+            <div class="update-actions">
+              {updateResult.updateAvailable && updateResult.notesUrl ? (
+                <a
+                  class="button ghost"
+                  href={updateResult.notesUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Release notes
+                </a>
+              ) : null}
+              <button class="button ghost" onClick={() => closeUpdateModal()}>
+                {updateResult.updateAvailable ? "Later" : "Close"}
+              </button>
+              {updateResult.updateAvailable ? (
+                <button
+                  class="button primary"
+                  onClick={() => void handleUpdateAndRestart()}
+                  disabled={applyingUpdate}
+                >
+                  {applyingUpdate ? "Applying..." : "Update and restart"}
+                </button>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       <footer class="app-footer" data-no-drag="true">
         <div class="footer-meta">
           <span class="footer-version">
             {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
           </span>
-          <button
-            class="footer-action"
-            onClick={() => void checkForUpdates(true)}
-            disabled={checkingUpdates}
-          >
-            {checkingUpdates ? "Checking..." : "Check for updates"}
-          </button>
+          {hasUpdateAvailable ? (
+            <button class="footer-action update" onClick={() => setIsUpdateModalOpen(true)}>
+              Update available
+            </button>
+          ) : null}
         </div>
         <a class="footer-link" href="https://github.com/yambuck/yambuck" target="_blank" rel="noreferrer">
           <IconBrandGithub size={16} />

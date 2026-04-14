@@ -5832,7 +5832,7 @@ dependencies = [
 
 [[package]]
 name = "yambuck-gui"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "flate2",
  "reqwest 0.12.28",
