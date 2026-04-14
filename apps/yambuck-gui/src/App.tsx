@@ -175,12 +175,7 @@ function App() {
       const result = await invoke<UpdateCheckResult>("check_for_updates");
       setUpdateResult(result);
 
-      if (result.updateAvailable) {
-        if (dismissedUpdateVersion !== result.latestVersion) {
-          setMessageTone("info");
-          setMessage(`Update available: ${result.currentVersion} -> ${result.latestVersion}`);
-        }
-      } else if (showNoUpdateMessage) {
+      if (!result.updateAvailable && showNoUpdateMessage) {
         setMessageTone("info");
         setMessage(`You're up to date (v${result.currentVersion}).`);
       }
