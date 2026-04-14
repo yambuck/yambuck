@@ -1,4 +1,5 @@
 use flate2::read::GzDecoder;
+use chrono::{Local, SecondsFormat};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
@@ -7,7 +8,6 @@ use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::{SystemTime, UNIX_EPOCH};
 use yambuck_core::{
     InstallPreview, InstalledApp, InstallerContext, PackageInfo, PreflightCheckResult,
     UpdateCheckResult,
@@ -79,6 +79,12 @@ fn complete_install(
 #[tauri::command]
 fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, String> {
     yambuck_core::preflight_install_check(app_id).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn get_startup_package_arg() -> Option<String> {
+    let arg = std::env::args().skip(1).find(|value| value.ends_with(".yambuck") || value.starts_with("file://"))?;
+    normalize_package_arg(&arg)
 }
 
 #[tauri::command]
@@ -329,6 +335,38 @@ fn append_log(level: &str, message: &str) -> Result<(), String> {
     file.write_all(line.as_bytes()).map_err(|error| error.to_string())
 }
 
+fn normalize_package_arg(raw: &str) -> Option<String> {
+    let mut value = raw.to_string();
+    if let Some(stripped) = value.strip_prefix("file://") {
+        value = stripped.to_string();
+    }
+    value = percent_decode(&value);
+    if value.ends_with(".yambuck") {
+        Some(value)
+    } else {
+        None
+    }
+}
+
+fn percent_decode(input: &str) -> String {
+    let bytes = input.as_bytes();
+    let mut out = String::with_capacity(input.len());
+    let mut index = 0usize;
+    while index < bytes.len() {
+        if bytes[index] == b'%' && index + 2 < bytes.len() {
+            let hex = &input[index + 1..index + 3];
+            if let Ok(value) = u8::from_str_radix(hex, 16) {
+                out.push(value as char);
+                index += 3;
+                continue;
+            }
+        }
+        out.push(bytes[index] as char);
+        index += 1;
+    }
+    out
+}
+
 fn normalize_level(level: &str) -> &str {
     match level.to_ascii_uppercase().as_str() {
         "DEBUG" => "DEBUG",
@@ -362,11 +400,7 @@ fn read_os_release_value(key: &str) -> Option<String> {
 }
 
 fn iso_like_timestamp() -> String {
-    let secs = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    secs.to_string()
+    Local::now().to_rfc3339_opts(SecondsFormat::Millis, false)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -385,6 +419,7 @@ pub fn run() {
             clear_logs,
             log_ui_event,
             preflight_install_check,
+            get_startup_package_arg,
             list_installed_apps,
             uninstall_installed_app,
             complete_install

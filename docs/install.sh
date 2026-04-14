@@ -39,6 +39,10 @@ need_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"
 }
 
+optional_cmd() {
+  command -v "$1" >/dev/null 2>&1
+}
+
 resolve_arch() {
   local arch
   arch="$(uname -m)"
@@ -191,6 +195,96 @@ else
   install -m 0755 "$candidate_bin" "${install_dir}/${BIN_NAME}"
 fi
 
+desktop_file_name="com.yambuck.installer.desktop"
+mime_xml_name="application-x-yambuck-package.xml"
+
+if [[ "$install_system" == true ]]; then
+  desktop_dir="/usr/share/applications"
+  mime_packages_dir="/usr/share/mime/packages"
+  yambuck_exec="${install_dir}/${BIN_NAME}"
+
+  log "Installing desktop launcher"
+  sudo install -d "$desktop_dir"
+  sudo tee "${desktop_dir}/${desktop_file_name}" >/dev/null <<EOF
+[Desktop Entry]
+Name=Yambuck
+Comment=Install .yambuck application packages
+Exec=${yambuck_exec} %F
+Terminal=false
+Type=Application
+Icon=system-software-install
+Categories=Utility;PackageManager;
+MimeType=application/x-yambuck-package;
+StartupNotify=true
+EOF
+
+  log "Installing MIME type definition"
+  sudo install -d "$mime_packages_dir"
+  sudo tee "${mime_packages_dir}/${mime_xml_name}" >/dev/null <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+  <mime-type type="application/x-yambuck-package">
+    <comment>Yambuck package</comment>
+    <glob pattern="*.yambuck"/>
+  </mime-type>
+</mime-info>
+EOF
+else
+  desktop_dir="${HOME}/.local/share/applications"
+  mime_packages_dir="${HOME}/.local/share/mime/packages"
+  yambuck_exec="${install_dir}/${BIN_NAME}"
+
+  log "Installing desktop launcher"
+  install -d "$desktop_dir"
+  cat > "${desktop_dir}/${desktop_file_name}" <<EOF
+[Desktop Entry]
+Name=Yambuck
+Comment=Install .yambuck application packages
+Exec=${yambuck_exec} %F
+Terminal=false
+Type=Application
+Icon=system-software-install
+Categories=Utility;PackageManager;
+MimeType=application/x-yambuck-package;
+StartupNotify=true
+EOF
+
+  log "Installing MIME type definition"
+  install -d "$mime_packages_dir"
+  cat > "${mime_packages_dir}/${mime_xml_name}" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+  <mime-type type="application/x-yambuck-package">
+    <comment>Yambuck package</comment>
+    <glob pattern="*.yambuck"/>
+  </mime-type>
+</mime-info>
+EOF
+fi
+
+if optional_cmd update-mime-database; then
+  log "Refreshing MIME database"
+  if [[ "$install_system" == true ]]; then
+    sudo update-mime-database /usr/share/mime >/dev/null 2>&1 || true
+  else
+    update-mime-database "${HOME}/.local/share/mime" >/dev/null 2>&1 || true
+  fi
+fi
+
+if optional_cmd update-desktop-database; then
+  log "Refreshing desktop database"
+  if [[ "$install_system" == true ]]; then
+    sudo update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+  else
+    update-desktop-database "${HOME}/.local/share/applications" >/dev/null 2>&1 || true
+  fi
+fi
+
+if optional_cmd xdg-mime; then
+  log "Registering default handler for .yambuck files"
+  xdg-mime default "$desktop_file_name" application/x-yambuck-package >/dev/null 2>&1 || true
+fi
+
 if [[ ":$PATH:" != *":${install_dir}:"* ]]; then
   log "${install_dir} is not currently in PATH"
   log "Add this line to your shell profile and restart terminal:"
@@ -198,4 +292,5 @@ if [[ ":$PATH:" != *":${install_dir}:"* ]]; then
 fi
 
 log "Installation complete"
-log "Run: ${BIN_NAME} --help"
+log "Run: ${BIN_NAME}"
+log "You can now open .yambuck files with Yambuck"

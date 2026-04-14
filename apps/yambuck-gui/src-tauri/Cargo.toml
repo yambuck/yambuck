@@ -1,6 +1,6 @@
 [package]
 name = "yambuck-gui"
-version = "0.1.12"
+version = "0.1.13"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -27,6 +27,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 sha2 = "0.10"
 flate2 = "1"
 tar = "0.4"
+chrono = "0.4"
 yambuck-core = { path = "../../../crates/yambuck-core" }
 
 [features]

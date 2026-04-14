@@ -127,6 +127,12 @@ body {
   font-size: 0;
 }
 
+.window-btn.icon.active {
+  background: linear-gradient(135deg, rgba(95, 223, 255, 0.95), rgba(87, 241, 191, 0.95));
+  border-color: rgba(128, 244, 218, 0.92);
+  color: #072032;
+}
+
 .toggle-pill {
   border-radius: 999px;
   border: 1px solid rgba(132, 182, 219, 0.45);

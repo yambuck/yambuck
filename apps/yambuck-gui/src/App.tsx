@@ -142,6 +142,22 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const openStartupPackage = async () => {
+      try {
+        const startupPath = await invoke<string | null>("get_startup_package_arg");
+        if (!startupPath) {
+          return;
+        }
+        await loadPackageFromPath(startupPath, true);
+      } catch {
+        pushToast("error", "Could not open startup package argument.");
+      }
+    };
+
+    void openStartupPackage();
+  }, []);
+
+  useEffect(() => {
     if (page === "installed") {
       void refreshInstalledApps();
     }
@@ -205,15 +221,23 @@ function App() {
       return;
     }
 
+    await loadPackageFromPath(selected, false);
+  };
+
+  const loadPackageFromPath = async (packageFile: string, fromStartup: boolean) => {
     try {
       const inspected = await invoke<PackageInfo>("inspect_package", {
-        packageFile: selected,
+        packageFile,
       });
       setPackageInfo(inspected);
       setStep("details");
       setPreview(null);
       setPreflightBlockedMessage("");
-      pushToast("success", `Loaded package ${inspected.fileName}`);
+      if (fromStartup) {
+        pushToast("success", `Opened ${inspected.fileName} from file association.`);
+      } else {
+        pushToast("success", `Loaded package ${inspected.fileName}`);
+      }
     } catch {
       pushToast("error", "Unable to open package. Choose a valid .yambuck file.");
     }
@@ -910,7 +934,7 @@ function App() {
         </div>
         <div class="topbar-right" data-no-drag="true">
           <button
-            class="window-btn icon"
+            class={`window-btn icon ${page === "settings" ? "active" : ""}`}
             onClick={() => {
               setPage("settings");
               setSettingsTab("general");
