@@ -99,6 +99,14 @@ Voquill is the first reference app for end-to-end v1 testing via `voquill.yambuc
 
 Pre-alpha. The project is in documentation and specification stage.
 
+## Common Commands
+
+- Start desktop dev app with Tauri + Vite HMR: `npm --prefix apps/yambuck-gui run tauri dev`
+- Start frontend-only dev server: `npm --prefix apps/yambuck-gui run dev`
+- Build frontend bundle: `npm --prefix apps/yambuck-gui run build`
+- Check Rust/Tauri compile status: `cargo check --manifest-path apps/yambuck-gui/src-tauri/Cargo.toml`
+- Build release artifact + checksum: `./scripts/package-bootstrap-artifact.sh`
+
 ## Initial Naming
 
 - Project: `yambuck`

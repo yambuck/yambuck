@@ -210,6 +210,10 @@ function App() {
       const result = await invoke<UpdateCheckResult>("check_for_updates");
       setUpdateResult(result);
 
+      if (result.updateAvailable && showNoUpdateMessage) {
+        pushToast("info", `Update available: v${result.currentVersion} -> v${result.latestVersion}`);
+      }
+
       if (!result.updateAvailable && showNoUpdateMessage) {
         pushToast("info", `You're up to date (v${result.currentVersion}).`);
       }
@@ -728,19 +732,21 @@ function App() {
           </article>
         </div>
       ) : (
-        <div class="settings-grid">
-          <article class="setting-card">
+        <div class="debug-stack">
+          <section class="debug-section">
             <h2>System info</h2>
             {loadingDebug ? <p>Loading runtime data...</p> : null}
             {systemInfo ? (
-              <dl class="debug-list">
-                <div><dt>Version</dt><dd>{systemInfo.appVersion}</dd></div>
-                <div><dt>Distro</dt><dd>{systemInfo.distro}</dd></div>
-                <div><dt>Kernel</dt><dd>{systemInfo.kernelVersion}</dd></div>
-                <div><dt>Desktop</dt><dd>{systemInfo.desktopEnvironment}</dd></div>
-                <div><dt>Session</dt><dd>{systemInfo.sessionType}</dd></div>
-                <div><dt>Arch</dt><dd>{systemInfo.arch}</dd></div>
-              </dl>
+              <ul class="system-info-list">
+                <li>Version: <code>{systemInfo.appVersion}</code></li>
+                <li>Distro: <code>{systemInfo.distro}</code></li>
+                <li>Kernel: <code>{systemInfo.kernelVersion}</code></li>
+                <li>Desktop: <code>{systemInfo.desktopEnvironment}</code></li>
+                <li>Session: <code>{systemInfo.sessionType}</code></li>
+                <li>Arch: <code>{systemInfo.arch}</code></li>
+                <li>Install Path: <code>{systemInfo.installPath}</code></li>
+                <li>Update Feed: <code>{systemInfo.updateFeedUrl}</code></li>
+              </ul>
             ) : null}
             <div class="actions start compact">
               <button class="button ghost" onClick={() => void loadDebugData()} disabled={loadingDebug}>
@@ -750,8 +756,9 @@ function App() {
                 Copy system info
               </button>
             </div>
-          </article>
-          <article class="setting-card">
+          </section>
+
+          <section class="debug-section">
             <h2>Logs</h2>
             <p>Timestamped events for update checks and installer actions.</p>
             <pre class="log-view">{logText || "No logs yet."}</pre>
@@ -763,7 +770,7 @@ function App() {
                 Clear logs
               </button>
             </div>
-          </article>
+          </section>
         </div>
       )}
     </section>
@@ -819,20 +826,9 @@ function App() {
       </header>
 
       <div class="toast-host" data-no-drag="true">
-        {toasts.map((toast) => (
-          <div key={toast.id} class={`toast ${toast.tone}`}>
-            <span>{toast.message}</span>
-            <button class="toast-close" onClick={() => dismissToast(toast.id)} aria-label="Dismiss toast">
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <section class="content-scroll" data-no-drag="true">
-        {showUpdateBanner ? (
-          <section class="update-banner" data-no-drag="true">
-            <div>
+        {showUpdateBanner && updateResult ? (
+          <div class="toast action info">
+            <div class="toast-body">
               <p class="update-title">Update available</p>
               <p class="update-subtitle">
                 {`v${updateResult.currentVersion} -> v${updateResult.latestVersion}`}
@@ -860,9 +856,19 @@ function App() {
                 {applyingUpdate ? "Applying..." : "Update and restart"}
               </button>
             </div>
-          </section>
+          </div>
         ) : null}
+        {toasts.map((toast) => (
+          <div key={toast.id} class={`toast ${toast.tone}`}>
+            <span>{toast.message}</span>
+            <button class="toast-close" onClick={() => dismissToast(toast.id)} aria-label="Dismiss toast">
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
 
+      <section class="content-scroll" data-no-drag="true">
         {page === "installer"
           ? renderInstallStep()
           : page === "installed"
