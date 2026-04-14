@@ -21,6 +21,7 @@ cp "${VOQUILL_DIR}/src-tauri/icons/128x128.png" "${STAGE_DIR}/assets/icon.png"
 cp "${VOQUILL_DIR}/docs/screenshots/screenshot-status.png" "${STAGE_DIR}/assets/screenshots/screenshot-status.png"
 cp "${VOQUILL_DIR}/docs/screenshots/screenshot-history.png" "${STAGE_DIR}/assets/screenshots/screenshot-history.png"
 cp "${VOQUILL_DIR}/docs/screenshots/screenshot-config1.png" "${STAGE_DIR}/assets/screenshots/screenshot-config1.png"
+cp "${VOQUILL_DIR}/docs/screenshots/screenshot-config2.png" "${STAGE_DIR}/assets/screenshots/screenshot-config2.png"
 
 cat > "${STAGE_DIR}/manifest.json" <<'EOF'
 {
@@ -30,6 +31,7 @@ cat > "${STAGE_DIR}/manifest.json" <<'EOF'
   "appUuid": "6b61815c-66c5-4cc6-85ba-ec0736ecef4c",
   "displayName": "Voquill",
   "description": "Voice-first dictation app with fast keyboard-driven workflows.",
+  "longDescription": "Voquill is built for people who move between speaking and editing quickly.\\n\\nUse this plain-text section for deeper product context, setup notes, and compatibility guidance that should appear in installer preview.",
   "version": "1.3.1",
   "publisher": "Voquill Project",
   "entrypoint": "app/bin/voquill",
@@ -37,7 +39,8 @@ cat > "${STAGE_DIR}/manifest.json" <<'EOF'
   "screenshots": [
     "assets/screenshots/screenshot-status.png",
     "assets/screenshots/screenshot-history.png",
-    "assets/screenshots/screenshot-config1.png"
+    "assets/screenshots/screenshot-config1.png",
+    "assets/screenshots/screenshot-config2.png"
   ],
   "homepageUrl": "https://voquill.org",
   "supportUrl": "https://github.com/voquill/voquill",

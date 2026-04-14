@@ -2,12 +2,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { IconBrandGithub, IconSettings } from "@tabler/icons-preact";
+import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import "./App.css";
 
 type WizardStep = "details" | "trust" | "scope" | "progress" | "complete";
 type InstallScope = "user" | "system";
-type AppPage = "installer" | "installed" | "settings";
+type AppPage = "installer" | "installed" | "settings" | "mockPreview";
 type SettingsTab = "general" | "debug";
 type ToastTone = "info" | "success" | "warning" | "error";
 
@@ -29,6 +30,7 @@ type PackageInfo = {
   manifestVersion: string;
   publisher: string;
   description: string;
+  longDescription?: string;
   entrypoint: string;
   iconPath: string;
   iconDataUrl?: string;
@@ -89,6 +91,76 @@ type ToastItem = {
   message: string;
 };
 
+type MetaFieldProps = {
+  label: string;
+  tooltip: string;
+  value: ComponentChildren;
+};
+
+const MetaField = ({ label, tooltip, value }: MetaFieldProps) => (
+  <div>
+    <dt>
+      <span class="meta-term" tabIndex={0}>
+        {label}
+        <span class="meta-help" aria-hidden="true">?</span>
+        <span class="meta-tooltip" role="tooltip">{tooltip}</span>
+      </span>
+    </dt>
+    <dd>{value}</dd>
+  </div>
+);
+
+const MOCK_ICON =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" rx="22" fill="#0e2b43"/><circle cx="64" cy="50" r="24" fill="#63d8ff"/><rect x="28" y="82" width="72" height="16" rx="8" fill="#5bf0c5"/></svg>',
+  );
+
+const MOCK_SHOT_A =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1600" viewBox="0 0 900 1600"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#123e63"/><stop offset="1" stop-color="#09172a"/></linearGradient></defs><rect width="900" height="1600" fill="url(#g)"/><rect x="70" y="120" width="760" height="220" rx="22" fill="#1a527f"/><rect x="70" y="390" width="760" height="900" rx="22" fill="#113452"/><rect x="100" y="440" width="700" height="54" rx="10" fill="#5ee7c2"/><rect x="100" y="530" width="700" height="54" rx="10" fill="#4bb9ff"/></svg>',
+  );
+
+const MOCK_SHOT_B =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1700" viewBox="0 0 1000 1700"><rect width="1000" height="1700" fill="#0a1f33"/><rect x="90" y="110" width="820" height="220" rx="20" fill="#194767"/><rect x="90" y="380" width="820" height="1180" rx="20" fill="#0f2d47"/><circle cx="180" cy="200" r="42" fill="#63d8ff"/><rect x="250" y="170" width="560" height="54" rx="12" fill="#5bf0c5"/><rect x="250" y="244" width="420" height="36" rx="10" fill="#88c9f8"/></svg>',
+  );
+
+const MOCK_SHOT_C =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1600" viewBox="0 0 960 1600"><rect width="960" height="1600" fill="#09192a"/><rect x="60" y="110" width="840" height="190" rx="18" fill="#1b4f75"/><rect x="60" y="340" width="840" height="1180" rx="18" fill="#10314c"/><rect x="100" y="400" width="760" height="70" rx="12" fill="#63d8ff"/><rect x="100" y="500" width="620" height="40" rx="10" fill="#7abef0"/><rect x="100" y="570" width="710" height="40" rx="10" fill="#5be7bf"/></svg>',
+  );
+
+const MOCK_SHOT_D =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="980" height="1640" viewBox="0 0 980 1640"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#123758"/><stop offset="1" stop-color="#081423"/></linearGradient></defs><rect width="980" height="1640" fill="url(#bg)"/><rect x="72" y="120" width="836" height="240" rx="20" fill="#1b4e72"/><rect x="72" y="400" width="836" height="1130" rx="20" fill="#0f2d46"/><circle cx="160" cy="240" r="38" fill="#5be7bf"/><rect x="230" y="210" width="610" height="48" rx="12" fill="#63d8ff"/><rect x="230" y="276" width="460" height="34" rx="10" fill="#8ec8ee"/></svg>',
+  );
+
+const MOCK_SHOT_E =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="940" height="1580" viewBox="0 0 940 1580"><rect width="940" height="1580" fill="#0a2034"/><rect x="64" y="104" width="812" height="210" rx="18" fill="#1a4a70"/><rect x="64" y="350" width="812" height="1166" rx="18" fill="#113450"/><rect x="94" y="420" width="752" height="52" rx="10" fill="#7bd4ff"/><rect x="94" y="498" width="752" height="52" rx="10" fill="#5be7bf"/><rect x="94" y="576" width="520" height="36" rx="10" fill="#8ec8ee"/></svg>',
+  );
+
+const MOCK_SHOT_F =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1620" viewBox="0 0 960 1620"><rect width="960" height="1620" fill="#081a2b"/><rect x="72" y="112" width="816" height="212" rx="18" fill="#1d537b"/><rect x="72" y="360" width="816" height="1188" rx="18" fill="#123753"/><rect x="110" y="428" width="740" height="58" rx="10" fill="#63d8ff"/><rect x="110" y="510" width="740" height="58" rx="10" fill="#5be7bf"/><rect x="110" y="592" width="620" height="40" rx="10" fill="#8ec8ee"/></svg>',
+  );
+
+const DESCRIPTION_LIMIT = 500;
+
+const truncateDescription = (text: string, maxChars = DESCRIPTION_LIMIT) => {
+  if (text.length <= maxChars) {
+    return text;
+  }
+  return `${text.slice(0, maxChars).trimEnd()}...`;
+};
+
 function App() {
   const [page, setPage] = useState<AppPage>("installer");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
@@ -115,6 +187,9 @@ function App() {
   const [preflightBlockedMessage, setPreflightBlockedMessage] = useState("");
   const [checkingPreflight, setCheckingPreflight] = useState(false);
   const [activeScreenshotIndex, setActiveScreenshotIndex] = useState<number | null>(null);
+  const [screenshotGallery, setScreenshotGallery] = useState<string[]>([]);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  const [showMockTechnicalDetails, setShowMockTechnicalDetails] = useState(false);
 
   const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
@@ -231,15 +306,25 @@ function App() {
     setStep("details");
     setPreflightBlockedMessage("");
     setActiveScreenshotIndex(null);
+    setScreenshotGallery([]);
+    setShowTechnicalDetails(false);
   };
 
-  const closeScreenshotModal = () => setActiveScreenshotIndex(null);
+  const openScreenshotModal = (gallery: string[], index: number) => {
+    setScreenshotGallery(gallery);
+    setActiveScreenshotIndex(index);
+  };
+
+  const closeScreenshotModal = () => {
+    setActiveScreenshotIndex(null);
+    setScreenshotGallery([]);
+  };
 
   const cycleScreenshot = (direction: -1 | 1) => {
-    if (!packageInfo || packageInfo.screenshotDataUrls.length === 0 || activeScreenshotIndex === null) {
+    if (screenshotGallery.length === 0 || activeScreenshotIndex === null) {
       return;
     }
-    const count = packageInfo.screenshotDataUrls.length;
+    const count = screenshotGallery.length;
     const next = (activeScreenshotIndex + direction + count) % count;
     setActiveScreenshotIndex(next);
   };
@@ -250,6 +335,7 @@ function App() {
         packageFile,
       });
       setPackageInfo(inspected);
+      setShowTechnicalDetails(false);
       setStep("details");
       setPreview(null);
       setPreflightBlockedMessage("");
@@ -602,7 +688,7 @@ function App() {
   const renderInstallStep = () => {
     if (step === "details") {
       return (
-        <section class="panel">
+        <section class="panel package-panel">
           {packageInfo ? (
             <>
               <div class="details-header">
@@ -618,11 +704,12 @@ function App() {
                   >
                     {checkingPreflight ? "Checking..." : "Install"}
                   </button>
-                  <button class="card-close" onClick={() => clearSelectedPackage()} title="Close package">
-                    ×
-                  </button>
                 </div>
               </div>
+
+              <button class="card-close" data-no-drag="true" onClick={() => clearSelectedPackage()} title="Close package">
+                ×
+              </button>
 
               {preflightBlockedMessage ? (
                 <div class="trust-box warning">
@@ -638,8 +725,7 @@ function App() {
                   <div class="package-icon placeholder">No icon</div>
                 )}
                 <div>
-                  <p class="subtitle package-description">{packageInfo.description}</p>
-                  <p class="subtitle">Entrypoint: <code>{packageInfo.entrypoint}</code></p>
+                  <p class="subtitle package-description">{truncateDescription(packageInfo.description)}</p>
                 </div>
               </div>
 
@@ -649,7 +735,7 @@ function App() {
                     <button
                       key={`${packageInfo.packageUuid}-${index}`}
                       class="screenshot-tile"
-                      onClick={() => setActiveScreenshotIndex(index)}
+                      onClick={() => openScreenshotModal(packageInfo.screenshotDataUrls, index)}
                       title={`Open screenshot ${index + 1}`}
                     >
                       <img src={source} alt={`Screenshot ${index + 1}`} />
@@ -658,42 +744,113 @@ function App() {
                 </div>
               ) : null}
 
-              <dl class="meta-grid">
-                <div>
-                  <dt>Package</dt>
-                  <dd>{packageInfo.fileName}</dd>
+              <section class="meta-section">
+                <div class="meta-section-header">
+                  <h2>App details</h2>
                 </div>
-                <div>
-                  <dt>Publisher</dt>
-                  <dd>{packageInfo.publisher}</dd>
+                <dl class="meta-grid">
+                  <MetaField
+                    label="Publisher"
+                    tooltip="The team or company that published this app."
+                    value={packageInfo.publisher}
+                  />
+                  <MetaField
+                    label="Version"
+                    tooltip="The app version that will be installed."
+                    value={packageInfo.version}
+                  />
+                  {packageInfo.homepageUrl ? (
+                    <MetaField
+                      label="Homepage"
+                      tooltip="The app's official website for product information."
+                      value={
+                        <a class="meta-link" href={packageInfo.homepageUrl} target="_blank" rel="noreferrer">
+                          {packageInfo.homepageUrl}
+                        </a>
+                      }
+                    />
+                  ) : null}
+                  {packageInfo.supportUrl ? (
+                    <MetaField
+                      label="Support"
+                      tooltip="Where to get help, report bugs, or contact maintainers."
+                      value={
+                        <a class="meta-link" href={packageInfo.supportUrl} target="_blank" rel="noreferrer">
+                          {packageInfo.supportUrl}
+                        </a>
+                      }
+                    />
+                  ) : null}
+                  {packageInfo.license ? (
+                    <MetaField
+                      label="License"
+                      tooltip="The legal terms for using this app."
+                      value={packageInfo.license}
+                    />
+                  ) : null}
+                  <MetaField
+                    label="Trust"
+                    tooltip="Whether Yambuck could verify the package publisher signature."
+                    value={packageInfo.trustStatus}
+                  />
+                </dl>
+              </section>
+
+              <section class="meta-section technical">
+                <div class="meta-section-header">
+                  <h2>Technical details</h2>
+                  <button
+                    class="meta-toggle"
+                    type="button"
+                    onClick={() => setShowTechnicalDetails((prev) => !prev)}
+                  >
+                    {showTechnicalDetails ? "Hide technical details" : "Show technical details"}
+                  </button>
                 </div>
-                <div>
-                  <dt>App ID</dt>
-                  <dd>{packageInfo.appId}</dd>
-                </div>
-                <div>
-                  <dt>Version</dt>
-                  <dd>{packageInfo.version}</dd>
-                </div>
-                <div>
-                  <dt>Manifest</dt>
-                  <dd>{packageInfo.manifestVersion}</dd>
-                </div>
-                <div>
-                  <dt>App UUID</dt>
-                  <dd>{packageInfo.appUuid}</dd>
-                </div>
-                <div>
-                  <dt>Package UUID</dt>
-                  <dd>{packageInfo.packageUuid}</dd>
-                </div>
-                {packageInfo.homepageUrl ? (
-                  <div>
-                    <dt>Homepage</dt>
-                    <dd>{packageInfo.homepageUrl}</dd>
-                  </div>
+                {showTechnicalDetails ? (
+                  <dl class="meta-grid">
+                    <MetaField
+                      label="Package"
+                      tooltip="The package file name selected for this install."
+                      value={packageInfo.fileName}
+                    />
+                    <MetaField
+                      label="Manifest"
+                      tooltip="The manifest schema version this package was built with."
+                      value={packageInfo.manifestVersion}
+                    />
+                    <MetaField
+                      label="App ID"
+                      tooltip="A stable identifier Yambuck uses for updates and app tracking."
+                      value={packageInfo.appId}
+                    />
+                    <MetaField
+                      label="Entrypoint"
+                      tooltip="The internal command Yambuck uses to launch the installed app."
+                      value={<code>{packageInfo.entrypoint}</code>}
+                    />
+                    <MetaField
+                      label="App UUID"
+                      tooltip="The immutable app identity UUID declared by the publisher."
+                      value={packageInfo.appUuid}
+                    />
+                    <MetaField
+                      label="Package UUID"
+                      tooltip="The unique UUID assigned to this specific package build."
+                      value={packageInfo.packageUuid}
+                    />
+                  </dl>
                 ) : null}
-              </dl>
+              </section>
+
+              {packageInfo.longDescription?.trim() ? (
+                <section class="meta-section long-description">
+                  <div class="meta-section-header">
+                    <h2>About this app</h2>
+                  </div>
+                  <p>{packageInfo.longDescription}</p>
+                </section>
+              ) : null}
             </>
           ) : (
             <>
@@ -868,6 +1025,160 @@ function App() {
     </section>
   );
 
+  const renderMockPreviewPage = () => {
+    const mockName = "Voquill (Mock Preview)";
+    const mockVersion = "1.4.0";
+    const mockManifestVersion = "1.0.0";
+    const mockAppId = "com.voquill.app";
+    const mockAppUuid = "6b61815c-66c5-4cc6-85ba-ec0736ecef4c";
+    const mockPackageUuid = "7f2f2d3e-2662-4d8c-a4ae-05f14de8f8c6";
+    const mockPublisher = "Voquill Project";
+    const mockHomepage = "https://voquill.org";
+    const mockSupport = "https://github.com/voquill/voquill";
+    const mockLicense = "MIT";
+    const mockTrust = "unverified";
+    const mockDescription =
+      "Mock package view for rapid UI iteration. Use this screen to tweak spacing, screenshots, metadata layout, and card actions with HMR while validating how dense package metadata reads inside a compact panel before the installer flow continues. This sentence intentionally extends well beyond normal copy length to simulate a package summary that pushes the short-description limit and demonstrates truncation behavior for at-a-glance review during install.";
+    const mockLongDescription =
+      "Voquill is designed for people who think faster than they type. It combines low-latency speech capture with keyboard-first editing so you can dictate rough drafts and refine them without leaving your normal workflow.\n\nIn this mock package, the long description is plain text and supports paragraph breaks. Developers can use this area for onboarding context, compatibility notes, expected hardware behavior, and any caveats that do not belong in the one-line summary.\n\nFor final packaging, keep the short summary fast to scan and reserve this section for deeper detail that helps users decide whether to trust and install the app.";
+    const mockShots = [MOCK_SHOT_A, MOCK_SHOT_B, MOCK_SHOT_C, MOCK_SHOT_D, MOCK_SHOT_E, MOCK_SHOT_F];
+
+    return (
+      <section class="panel package-panel">
+        <div class="details-header">
+          <div>
+            <h1>{mockName}</h1>
+            <p class="subtitle">Mock Preview (Debug)</p>
+          </div>
+          <div class="details-actions" data-no-drag="true">
+            <button class="button primary" onClick={() => pushToast("info", "Mock install action.")}>Install</button>
+          </div>
+        </div>
+
+        <button class="card-close" data-no-drag="true" onClick={() => setPage("settings")} title="Back to debug">
+          ×
+        </button>
+
+        <div class="package-overview">
+          <img class="package-icon" src={MOCK_ICON} alt="Mock app icon" />
+          <div>
+            <p class="subtitle package-description">{truncateDescription(mockDescription)}</p>
+          </div>
+        </div>
+
+        <div class="screenshot-strip" data-no-drag="true">
+          {mockShots.map((source, index) => (
+            <button
+              key={`mock-shot-${index}`}
+              class="screenshot-tile"
+              onClick={() => openScreenshotModal(mockShots, index)}
+              title={`Open screenshot ${index + 1}`}
+            >
+              <img src={source} alt={`Mock screenshot ${index + 1}`} />
+            </button>
+          ))}
+        </div>
+
+        <section class="meta-section">
+          <div class="meta-section-header">
+            <h2>App details</h2>
+          </div>
+          <dl class="meta-grid">
+            <MetaField
+              label="Publisher"
+              tooltip="The team or company that published this app."
+              value={mockPublisher}
+            />
+            <MetaField
+              label="Version"
+              tooltip="The app version that will be installed."
+              value={mockVersion}
+            />
+            <MetaField
+              label="Homepage"
+              tooltip="The app's official website for product information."
+              value={<a class="meta-link" href={mockHomepage} target="_blank" rel="noreferrer">{mockHomepage}</a>}
+            />
+            <MetaField
+              label="Support"
+              tooltip="Where to get help, report bugs, or contact maintainers."
+              value={<a class="meta-link" href={mockSupport} target="_blank" rel="noreferrer">{mockSupport}</a>}
+            />
+            <MetaField
+              label="License"
+              tooltip="The legal terms for using this app."
+              value={mockLicense}
+            />
+            <MetaField
+              label="Trust"
+              tooltip="Whether Yambuck could verify the package publisher signature."
+              value={mockTrust}
+            />
+          </dl>
+        </section>
+
+        <section class="meta-section technical">
+          <div class="meta-section-header">
+            <h2>Technical details</h2>
+            <button
+              class="meta-toggle"
+              type="button"
+              onClick={() => setShowMockTechnicalDetails((prev) => !prev)}
+            >
+              {showMockTechnicalDetails ? "Hide technical details" : "Show technical details"}
+            </button>
+          </div>
+          {showMockTechnicalDetails ? (
+            <dl class="meta-grid">
+              <MetaField
+                label="Package"
+                tooltip="The package file name selected for this install."
+                value="voquill-mock.yambuck"
+              />
+              <MetaField
+                label="Manifest"
+                tooltip="The manifest schema version this package was built with."
+                value={mockManifestVersion}
+              />
+              <MetaField
+                label="App ID"
+                tooltip="A stable identifier Yambuck uses for updates and app tracking."
+                value={mockAppId}
+              />
+              <MetaField
+                label="Entrypoint"
+                tooltip="The internal command Yambuck uses to launch the installed app."
+                value={<code>app/bin/voquill</code>}
+              />
+              <MetaField
+                label="App UUID"
+                tooltip="The immutable app identity UUID declared by the publisher."
+                value={mockAppUuid}
+              />
+              <MetaField
+                label="Package UUID"
+                tooltip="The unique UUID assigned to this specific package build."
+                value={mockPackageUuid}
+              />
+            </dl>
+          ) : null}
+        </section>
+
+        <section class="meta-section long-description">
+          <div class="meta-section-header">
+            <h2>About this app</h2>
+          </div>
+          <p>{mockLongDescription}</p>
+        </section>
+
+        <div class="actions start compact" data-no-drag="true">
+          <button class="button ghost" onClick={() => setPage("settings")}>Back to Debug</button>
+          <button class="button ghost" onClick={() => pushToast("info", "Try editing styles with npm run dev + HMR.")}>UI hint</button>
+        </div>
+      </section>
+    );
+  };
+
   const renderSettingsPage = () => (
     <section class="panel">
       <h1>Settings</h1>
@@ -930,6 +1241,9 @@ function App() {
               <button class="button ghost" onClick={() => void copySystemInfo()}>
                 Copy system info
               </button>
+              <button class="button ghost" onClick={() => setPage("mockPreview")}>
+                Open mock app page
+              </button>
             </div>
           </section>
 
@@ -969,7 +1283,13 @@ function App() {
           </button>
         </div>
         <div class="topbar-title">
-          {page === "installer" ? "Yambuck Installer" : page === "installed" ? "Installed Apps" : "Settings"}
+          {page === "installer"
+            ? "Yambuck Installer"
+            : page === "installed"
+              ? "Installed Apps"
+              : page === "settings"
+                ? "Settings"
+                : "Mock Preview"}
         </div>
         <div class="topbar-right" data-no-drag="true">
           <button
@@ -1016,7 +1336,9 @@ function App() {
           ? renderInstallStep()
           : page === "installed"
             ? renderInstalledApps()
-            : renderSettingsPage()}
+            : page === "settings"
+              ? renderSettingsPage()
+              : renderMockPreviewPage()}
       </section>
 
       {isUpdateModalOpen && updateResult ? (
@@ -1059,19 +1381,19 @@ function App() {
         </div>
       ) : null}
 
-      {activeScreenshotIndex !== null && packageInfo ? (
+      {activeScreenshotIndex !== null && screenshotGallery.length > 0 ? (
         <div class="screenshot-modal-overlay" data-no-drag="true" onClick={() => closeScreenshotModal()}>
           <section class="screenshot-modal-card" onClick={(event) => event.stopPropagation()}>
             <div class="screenshot-modal-toolbar">
-              <span>{`Screenshot ${activeScreenshotIndex + 1} of ${packageInfo.screenshotDataUrls.length}`}</span>
+              <span>{`Screenshot ${activeScreenshotIndex + 1} of ${screenshotGallery.length}`}</span>
               <button class="button ghost" onClick={() => closeScreenshotModal()}>Close</button>
             </div>
             <img
               class="screenshot-modal-image"
-              src={packageInfo.screenshotDataUrls[activeScreenshotIndex]}
+              src={screenshotGallery[activeScreenshotIndex]}
               alt={`Screenshot ${activeScreenshotIndex + 1}`}
             />
-            {packageInfo.screenshotDataUrls.length > 1 ? (
+            {screenshotGallery.length > 1 ? (
               <div class="screenshot-modal-controls">
                 <button class="button ghost" onClick={() => cycleScreenshot(-1)}>Previous</button>
                 <button class="button ghost" onClick={() => cycleScreenshot(1)}>Next</button>

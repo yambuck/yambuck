@@ -5,6 +5,7 @@
   "appUuid": "6b61815c-66c5-4cc6-85ba-ec0736ecef4c",
   "displayName": "Voquill",
   "description": "Voice-first dictation app with fast keyboard-driven workflows.",
+  "longDescription": "Voquill helps you capture ideas quickly with low-latency dictation and keyboard-first editing.\n\nUse this field for longer onboarding text, compatibility notes, and guidance that should appear in the installer as plain-text paragraphs.",
   "version": "1.3.1",
   "publisher": "Voquill Project",
   "entrypoint": "app/bin/voquill",

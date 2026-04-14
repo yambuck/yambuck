@@ -29,6 +29,7 @@ pub struct PackageInfo {
     pub manifest_version: String,
     pub publisher: String,
     pub description: String,
+    pub long_description: Option<String>,
     pub entrypoint: String,
     pub icon_path: String,
     pub icon_data_url: Option<String>,
@@ -100,6 +101,7 @@ struct PackageManifest {
     app_uuid: String,
     display_name: String,
     description: String,
+    long_description: Option<String>,
     version: String,
     publisher: String,
     entrypoint: String,
@@ -231,11 +233,19 @@ pub fn inspect_package(package_file: &str) -> Result<PackageInfo, YambuckError> 
     let icon_data_url = read_archive_asset_as_data_url(&mut archive, &manifest.icon_path).ok();
     let screenshot_data_urls = screenshots
         .iter()
-        .take(5)
+        .take(6)
         .filter_map(|path| read_archive_asset_as_data_url(&mut archive, path).ok())
         .collect::<Vec<String>>();
 
     let trust_status = sanitize_trust_status(manifest.trust_status.as_deref());
+    let long_description = manifest.long_description.and_then(|value| {
+        let trimmed = value.trim().to_string();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        }
+    });
 
     Ok(PackageInfo {
         package_file: package_file.to_string(),
@@ -247,6 +257,7 @@ pub fn inspect_package(package_file: &str) -> Result<PackageInfo, YambuckError> 
         manifest_version: manifest.manifest_version,
         publisher: manifest.publisher,
         description: manifest.description,
+        long_description,
         entrypoint: manifest.entrypoint,
         icon_path: manifest.icon_path,
         icon_data_url,

@@ -99,6 +99,7 @@ Expected layout:
 ### Optional v1 fields
 
 - `screenshots` (array of local asset paths)
+- `longDescription` (plain text, paragraph-friendly app details)
 - `homepageUrl`
 - `supportUrl`
 - `license`
@@ -118,6 +119,12 @@ When opening a package, Yambuck should be able to show:
 - icon
 - screenshots (if packaged)
 - trust state (`verified` or `unverified`)
+
+UI behavior:
+
+- `description` is the quick summary shown at a glance and is truncated in preview UI at 500 characters with `...`.
+- `longDescription` (if present) is shown as plain text with paragraph breaks for deeper context.
+- installer preview renders up to 6 screenshots.
 
 This is required to make install decisions easy for non-technical users.
 
