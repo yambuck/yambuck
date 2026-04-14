@@ -130,9 +130,16 @@ h2 {
 }
 
 .command-shell code {
+  flex: 1;
+  min-width: 0;
   font-size: 0.87rem;
   overflow-x: auto;
   white-space: nowrap;
+}
+
+.command-shell button {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 button {
@@ -199,6 +206,11 @@ h3 {
   .command-shell {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .command-shell button {
+    margin-left: 0;
+    align-self: flex-end;
   }
 
   .command-shell code {

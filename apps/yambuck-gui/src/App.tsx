@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { IconBrandGithub } from "@tabler/icons-preact";
+import { useEffect, useState } from "preact/hooks";
 import "./App.css";
 
 type WizardStep = "details" | "trust" | "scope" | "progress" | "complete";
@@ -106,11 +107,6 @@ function App() {
       }
     };
   }, []);
-
-  const stepIndex = useMemo(() => {
-    const order: WizardStep[] = ["details", "trust", "scope", "progress", "complete"];
-    return order.indexOf(step) + 1;
-  }, [step]);
 
   const choosePackage = async () => {
     setMessage("");
@@ -521,13 +517,7 @@ function App() {
   return (
     <main class="app-shell">
       <header class="topbar" onMouseDown={(event) => void handleTitlebarMouseDown(event)}>
-        <div>
-          <p class="kicker">Yambuck Installer</p>
-          <p class="headline">
-            {mode === "install" ? `Step ${stepIndex} of 5` : "Installed apps"}
-          </p>
-        </div>
-        <div class="topbar-controls">
+        <div class="topbar-left" data-no-drag="true">
           <button
             class={`toggle-pill ${mode === "install" ? "active" : ""}`}
             onClick={() => setMode("install")}
@@ -540,11 +530,9 @@ function App() {
           >
             Installed Apps
           </button>
-          <div class="runtime-pill">
-            {context
-              ? `${context.productName} ${context.appVersion} on ${context.platform}`
-              : "Loading runtime"}
-          </div>
+        </div>
+        <div class="topbar-title">Yambuck Installer</div>
+        <div class="topbar-right" data-no-drag="true">
           <div class="window-controls" data-no-drag="true">
             <button class="window-btn" onClick={() => void handleMinimize()} title="Minimize">
               -
@@ -572,6 +560,7 @@ function App() {
           {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
         </span>
         <a class="footer-link" href="https://github.com/yambuck/yambuck" target="_blank" rel="noreferrer">
+          <IconBrandGithub size={16} />
           GitHub
         </a>
       </footer>
