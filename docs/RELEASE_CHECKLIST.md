@@ -1,6 +1,8 @@
-# Yambuck First Release Checklist
+# Yambuck Release Checklist
 
-Use this checklist to publish the first bootstrap-compatible release so the website install command works end-to-end.
+Use this checklist for release smoke checks.
+
+For the full repeatable process (version files, artifact, release, feed/hash updates), use `docs/RELEASE_RUNBOOK.md`.
 
 ## 1) Build Bootstrap Artifact
 

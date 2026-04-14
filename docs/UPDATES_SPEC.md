@@ -74,3 +74,7 @@ This feed points to immutable release assets hosted on GitHub Releases.
 - delta patch updates
 - rollback UI
 - mandatory signature-based update policy (planned later)
+
+## Operations Note
+
+Release/update operational steps are documented in `docs/RELEASE_RUNBOOK.md`.
