@@ -114,6 +114,7 @@ function App() {
   const [loadingDebug, setLoadingDebug] = useState(false);
   const [preflightBlockedMessage, setPreflightBlockedMessage] = useState("");
   const [checkingPreflight, setCheckingPreflight] = useState(false);
+  const [activeScreenshotIndex, setActiveScreenshotIndex] = useState<number | null>(null);
 
   const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
@@ -222,6 +223,25 @@ function App() {
     }
 
     await loadPackageFromPath(selected, false);
+  };
+
+  const clearSelectedPackage = () => {
+    setPackageInfo(null);
+    setPreview(null);
+    setStep("details");
+    setPreflightBlockedMessage("");
+    setActiveScreenshotIndex(null);
+  };
+
+  const closeScreenshotModal = () => setActiveScreenshotIndex(null);
+
+  const cycleScreenshot = (direction: -1 | 1) => {
+    if (!packageInfo || packageInfo.screenshotDataUrls.length === 0 || activeScreenshotIndex === null) {
+      return;
+    }
+    const count = packageInfo.screenshotDataUrls.length;
+    const next = (activeScreenshotIndex + direction + count) % count;
+    setActiveScreenshotIndex(next);
   };
 
   const loadPackageFromPath = async (packageFile: string, fromStartup: boolean) => {
@@ -583,16 +603,27 @@ function App() {
     if (step === "details") {
       return (
         <section class="panel">
-          <h1>{packageInfo ? packageInfo.displayName : "Choose package"}</h1>
-          <p class="subtitle">Open a package file to start guided installation</p>
-          <div class="actions start">
-            <button class="button primary" onClick={() => void choosePackage()}>
-              Open .yambuck file
-            </button>
-          </div>
-
           {packageInfo ? (
             <>
+              <div class="details-header">
+                <div>
+                  <h1>{packageInfo.displayName}</h1>
+                  <p class="subtitle">Review package details and install when ready</p>
+                </div>
+                <div class="details-actions" data-no-drag="true">
+                  <button
+                    class="button primary"
+                    onClick={() => void handleContinueFromDetails()}
+                    disabled={checkingPreflight}
+                  >
+                    {checkingPreflight ? "Checking..." : "Install"}
+                  </button>
+                  <button class="card-close" onClick={() => clearSelectedPackage()} title="Close package">
+                    ×
+                  </button>
+                </div>
+              </div>
+
               {preflightBlockedMessage ? (
                 <div class="trust-box warning">
                   <p class="trust-title">Install blocked</p>
@@ -615,7 +646,14 @@ function App() {
               {packageInfo.screenshotDataUrls.length > 0 ? (
                 <div class="screenshot-strip" data-no-drag="true">
                   {packageInfo.screenshotDataUrls.map((source, index) => (
-                    <img key={`${packageInfo.packageUuid}-${index}`} src={source} alt={`Screenshot ${index + 1}`} />
+                    <button
+                      key={`${packageInfo.packageUuid}-${index}`}
+                      class="screenshot-tile"
+                      onClick={() => setActiveScreenshotIndex(index)}
+                      title={`Open screenshot ${index + 1}`}
+                    >
+                      <img src={source} alt={`Screenshot ${index + 1}`} />
+                    </button>
                   ))}
                 </div>
               ) : null}
@@ -656,17 +694,18 @@ function App() {
                   </div>
                 ) : null}
               </dl>
-              <div class="actions">
-                <button
-                  class="button primary"
-                  onClick={() => void handleContinueFromDetails()}
-                  disabled={checkingPreflight}
-                >
-                  {checkingPreflight ? "Checking..." : "Continue"}
+            </>
+          ) : (
+            <>
+              <h1>Choose package</h1>
+              <p class="subtitle">Open a package file to start guided installation</p>
+              <div class="actions start">
+                <button class="button primary" onClick={() => void choosePackage()}>
+                  Open .yambuck file
                 </button>
               </div>
             </>
-          ) : null}
+          )}
         </section>
       );
     }
@@ -1016,6 +1055,28 @@ function App() {
                 </button>
               ) : null}
             </div>
+          </section>
+        </div>
+      ) : null}
+
+      {activeScreenshotIndex !== null && packageInfo ? (
+        <div class="screenshot-modal-overlay" data-no-drag="true" onClick={() => closeScreenshotModal()}>
+          <section class="screenshot-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div class="screenshot-modal-toolbar">
+              <span>{`Screenshot ${activeScreenshotIndex + 1} of ${packageInfo.screenshotDataUrls.length}`}</span>
+              <button class="button ghost" onClick={() => closeScreenshotModal()}>Close</button>
+            </div>
+            <img
+              class="screenshot-modal-image"
+              src={packageInfo.screenshotDataUrls[activeScreenshotIndex]}
+              alt={`Screenshot ${activeScreenshotIndex + 1}`}
+            />
+            {packageInfo.screenshotDataUrls.length > 1 ? (
+              <div class="screenshot-modal-controls">
+                <button class="button ghost" onClick={() => cycleScreenshot(-1)}>Previous</button>
+                <button class="button ghost" onClick={() => cycleScreenshot(1)}>Next</button>
+              </div>
+            ) : null}
           </section>
         </div>
       ) : null}
