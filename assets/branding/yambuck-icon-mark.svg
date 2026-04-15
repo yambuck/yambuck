@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#61d7ff"/>
+      <stop offset="1" stop-color="#55f0c0"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(-20.48 -20.48) scale(1.32)">
+    <path d="M29 36h30l16 20H45z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M75 36h24L69 92H45z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M29 92h30l16-20H45z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="93" cy="34" r="7" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="93" cy="94" r="7" fill="none" stroke="#ffffff" stroke-width="3"/>
+
+    <path d="M29 36h30l16 20H45z" fill="#1b4e72"/>
+    <path d="M75 36h24L69 92H45z" fill="url(#ribbon)"/>
+    <path d="M29 92h30l16-20H45z" fill="#10324e"/>
+    <circle cx="93" cy="34" r="7" fill="#63d8ff"/>
+    <circle cx="93" cy="94" r="7" fill="#55f0c0"/>
+  </g>
+</svg>

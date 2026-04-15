@@ -6,7 +6,19 @@ APP_DIR="${ROOT_DIR}/apps/example-app"
 TAURI_DIR="${APP_DIR}/src-tauri"
 OUT_DIR="${ROOT_DIR}/release-artifacts/packages"
 STAGE_DIR="${ROOT_DIR}/release-artifacts/.example-app-stage"
-PACKAGE_PATH="${OUT_DIR}/example-app.yambuck"
+
+resolve_arch() {
+  local machine_arch
+  machine_arch="$(uname -m)"
+  case "$machine_arch" in
+    x86_64|amd64) printf "x86_64" ;;
+    aarch64|arm64) printf "aarch64" ;;
+    *)
+      printf "Unsupported architecture: %s\n" "$machine_arch" >&2
+      exit 1
+      ;;
+  esac
+}
 
 log() {
   printf "[example-app] %s\n" "$*"
@@ -27,6 +39,9 @@ fi
 need_cmd npm
 need_cmd cargo
 need_cmd zip
+
+ARCH="$(resolve_arch)"
+PACKAGE_PATH="${OUT_DIR}/example-app-linux-${ARCH}.yambuck"
 
 log "Installing frontend dependencies"
 npm --prefix "$APP_DIR" ci

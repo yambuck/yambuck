@@ -58,11 +58,13 @@ Expected outputs:
 ### 4) Create tag and GitHub release
 
 ```bash
+./scripts/build-example-app-yambuck.sh
 git tag v0.1.6
 git push origin v0.1.6
 gh release create v0.1.6 \
   release-artifacts/yambuck-linux-x86_64.tar.gz \
   release-artifacts/yambuck-linux-x86_64.tar.gz.sha256 \
+  release-artifacts/packages/example-app-linux-x86_64.yambuck \
   --title "Yambuck v0.1.6" \
   --notes "<release notes>"
 ```

@@ -109,6 +109,14 @@ Pre-alpha. The project is in documentation and specification stage.
 - Run one-command example package smoke flow: `./scripts/smoke-example-app.sh`
 - Build release artifact + checksum: `./scripts/package-bootstrap-artifact.sh`
 
+## Brand Assets
+
+- Master icon files live in `assets/branding/`:
+  - `assets/branding/yambuck-icon-app.svg` (app icon source, with background)
+  - `assets/branding/yambuck-icon-mark.svg` (website/favicon mark, transparent)
+- Regenerate Tauri app icon outputs from the SVG source:
+  - `npm --prefix apps/yambuck-gui run tauri icon src-tauri/icons/icon-source.svg`
+
 ## Initial Naming
 
 - Project: `yambuck`

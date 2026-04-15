@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yambuck | Simple Linux App Installs</title>
+    <title>Yambuck | Install Linux Apps</title>
     <meta
       name="description"
       content="Yambuck makes Linux app installation simple for non-technical users with a modern, GUI-first installer experience."
     />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -22,8 +23,11 @@
 
     <main class="page">
       <header class="hero">
-        <p class="eyebrow">Yambuck</p>
-        <h1>Install Linux apps like normal consumer software.</h1>
+        <div class="brand-lockup" aria-label="Yambuck">
+          <img src="./favicon.svg" alt="" aria-hidden="true" />
+          <span>Yambuck</span>
+        </div>
+        <h1>Install Linux apps like normal software.</h1>
         <p class="hero-copy">
           Yambuck is a GUI-first installer system for Linux that helps non-technical users download,
           open, and install apps with less friction.
@@ -48,18 +52,28 @@
         </p>
       </section>
 
-      <section class="steps" aria-label="How Yambuck works">
+      <section class="steps" aria-label="Quick start steps">
         <article>
-          <h3>1. Install once</h3>
-          <p>Set up Yambuck on your machine with a single command.</p>
+          <p class="step-kicker">Step 1</p>
+          <h3>Install Yambuck</h3>
+          <p>Run the command above once to install Yambuck on your machine.</p>
         </article>
         <article>
-          <h3>2. Download app package</h3>
-          <p>Developers host <code>.yambuck</code> files directly on their own sites or releases.</p>
+          <p class="step-kicker">Step 2</p>
+          <h3>Download example package</h3>
+          <p>Download a demo <code>.yambuck</code> file to try the installer flow after setup.</p>
+          <a
+            class="link-button step-action step-file-button"
+            href="https://github.com/yambuck/yambuck/releases/latest/download/example-app-linux-x86_64.yambuck"
+            aria-label="Download example-app.yambuck"
+          >
+            <span>Download</span><code>example-app.yambuck</code>
+          </a>
         </article>
         <article>
-          <h3>3. Double-click and install</h3>
-          <p>Yambuck opens a clean wizard with trust, scope, and progress screens.</p>
+          <p class="step-kicker">Step 3</p>
+          <h3>Open and install</h3>
+          <p>Open the downloaded <code>.yambuck</code> file and complete the guided installer steps.</p>
         </article>
       </section>
 
@@ -68,7 +82,15 @@
         <p>
           Package once. Distribute directly. Let users install with a familiar GUI flow.
         </p>
-        <a href="https://github.com/yambuck/yambuck">View project on GitHub</a>
+        <a class="link-button secondary" href="https://github.com/yambuck/yambuck">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              fill="currentColor"
+              d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.36 6.84 9.72.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.9-.64.07-.63.07-.63 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.66.34-1.1.62-1.35-2.22-.26-4.56-1.15-4.56-5.11 0-1.13.39-2.06 1.03-2.79-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.06A9.3 9.3 0 0112 7.48c.85 0 1.7.12 2.5.35 1.9-1.34 2.74-1.06 2.74-1.06.55 1.42.21 2.47.1 2.73.64.73 1.03 1.66 1.03 2.79 0 3.97-2.35 4.85-4.58 5.11.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.6.69.49A10.2 10.2 0 0022 12.25C22 6.59 17.52 2 12 2z"
+            />
+          </svg>
+          <span>View project on GitHub</span>
+        </a>
       </section>
     </main>
 
