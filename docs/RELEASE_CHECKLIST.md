@@ -58,7 +58,19 @@ Verify:
 
 ## 5) Validate First Package Flow
 
-Use a test `.yambuck` artifact (Voquill target):
+Build and use the canonical test package:
+
+```bash
+./scripts/build-example-app-yambuck.sh
+```
+
+Quick local smoke shortcut (build + open in local yambuck-gui dev runtime):
+
+```bash
+./scripts/smoke-example-app.sh
+```
+
+Then validate with `release-artifacts/packages/example-app.yambuck`:
 
 - open package file in Yambuck GUI
 - complete install flow (`Just for me` first)

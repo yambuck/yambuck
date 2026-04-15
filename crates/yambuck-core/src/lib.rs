@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::io::Read;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
@@ -38,6 +39,9 @@ pub struct PackageInfo {
     pub homepage_url: Option<String>,
     pub support_url: Option<String>,
     pub license: Option<String>,
+    pub config_path: Option<String>,
+    pub cache_path: Option<String>,
+    pub temp_path: Option<String>,
     pub package_uuid: String,
     pub trust_status: String,
 }
@@ -90,6 +94,8 @@ struct InstalledAppRecord {
     install_scope: InstallScope,
     installed_at: String,
     destination_path: String,
+    #[serde(default)]
+    entrypoint: String,
 }
 
 #[derive(Deserialize)]
@@ -110,6 +116,9 @@ struct PackageManifest {
     homepage_url: Option<String>,
     support_url: Option<String>,
     license: Option<String>,
+    config_path: Option<String>,
+    cache_path: Option<String>,
+    temp_path: Option<String>,
     trust_status: Option<String>,
 }
 
@@ -165,6 +174,8 @@ pub enum YambuckError {
     StorageUnavailable,
     InvalidUpdateFeed,
     UnsupportedArchitecture,
+    InstallFailed,
+    LaunchFailed,
 }
 
 impl Display for YambuckError {
@@ -180,6 +191,8 @@ impl Display for YambuckError {
             YambuckError::UnsupportedArchitecture => {
                 formatter.write_str("unsupported system architecture")
             }
+            YambuckError::InstallFailed => formatter.write_str("install failed"),
+            YambuckError::LaunchFailed => formatter.write_str("launch failed"),
         }
     }
 }
@@ -246,6 +259,9 @@ pub fn inspect_package(package_file: &str) -> Result<PackageInfo, YambuckError> 
             Some(trimmed)
         }
     });
+    let config_path = sanitize_optional_text(manifest.config_path);
+    let cache_path = sanitize_optional_text(manifest.cache_path);
+    let temp_path = sanitize_optional_text(manifest.temp_path);
 
     Ok(PackageInfo {
         package_file: package_file.to_string(),
@@ -266,9 +282,81 @@ pub fn inspect_package(package_file: &str) -> Result<PackageInfo, YambuckError> 
         homepage_url: manifest.homepage_url,
         support_url: manifest.support_url,
         license: manifest.license,
+        config_path,
+        cache_path,
+        temp_path,
         package_uuid: manifest.package_uuid,
         trust_status,
     })
+}
+
+pub fn install_package(package_file: &str, destination_path: &str) -> Result<(), YambuckError> {
+    if package_file.trim().is_empty() || !package_file.ends_with(".yambuck") {
+        return Err(YambuckError::InvalidPackageFile);
+    }
+    if destination_path.trim().is_empty() {
+        return Err(YambuckError::InstallFailed);
+    }
+
+    let destination_root = Path::new(destination_path);
+    if destination_root.exists() {
+        fs::remove_dir_all(destination_root).map_err(|_| YambuckError::InstallFailed)?;
+    }
+    fs::create_dir_all(destination_root).map_err(|_| YambuckError::InstallFailed)?;
+
+    let package = fs::File::open(package_file).map_err(|_| YambuckError::InvalidPackageFile)?;
+    let mut archive = ZipArchive::new(package).map_err(|_| YambuckError::InvalidPackageFile)?;
+
+    let mut installed_any = false;
+    for index in 0..archive.len() {
+        let mut file = archive
+            .by_index(index)
+            .map_err(|_| YambuckError::InstallFailed)?;
+
+        let Some(entry_path) = file.enclosed_name() else {
+            continue;
+        };
+
+        if !entry_path.starts_with(Path::new("app")) {
+            continue;
+        }
+
+        installed_any = true;
+
+        let output_path = destination_root.join(&entry_path);
+
+        if file.is_dir() {
+            fs::create_dir_all(&output_path).map_err(|_| YambuckError::InstallFailed)?;
+            continue;
+        }
+
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent).map_err(|_| YambuckError::InstallFailed)?;
+        }
+
+        let mut output = fs::File::create(&output_path).map_err(|_| YambuckError::InstallFailed)?;
+        std::io::copy(&mut file, &mut output).map_err(|_| YambuckError::InstallFailed)?;
+
+        if let Some(mode) = file.unix_mode() {
+            fs::set_permissions(&output_path, fs::Permissions::from_mode(mode))
+                .map_err(|_| YambuckError::InstallFailed)?;
+        }
+    }
+
+    if !installed_any {
+        return Err(YambuckError::InstallFailed);
+    }
+
+    Ok(())
+}
+
+pub fn install_and_register(
+    package_info: &PackageInfo,
+    scope: InstallScope,
+    destination_path: &str,
+) -> Result<InstalledApp, YambuckError> {
+    install_package(&package_info.package_file, destination_path)?;
+    register_install(package_info, scope, destination_path)
 }
 
 pub fn create_install_preview(
@@ -328,6 +416,7 @@ pub fn register_install(
         install_scope: scope,
         installed_at: installed_at.clone(),
         destination_path: destination_path.to_string(),
+        entrypoint: package_info.entrypoint.clone(),
     };
     records.push(record);
     write_index(scope, &records)?;
@@ -392,6 +481,26 @@ pub fn uninstall_installed_app(app_id: &str, remove_user_data: bool) -> Result<(
     if !removed_any {
         return Err(YambuckError::AppNotInstalled);
     }
+
+    Ok(())
+}
+
+pub fn launch_installed_app(app_id: &str) -> Result<(), YambuckError> {
+    if app_id.trim().is_empty() {
+        return Err(YambuckError::InvalidAppId);
+    }
+
+    let record = find_installed_record(app_id).ok_or(YambuckError::AppNotInstalled)?;
+    let executable_path = resolve_entrypoint_path(&record.destination_path, &record.entrypoint)?;
+
+    if !executable_path.exists() {
+        return Err(YambuckError::LaunchFailed);
+    }
+
+    std::process::Command::new(&executable_path)
+        .current_dir(executable_path.parent().unwrap_or_else(|| Path::new("/")))
+        .spawn()
+        .map_err(|_| YambuckError::LaunchFailed)?;
 
     Ok(())
 }
@@ -469,6 +578,17 @@ fn sanitize_trust_status(value: Option<&str>) -> String {
     }
 }
 
+fn sanitize_optional_text(value: Option<String>) -> Option<String> {
+    value.and_then(|text| {
+        let trimmed = text.trim().to_string();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        }
+    })
+}
+
 fn is_supported_manifest_major(version: &str) -> bool {
     let major = version
         .split('.')
@@ -544,6 +664,33 @@ fn read_index(scope: InstallScope) -> Result<Vec<InstalledAppRecord>, YambuckErr
     let records = serde_json::from_str::<Vec<InstalledAppRecord>>(&content)
         .map_err(|_| YambuckError::StorageUnavailable)?;
     Ok(records)
+}
+
+fn find_installed_record(app_id: &str) -> Option<InstalledAppRecord> {
+    [InstallScope::User, InstallScope::System]
+        .into_iter()
+        .filter_map(|scope| read_index(scope).ok())
+        .flatten()
+        .find(|record| record.app_id == app_id)
+}
+
+fn resolve_entrypoint_path(
+    destination_path: &str,
+    entrypoint: &str,
+) -> Result<PathBuf, YambuckError> {
+    let entrypoint_path = Path::new(entrypoint);
+    if entrypoint.trim().is_empty() || entrypoint_path.is_absolute() {
+        return Err(YambuckError::LaunchFailed);
+    }
+
+    if entrypoint_path
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err(YambuckError::LaunchFailed);
+    }
+
+    Ok(PathBuf::from(destination_path).join(entrypoint_path))
 }
 
 fn is_app_tracked_by_yambuck(app_id: &str) -> bool {

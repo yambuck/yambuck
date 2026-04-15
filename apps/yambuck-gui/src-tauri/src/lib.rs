@@ -1,5 +1,5 @@
-use flate2::read::GzDecoder;
 use chrono::{Local, SecondsFormat};
+use flate2::read::GzDecoder;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
@@ -72,8 +72,13 @@ fn complete_install(
 ) -> Result<InstalledApp, String> {
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    yambuck_core::register_install(&package_info, install_scope, destination_path)
+    yambuck_core::install_and_register(&package_info, install_scope, destination_path)
         .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn launch_installed_app(app_id: &str) -> Result<(), String> {
+    yambuck_core::launch_installed_app(app_id).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -83,7 +88,9 @@ fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, String>
 
 #[tauri::command]
 fn get_startup_package_arg() -> Option<String> {
-    let arg = std::env::args().skip(1).find(|value| value.ends_with(".yambuck") || value.starts_with("file://"))?;
+    let arg = std::env::args()
+        .skip(1)
+        .find(|value| value.ends_with(".yambuck") || value.starts_with("file://"))?;
     normalize_package_arg(&arg)
 }
 
@@ -130,7 +137,10 @@ async fn check_for_updates(feed_url: Option<String>) -> Result<UpdateCheckResult
 }
 
 #[tauri::command]
-async fn apply_update_and_restart(download_url: String, expected_sha256: String) -> Result<(), String> {
+async fn apply_update_and_restart(
+    download_url: String,
+    expected_sha256: String,
+) -> Result<(), String> {
     if download_url.trim().is_empty() {
         return Err("missing download URL".to_string());
     }
@@ -214,11 +224,13 @@ async fn apply_update_and_restart(download_url: String, expected_sha256: String)
 #[tauri::command]
 fn get_system_info() -> Result<SystemInfo, String> {
     let current_exe = std::env::current_exe().map_err(|error| error.to_string())?;
-    let distro = read_os_release_value("PRETTY_NAME").unwrap_or_else(|| "Unknown distro".to_string());
+    let distro =
+        read_os_release_value("PRETTY_NAME").unwrap_or_else(|| "Unknown distro".to_string());
     let desktop_environment = std::env::var("XDG_CURRENT_DESKTOP")
         .or_else(|_| std::env::var("DESKTOP_SESSION"))
         .unwrap_or_else(|_| "Unknown desktop".to_string());
-    let session_type = std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "Unknown session".to_string());
+    let session_type =
+        std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "Unknown session".to_string());
 
     let kernel_version = Command::new("uname")
         .arg("-r")
@@ -263,7 +275,9 @@ fn get_recent_logs(limit: Option<usize>) -> Result<String, String> {
 #[tauri::command]
 fn clear_logs() -> Result<(), String> {
     let path = log_file_path()?;
-    let parent = path.parent().ok_or_else(|| "invalid log path".to_string())?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "invalid log path".to_string())?;
     fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     fs::write(path, "").map_err(|error| error.to_string())?;
     Ok(())
@@ -321,7 +335,9 @@ fn find_update_binary(extract_dir: &Path) -> Result<PathBuf, String> {
 
 fn append_log(level: &str, message: &str) -> Result<(), String> {
     let path = log_file_path()?;
-    let parent = path.parent().ok_or_else(|| "invalid log path".to_string())?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "invalid log path".to_string())?;
     fs::create_dir_all(parent).map_err(|error| error.to_string())?;
 
     let mut file = OpenOptions::new()
@@ -332,7 +348,8 @@ fn append_log(level: &str, message: &str) -> Result<(), String> {
 
     let timestamp = iso_like_timestamp();
     let line = format!("[{timestamp}] [{}] {}\n", normalize_level(level), message);
-    file.write_all(line.as_bytes()).map_err(|error| error.to_string())
+    file.write_all(line.as_bytes())
+        .map_err(|error| error.to_string())
 }
 
 fn normalize_package_arg(raw: &str) -> Option<String> {
@@ -422,7 +439,8 @@ pub fn run() {
             get_startup_package_arg,
             list_installed_apps,
             uninstall_installed_app,
-            complete_install
+            complete_install,
+            launch_installed_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

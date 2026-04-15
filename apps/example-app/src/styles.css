@@ -1,0 +1,258 @@
+:root {
+  font-family: "Sora", "DM Sans", "Segoe UI", sans-serif;
+  color: #f5f0e9;
+  background: radial-gradient(circle at 18% -10%, #5e2f2a 0%, #1f1518 42%, #0d0b0f 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.app-shell {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 184, 160, 0.25);
+  border-left: 0;
+  border-right: 0;
+  background: linear-gradient(120deg, rgba(72, 35, 37, 0.95), rgba(30, 17, 24, 0.94));
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  cursor: grab;
+  user-select: none;
+}
+
+.topbar:active {
+  cursor: grabbing;
+}
+
+.topbar-left,
+.topbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.topbar-right {
+  justify-self: end;
+}
+
+.topbar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.28);
+}
+
+.topbar-name {
+  color: #f9d8cd;
+  font-size: 0.86rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.topbar-title {
+  margin: 0;
+  justify-self: center;
+  font-size: 0.91rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffbe96;
+  font-weight: 700;
+}
+
+.badge {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 183, 146, 0.45);
+  background: rgba(63, 30, 31, 0.8);
+  color: #ffd9bd;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.72rem;
+}
+
+.content-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 1rem 1.15rem 0.85rem;
+}
+
+.panel {
+  width: min(860px, 100%);
+  margin: 0 auto;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 186, 162, 0.22);
+  padding: 1.3rem;
+  background: linear-gradient(160deg, rgba(43, 24, 31, 0.96), rgba(20, 14, 20, 0.95));
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.33);
+}
+
+.panel-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.app-icon {
+  width: 74px;
+  height: 74px;
+  border-radius: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  color: #ffe2d2;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #ffd9c4;
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  color: #e1c5b3;
+  line-height: 1.4;
+}
+
+.status-row {
+  margin-top: 1.05rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.status-chip {
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 181, 145, 0.34);
+  padding: 0.42rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  background: rgba(60, 32, 37, 0.85);
+  color: #ffd9c4;
+}
+
+.status-chip[data-tone="success"] {
+  border-color: rgba(132, 236, 196, 0.48);
+  background: rgba(18, 78, 57, 0.82);
+  color: #d9ffef;
+}
+
+.status-chip[data-tone="error"] {
+  border-color: rgba(255, 149, 149, 0.55);
+  background: rgba(88, 20, 27, 0.9);
+  color: #ffd9dd;
+}
+
+.button {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 185, 150, 0.5);
+  background: linear-gradient(135deg, rgba(255, 184, 132, 0.95), rgba(245, 117, 89, 0.92));
+  color: #32130d;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.button:hover {
+  filter: brightness(1.07);
+}
+
+.meta-section {
+  margin-top: 1.2rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 189, 162, 0.2);
+  padding: 0.88rem;
+  background: rgba(23, 14, 20, 0.52);
+}
+
+.meta-section p {
+  margin: 0.4rem 0 0;
+  color: #ddbfae;
+}
+
+.screenshot-strip {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.screenshot-tile {
+  border: 1px solid rgba(255, 189, 160, 0.24);
+  border-radius: 11px;
+  overflow: hidden;
+  background: rgba(6, 8, 13, 0.65);
+}
+
+.screenshot-tile img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 7;
+  object-fit: cover;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .topbar-title {
+    justify-self: start;
+  }
+
+  .topbar-right {
+    justify-self: start;
+  }
+
+  .panel {
+    padding: 0.95rem;
+  }
+
+  .panel-header {
+    grid-template-columns: 1fr;
+  }
+
+  .app-icon {
+    width: 62px;
+    height: 62px;
+  }
+
+  .screenshot-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

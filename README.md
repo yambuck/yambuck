@@ -105,6 +105,8 @@ Pre-alpha. The project is in documentation and specification stage.
 - Start frontend-only dev server: `npm --prefix apps/yambuck-gui run dev`
 - Build frontend bundle: `npm --prefix apps/yambuck-gui run build`
 - Check Rust/Tauri compile status: `cargo check --manifest-path apps/yambuck-gui/src-tauri/Cargo.toml`
+- Build real example test package: `./scripts/build-example-app-yambuck.sh`
+- Run one-command example package smoke flow: `./scripts/smoke-example-app.sh`
 - Build release artifact + checksum: `./scripts/package-bootstrap-artifact.sh`
 
 ## Initial Naming

@@ -17,6 +17,9 @@
   "homepageUrl": "https://voquill.org",
   "supportUrl": "https://github.com/voquill/voquill",
   "license": "MIT",
+  "configPath": "~/.config/voquill",
+  "cachePath": "~/.cache/voquill",
+  "tempPath": "~/.local/state/voquill/tmp",
   "trustStatus": "unverified",
   "runtimeDependencies": []
 }

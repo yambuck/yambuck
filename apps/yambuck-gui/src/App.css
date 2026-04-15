@@ -791,6 +791,8 @@ dd {
 .installed-actions {
   display: flex;
   align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .settings-tabs {

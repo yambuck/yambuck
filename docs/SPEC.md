@@ -106,6 +106,9 @@ Expected layout:
 - `releaseNotes`
 - `target` / `targets`
 - `runtimeDependencies` (informational only in v1)
+- `configPath` (optional app-declared config location)
+- `cachePath` (optional app-declared cache location)
+- `tempPath` (optional app-declared temp/work location)
 - `trustStatus` (defaults to `unverified` if not present)
 
 ## Rich Install Preview Requirements

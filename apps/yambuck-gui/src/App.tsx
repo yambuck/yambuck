@@ -39,6 +39,9 @@ type PackageInfo = {
   homepageUrl?: string;
   supportUrl?: string;
   license?: string;
+  configPath?: string;
+  cachePath?: string;
+  tempPath?: string;
   packageUuid: string;
   trustStatus: string;
 };
@@ -153,12 +156,20 @@ const MOCK_SHOT_F =
   );
 
 const DESCRIPTION_LIMIT = 500;
+const NOT_SPECIFIED = "Not specified";
 
 const truncateDescription = (text: string, maxChars = DESCRIPTION_LIMIT) => {
   if (text.length <= maxChars) {
     return text;
   }
   return `${text.slice(0, maxChars).trimEnd()}...`;
+};
+
+const displayOrFallback = (value?: string) => {
+  if (!value || value.trim().length === 0) {
+    return NOT_SPECIFIED;
+  }
+  return value;
 };
 
 function App() {
@@ -190,6 +201,7 @@ function App() {
   const [screenshotGallery, setScreenshotGallery] = useState<string[]>([]);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [showMockTechnicalDetails, setShowMockTechnicalDetails] = useState(false);
+  const [showCompleteTechnicalDetails, setShowCompleteTechnicalDetails] = useState(false);
 
   const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
@@ -308,6 +320,7 @@ function App() {
     setActiveScreenshotIndex(null);
     setScreenshotGallery([]);
     setShowTechnicalDetails(false);
+    setShowCompleteTechnicalDetails(false);
   };
 
   const openScreenshotModal = (gallery: string[], index: number) => {
@@ -336,6 +349,7 @@ function App() {
       });
       setPackageInfo(inspected);
       setShowTechnicalDetails(false);
+      setShowCompleteTechnicalDetails(false);
       setStep("details");
       setPreview(null);
       setPreflightBlockedMessage("");
@@ -491,6 +505,15 @@ function App() {
     }
   };
 
+  const launchInstalledApp = async (app: InstalledApp) => {
+    try {
+      await invoke("launch_installed_app", { appId: app.appId });
+      pushToast("success", `Launching ${app.displayName}.`);
+    } catch {
+      pushToast("error", `Unable to launch ${app.displayName}.`);
+    }
+  };
+
   const handleContinueFromDetails = async () => {
     if (!packageInfo) {
       pushToast("warning", "Choose a .yambuck package first.");
@@ -606,6 +629,21 @@ function App() {
     } catch {
       pushToast("error", "Install finished with issues. Could not update installed apps index.");
     }
+  };
+
+  const launchCurrentPackage = async () => {
+    if (!packageInfo) {
+      pushToast("warning", "No package selected to launch.");
+      return;
+    }
+
+    await launchInstalledApp({
+      appId: packageInfo.appId,
+      displayName: packageInfo.displayName,
+      version: packageInfo.version,
+      installScope: scope,
+      installedAt: "",
+    });
   };
 
   const handleTitlebarMouseDown = async (event: any) => {
@@ -977,9 +1015,75 @@ function App() {
             </div>
           </dl>
         ) : null}
+
+        {preview ? (
+          <section class="meta-section technical">
+            <div class="meta-section-header">
+              <h2>Technical details</h2>
+              <button
+                class="meta-toggle"
+                type="button"
+                onClick={() => setShowCompleteTechnicalDetails((prev) => !prev)}
+              >
+                {showCompleteTechnicalDetails ? "Hide technical details" : "Show technical details"}
+              </button>
+            </div>
+
+            {showCompleteTechnicalDetails ? (
+              <dl class="meta-grid compact">
+                <MetaField
+                  label="Launch path"
+                  tooltip="The resolved executable path that Yambuck tries to run."
+                  value={<code>{`${preview.destinationPath}/${packageInfo.entrypoint}`}</code>}
+                />
+                <MetaField
+                  label="Entrypoint"
+                  tooltip="The launch command path declared by the package manifest."
+                  value={<code>{packageInfo.entrypoint}</code>}
+                />
+                <MetaField
+                  label="Manifest"
+                  tooltip="Manifest schema version for this package."
+                  value={packageInfo.manifestVersion}
+                />
+                <MetaField
+                  label="App ID"
+                  tooltip="Stable identifier used by Yambuck for ownership and updates."
+                  value={packageInfo.appId}
+                />
+                <MetaField
+                  label="App UUID"
+                  tooltip="Immutable app identity UUID set by the publisher."
+                  value={packageInfo.appUuid}
+                />
+                <MetaField
+                  label="Package UUID"
+                  tooltip="Unique UUID for this specific package build artifact."
+                  value={packageInfo.packageUuid}
+                />
+                <MetaField
+                  label="Config path"
+                  tooltip="Optional config path from manifest. Not inferred by Yambuck."
+                  value={displayOrFallback(packageInfo.configPath)}
+                />
+                <MetaField
+                  label="Cache path"
+                  tooltip="Optional cache path from manifest. Not inferred by Yambuck."
+                  value={displayOrFallback(packageInfo.cachePath)}
+                />
+                <MetaField
+                  label="Temp path"
+                  tooltip="Optional temp path from manifest. Not inferred by Yambuck."
+                  value={displayOrFallback(packageInfo.tempPath)}
+                />
+              </dl>
+            ) : null}
+          </section>
+        ) : null}
+
         <div class="actions">
           <button class="button ghost" onClick={() => setStep("details")}>Install another</button>
-          <button class="button primary">Launch app</button>
+          <button class="button primary" onClick={() => void launchCurrentPackage()}>Launch app</button>
         </div>
       </section>
     );
@@ -1014,6 +1118,9 @@ function App() {
                 <p>Scope: {app.installScope}</p>
               </div>
               <div class="installed-actions">
+                <button class="button ghost" onClick={() => void launchInstalledApp(app)}>
+                  Launch
+                </button>
                 <button class="button ghost" onClick={() => void uninstallApp(app)}>
                   Uninstall
                 </button>
