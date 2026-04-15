@@ -6,7 +6,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import "./App.css";
 
-type WizardStep = "details" | "trust" | "scope" | "progress" | "complete";
+type WizardStep = "details" | "trust" | "license" | "scope" | "progress" | "complete";
 type InstallScope = "user" | "system";
 type AppPage = "installer" | "installed" | "settings" | "mockPreview";
 type SettingsTab = "general" | "debug";
@@ -39,6 +39,9 @@ type PackageInfo = {
   homepageUrl?: string;
   supportUrl?: string;
   license?: string;
+  licenseFile?: string;
+  licenseText?: string;
+  requiresLicenseAcceptance: boolean;
   configPath?: string;
   cachePath?: string;
   tempPath?: string;
@@ -59,6 +62,15 @@ type InstalledApp = {
   version: string;
   installScope: InstallScope;
   installedAt: string;
+};
+
+type InstalledAppDetails = {
+  appId: string;
+  displayName: string;
+  version: string;
+  installScope: InstallScope;
+  installedAt: string;
+  packageInfo: PackageInfo;
 };
 
 type UpdateCheckResult = {
@@ -202,6 +214,9 @@ function App() {
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [showMockTechnicalDetails, setShowMockTechnicalDetails] = useState(false);
   const [showCompleteTechnicalDetails, setShowCompleteTechnicalDetails] = useState(false);
+  const [licenseAccepted, setLicenseAccepted] = useState(false);
+  const [licenseViewer, setLicenseViewer] = useState<{ title: string; text: string } | null>(null);
+  const [installedAppDetails, setInstalledAppDetails] = useState<InstalledAppDetails | null>(null);
 
   const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
@@ -321,6 +336,8 @@ function App() {
     setScreenshotGallery([]);
     setShowTechnicalDetails(false);
     setShowCompleteTechnicalDetails(false);
+    setLicenseAccepted(false);
+    setLicenseViewer(null);
   };
 
   const openScreenshotModal = (gallery: string[], index: number) => {
@@ -350,6 +367,8 @@ function App() {
       setPackageInfo(inspected);
       setShowTechnicalDetails(false);
       setShowCompleteTechnicalDetails(false);
+      setLicenseAccepted(false);
+      setLicenseViewer(null);
       setStep("details");
       setPreview(null);
       setPreflightBlockedMessage("");
@@ -546,6 +565,40 @@ function App() {
     }
   };
 
+  const continueFromTrustStep = () => {
+    if (!packageInfo) {
+      return;
+    }
+    if (packageInfo.requiresLicenseAcceptance) {
+      setStep("license");
+      return;
+    }
+    setStep("scope");
+  };
+
+  const openLicenseViewer = (title: string, text: string) => {
+    setLicenseViewer({ title, text });
+  };
+
+  const closeLicenseViewer = () => {
+    setLicenseViewer(null);
+  };
+
+  const closeInstalledAppDetails = () => {
+    setInstalledAppDetails(null);
+  };
+
+  const openInstalledAppDetails = async (app: InstalledApp) => {
+    try {
+      const details = await invoke<InstalledAppDetails>("get_installed_app_details", {
+        appId: app.appId,
+      });
+      setInstalledAppDetails(details);
+    } catch {
+      pushToast("error", `Could not load archived package details for ${app.displayName}.`);
+    }
+  };
+
   const startInstall = async () => {
     if (!packageInfo) {
       pushToast("warning", "Choose a .yambuck package before installing.");
@@ -553,6 +606,13 @@ function App() {
     }
 
     const selectedPackage = packageInfo;
+
+    if (selectedPackage.requiresLicenseAcceptance && !licenseAccepted) {
+      pushToast("warning", "You must accept the license before installing.");
+      setStep("license");
+      return;
+    }
+
     setPreflightBlockedMessage("");
 
     try {
@@ -823,7 +883,35 @@ function App() {
                     <MetaField
                       label="License"
                       tooltip="The legal terms for using this app."
-                      value={packageInfo.license}
+                      value={
+                        <span class="meta-inline-actions">
+                          <span>{packageInfo.license}</span>
+                          {packageInfo.licenseText ? (
+                            <button
+                              class="button ghost inline"
+                              type="button"
+                              onClick={() => openLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
+                            >
+                              View license
+                            </button>
+                          ) : null}
+                        </span>
+                      }
+                    />
+                  ) : null}
+                  {!packageInfo.license && packageInfo.licenseText ? (
+                    <MetaField
+                      label="License"
+                      tooltip="The legal terms for using this app."
+                      value={
+                        <button
+                          class="button ghost inline"
+                          type="button"
+                          onClick={() => openLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
+                        >
+                          View license
+                        </button>
+                      }
                     />
                   ) : null}
                   <MetaField
@@ -924,8 +1012,49 @@ function App() {
           </div>
           <div class="actions">
             <button class="button ghost" onClick={() => setStep("details")}>Back</button>
-            <button class="button primary" onClick={() => setStep("scope")}>
+            <button class="button primary" onClick={() => continueFromTrustStep()}>
               {isVerified ? "Next" : "Install anyway"}
+            </button>
+          </div>
+        </section>
+      );
+    }
+
+    if (step === "license") {
+      const licenseText = packageInfo.licenseText?.trim() ?? "";
+      return (
+        <section class="panel">
+          <h1>License agreement</h1>
+          <p class="subtitle">Review and accept the package license before continuing.</p>
+          <div class="trust-box warning">
+            <p class="trust-title">Acceptance required</p>
+            <p>This package requires explicit license acceptance as declared in its manifest.</p>
+          </div>
+          <div class="actions start">
+            {licenseText ? (
+              <button
+                class="button ghost"
+                onClick={() => openLicenseViewer(`${packageInfo.displayName} License`, licenseText)}
+              >
+                View license
+              </button>
+            ) : (
+              <p class="subtitle">License content is missing. This package cannot be installed.</p>
+            )}
+          </div>
+          <label class="license-acceptance">
+            <input
+              type="checkbox"
+              checked={licenseAccepted}
+              disabled={!licenseText}
+              onChange={(event) => setLicenseAccepted((event.target as HTMLInputElement).checked)}
+            />
+            <span>I have read and accept this package license.</span>
+          </label>
+          <div class="actions">
+            <button class="button ghost" onClick={() => setStep("trust")}>Back</button>
+            <button class="button primary" onClick={() => setStep("scope")} disabled={!licenseText || !licenseAccepted}>
+              Continue
             </button>
           </div>
         </section>
@@ -1118,6 +1247,9 @@ function App() {
                 <p>Scope: {app.installScope}</p>
               </div>
               <div class="installed-actions">
+                <button class="button ghost" onClick={() => void openInstalledAppDetails(app)}>
+                  Review
+                </button>
                 <button class="button ghost" onClick={() => void launchInstalledApp(app)}>
                   Launch
                 </button>
@@ -1143,11 +1275,13 @@ function App() {
     const mockHomepage = "https://voquill.org";
     const mockSupport = "https://github.com/voquill/voquill";
     const mockLicense = "MIT";
+    const mockLicenseText =
+      "MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in the Software without restriction.\n\nTHE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.";
     const mockTrust = "unverified";
     const mockDescription =
       "Mock package view for rapid UI iteration. Use this screen to tweak spacing, screenshots, metadata layout, and card actions with HMR while validating how dense package metadata reads inside a compact panel before the installer flow continues. This sentence intentionally extends well beyond normal copy length to simulate a package summary that pushes the short-description limit and demonstrates truncation behavior for at-a-glance review during install.";
     const mockLongDescription =
-      "Voquill is designed for people who think faster than they type. It combines low-latency speech capture with keyboard-first editing so you can dictate rough drafts and refine them without leaving your normal workflow.\n\nIn this mock package, the long description is plain text and supports paragraph breaks. Developers can use this area for onboarding context, compatibility notes, expected hardware behavior, and any caveats that do not belong in the one-line summary.\n\nFor final packaging, keep the short summary fast to scan and reserve this section for deeper detail that helps users decide whether to trust and install the app.";
+      "Voquill is designed for people who think faster than they type. It combines low-latency speech capture with keyboard-first editing so you can dictate rough drafts and refine them without leaving your normal workflow.\n\nIn this mock package, the long description is plain text and supports paragraph breaks. Developers can use this area for onboarding context, compatibility notes, expected hardware behavior, and any caveats that do not belong in the one-line summary.\n\nFor final packaging, keep the short summary fast to scan and reserve this section for deeper detail that helps users decide whether to trust and install the app.\n\nTeams distributing private builds can also use this space to explain deployment constraints, required environment variables, and support expectations before a user clicks Install.\n\nIf your app integrates with microphones, cameras, or hardware accelerators, call those requirements out here so users can assess compatibility in advance and avoid surprise runtime errors.";
     const mockShots = [MOCK_SHOT_A, MOCK_SHOT_B, MOCK_SHOT_C, MOCK_SHOT_D, MOCK_SHOT_E, MOCK_SHOT_F];
 
     return (
@@ -1214,7 +1348,18 @@ function App() {
             <MetaField
               label="License"
               tooltip="The legal terms for using this app."
-              value={mockLicense}
+              value={
+                <span class="meta-inline-actions">
+                  <span>{mockLicense}</span>
+                  <button
+                    class="button ghost inline"
+                    type="button"
+                    onClick={() => openLicenseViewer(`${mockName} License`, mockLicenseText)}
+                  >
+                    View license
+                  </button>
+                </span>
+              }
             />
             <MetaField
               label="Trust"
@@ -1484,6 +1629,117 @@ function App() {
                 </button>
               ) : null}
             </div>
+          </section>
+        </div>
+      ) : null}
+
+      {licenseViewer ? (
+        <div class="modal-overlay" data-no-drag="true" onClick={() => closeLicenseViewer()}>
+          <section class="modal-card license-modal-card" onClick={(event) => event.stopPropagation()}>
+            <div class="screenshot-modal-toolbar">
+              <span>{licenseViewer.title}</span>
+              <button class="button ghost" onClick={() => closeLicenseViewer()}>Close</button>
+            </div>
+            <pre class="license-modal-text">{licenseViewer.text}</pre>
+          </section>
+        </div>
+      ) : null}
+
+      {installedAppDetails ? (
+        <div class="modal-overlay" data-no-drag="true" onClick={() => closeInstalledAppDetails()}>
+          <section class="modal-card installed-review-modal" onClick={(event) => event.stopPropagation()}>
+            <div class="screenshot-modal-toolbar">
+              <span>{`Installed package review: ${installedAppDetails.displayName}`}</span>
+              <button class="button ghost" onClick={() => closeInstalledAppDetails()}>Close</button>
+            </div>
+
+            <p class="subtitle">Review archived package details from the package snapshot Yambuck kept at install time.</p>
+
+            <div class="package-overview installed-review-overview">
+              {installedAppDetails.packageInfo.iconDataUrl ? (
+                <img class="package-icon" src={installedAppDetails.packageInfo.iconDataUrl} alt={`${installedAppDetails.displayName} icon`} />
+              ) : (
+                <div class="package-icon placeholder">No icon</div>
+              )}
+              <div>
+                <p class="subtitle package-description">{truncateDescription(installedAppDetails.packageInfo.description)}</p>
+              </div>
+            </div>
+
+            {installedAppDetails.packageInfo.screenshotDataUrls.length > 0 ? (
+              <div class="screenshot-strip" data-no-drag="true">
+                {installedAppDetails.packageInfo.screenshotDataUrls.map((source, index) => (
+                  <button
+                    key={`installed-shot-${installedAppDetails.appId}-${index}`}
+                    class="screenshot-tile"
+                    onClick={() => openScreenshotModal(installedAppDetails.packageInfo.screenshotDataUrls, index)}
+                    title={`Open screenshot ${index + 1}`}
+                  >
+                    <img src={source} alt={`Installed screenshot ${index + 1}`} />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <dl class="meta-grid compact">
+              <MetaField
+                label="Publisher"
+                tooltip="The team or company that published this app."
+                value={installedAppDetails.packageInfo.publisher}
+              />
+              <MetaField
+                label="Version"
+                tooltip="The app version from the archived package manifest."
+                value={installedAppDetails.version}
+              />
+              <MetaField
+                label="Installed"
+                tooltip="Unix timestamp when Yambuck registered this installation."
+                value={installedAppDetails.installedAt}
+              />
+              <MetaField
+                label="Scope"
+                tooltip="Install scope used for this app."
+                value={installedAppDetails.installScope}
+              />
+              <MetaField
+                label="License"
+                tooltip="The legal terms bundled in the archived package copy."
+                value={
+                  <span class="meta-inline-actions">
+                    <span>{displayOrFallback(installedAppDetails.packageInfo.license)}</span>
+                    {installedAppDetails.packageInfo.licenseText ? (
+                      <button
+                        class="button ghost inline"
+                        type="button"
+                        onClick={() =>
+                          openLicenseViewer(
+                            `${installedAppDetails.displayName} License`,
+                            installedAppDetails.packageInfo.licenseText!,
+                          )
+                        }
+                      >
+                        View license
+                      </button>
+                    ) : null}
+                  </span>
+                }
+              />
+              <MetaField
+                label="Trust"
+                tooltip="Trust status captured from the archived manifest."
+                value={installedAppDetails.packageInfo.trustStatus}
+              />
+            </dl>
+
+            {installedAppDetails.packageInfo.longDescription?.trim() ? (
+              <section class="meta-section long-description installed-review-long-description">
+                <div class="meta-section-header">
+                  <h2>About this app</h2>
+                </div>
+                <p>{installedAppDetails.packageInfo.longDescription}</p>
+              </section>
+            ) : null}
           </section>
         </div>
       ) : null}

@@ -9,7 +9,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use yambuck_core::{
-    InstallPreview, InstalledApp, InstallerContext, PackageInfo, PreflightCheckResult,
+    InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
     UpdateCheckResult,
 };
 
@@ -56,6 +56,11 @@ fn create_install_preview(
 #[tauri::command]
 fn list_installed_apps() -> Vec<InstalledApp> {
     yambuck_core::list_installed_apps()
+}
+
+#[tauri::command]
+fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, String> {
+    yambuck_core::get_installed_app_details(app_id).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -438,6 +443,7 @@ pub fn run() {
             preflight_install_check,
             get_startup_package_arg,
             list_installed_apps,
+            get_installed_app_details,
             uninstall_installed_app,
             complete_install,
             launch_installed_app

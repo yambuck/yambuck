@@ -103,6 +103,8 @@ Expected layout:
 - `homepageUrl`
 - `supportUrl`
 - `license`
+- `licenseFile` (local path inside package, typically under `assets/licenses/`)
+- `requiresLicenseAcceptance` (defaults to `false`; requires non-empty bundled `licenseFile` text)
 - `releaseNotes`
 - `target` / `targets`
 - `runtimeDependencies` (informational only in v1)
@@ -127,6 +129,8 @@ UI behavior:
 
 - `description` is the quick summary shown at a glance and is truncated in preview UI at 500 characters with `...`.
 - `longDescription` (if present) is shown as plain text with paragraph breaks for deeper context.
+- `licenseFile` (if present) is viewable in-app from bundled package content, without internet access.
+- when `requiresLicenseAcceptance` is `true`, installer requires explicit acceptance before install can continue.
 - installer preview renders up to 6 screenshots.
 
 This is required to make install decisions easy for non-technical users.

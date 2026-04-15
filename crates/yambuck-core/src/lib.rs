@@ -39,6 +39,9 @@ pub struct PackageInfo {
     pub homepage_url: Option<String>,
     pub support_url: Option<String>,
     pub license: Option<String>,
+    pub license_file: Option<String>,
+    pub license_text: Option<String>,
+    pub requires_license_acceptance: bool,
     pub config_path: Option<String>,
     pub cache_path: Option<String>,
     pub temp_path: Option<String>,
@@ -63,6 +66,17 @@ pub struct InstalledApp {
     pub version: String,
     pub install_scope: InstallScope,
     pub installed_at: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledAppDetails {
+    pub app_id: String,
+    pub display_name: String,
+    pub version: String,
+    pub install_scope: InstallScope,
+    pub installed_at: String,
+    pub package_info: PackageInfo,
 }
 
 #[derive(Clone, Serialize)]
@@ -96,6 +110,8 @@ struct InstalledAppRecord {
     destination_path: String,
     #[serde(default)]
     entrypoint: String,
+    #[serde(default)]
+    package_archive_path: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -116,6 +132,8 @@ struct PackageManifest {
     homepage_url: Option<String>,
     support_url: Option<String>,
     license: Option<String>,
+    license_file: Option<String>,
+    requires_license_acceptance: Option<bool>,
     config_path: Option<String>,
     cache_path: Option<String>,
     temp_path: Option<String>,
@@ -172,6 +190,7 @@ pub enum YambuckError {
     InvalidAppId,
     AppNotInstalled,
     StorageUnavailable,
+    MetadataUnavailable,
     InvalidUpdateFeed,
     UnsupportedArchitecture,
     InstallFailed,
@@ -187,6 +206,9 @@ impl Display for YambuckError {
             YambuckError::InvalidAppId => formatter.write_str("invalid app id"),
             YambuckError::AppNotInstalled => formatter.write_str("app is not installed"),
             YambuckError::StorageUnavailable => formatter.write_str("local storage unavailable"),
+            YambuckError::MetadataUnavailable => {
+                formatter.write_str("installed app metadata unavailable")
+            }
             YambuckError::InvalidUpdateFeed => formatter.write_str("invalid update feed"),
             YambuckError::UnsupportedArchitecture => {
                 formatter.write_str("unsupported system architecture")
@@ -259,6 +281,22 @@ pub fn inspect_package(package_file: &str) -> Result<PackageInfo, YambuckError> 
             Some(trimmed)
         }
     });
+    let license_file = sanitize_optional_text(manifest.license_file);
+    let license_text = match license_file.as_ref() {
+        Some(path) => {
+            let raw_license_text = read_archive_file_to_string(&mut archive, path)?;
+            let trimmed = raw_license_text.trim().to_string();
+            if trimmed.is_empty() {
+                return Err(YambuckError::InvalidManifest);
+            }
+            Some(trimmed)
+        }
+        None => None,
+    };
+    let requires_license_acceptance = manifest.requires_license_acceptance.unwrap_or(false);
+    if requires_license_acceptance && license_text.is_none() {
+        return Err(YambuckError::InvalidManifest);
+    }
     let config_path = sanitize_optional_text(manifest.config_path);
     let cache_path = sanitize_optional_text(manifest.cache_path);
     let temp_path = sanitize_optional_text(manifest.temp_path);
@@ -282,6 +320,9 @@ pub fn inspect_package(package_file: &str) -> Result<PackageInfo, YambuckError> 
         homepage_url: manifest.homepage_url,
         support_url: manifest.support_url,
         license: manifest.license,
+        license_file,
+        license_text,
+        requires_license_acceptance,
         config_path,
         cache_path,
         temp_path,
@@ -405,7 +446,17 @@ pub fn register_install(
     }
 
     let mut records = read_index(scope)?;
-    records.retain(|record| record.app_id != package_info.app_id);
+    let mut replaced_records = Vec::new();
+    records.retain(|record| {
+        if record.app_id == package_info.app_id {
+            replaced_records.push(record.clone());
+            false
+        } else {
+            true
+        }
+    });
+
+    let package_archive_path = archive_package_file(package_info, scope)?;
 
     let installed_at = current_unix_timestamp();
     let record = InstalledAppRecord {
@@ -417,9 +468,16 @@ pub fn register_install(
         installed_at: installed_at.clone(),
         destination_path: destination_path.to_string(),
         entrypoint: package_info.entrypoint.clone(),
+        package_archive_path: Some(package_archive_path.clone()),
     };
     records.push(record);
     write_index(scope, &records)?;
+
+    for replaced in replaced_records {
+        if replaced.package_archive_path.as_deref() != Some(package_archive_path.as_str()) {
+            let _ = maybe_remove_package_archive(replaced.package_archive_path.as_deref());
+        }
+    }
 
     Ok(InstalledApp {
         app_id: package_info.app_id.clone(),
@@ -447,6 +505,32 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
     apps
 }
 
+pub fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, YambuckError> {
+    if app_id.trim().is_empty() {
+        return Err(YambuckError::InvalidAppId);
+    }
+
+    let record = find_installed_record(app_id).ok_or(YambuckError::AppNotInstalled)?;
+    let archive_path = record
+        .package_archive_path
+        .clone()
+        .ok_or(YambuckError::MetadataUnavailable)?;
+
+    if !Path::new(&archive_path).exists() {
+        return Err(YambuckError::MetadataUnavailable);
+    }
+
+    let package_info = inspect_package(&archive_path)?;
+    Ok(InstalledAppDetails {
+        app_id: record.app_id,
+        display_name: record.display_name,
+        version: record.version,
+        install_scope: record.install_scope,
+        installed_at: record.installed_at,
+        package_info,
+    })
+}
+
 pub fn uninstall_installed_app(app_id: &str, remove_user_data: bool) -> Result<(), YambuckError> {
     if app_id.trim().is_empty() {
         return Err(YambuckError::InvalidAppId);
@@ -459,21 +543,22 @@ pub fn uninstall_installed_app(app_id: &str, remove_user_data: bool) -> Result<(
             Err(_) => continue,
         };
 
-        let mut removed_destination: Option<String> = None;
+        let mut removed_record: Option<InstalledAppRecord> = None;
         records.retain(|record| {
             if record.app_id == app_id {
-                removed_destination = Some(record.destination_path.clone());
+                removed_record = Some(record.clone());
                 false
             } else {
                 true
             }
         });
 
-        if let Some(destination_path) = removed_destination {
+        if let Some(record) = removed_record {
             write_index(scope, &records)?;
             removed_any = true;
+            let _ = maybe_remove_package_archive(record.package_archive_path.as_deref());
             if remove_user_data {
-                let _ = maybe_remove_app_data(&destination_path);
+                let _ = maybe_remove_app_data(&record.destination_path);
             }
         }
     }
@@ -755,6 +840,77 @@ fn maybe_remove_app_data(destination_path: &str) -> Result<(), YambuckError> {
         }
     }
     Ok(())
+}
+
+fn archive_package_file(
+    package_info: &PackageInfo,
+    scope: InstallScope,
+) -> Result<String, YambuckError> {
+    let source_path = Path::new(&package_info.package_file);
+    if !source_path.exists() {
+        return Err(YambuckError::InvalidPackageFile);
+    }
+
+    let archive_root = package_archive_root(scope)?.join(safe_segment(&package_info.app_id));
+    fs::create_dir_all(&archive_root).map_err(|_| YambuckError::StorageUnavailable)?;
+
+    let file_name = if package_info.file_name.trim().is_empty() {
+        "package.yambuck".to_string()
+    } else {
+        package_info.file_name.clone()
+    };
+    let archive_path = archive_root.join(file_name);
+    fs::copy(source_path, &archive_path).map_err(|_| YambuckError::StorageUnavailable)?;
+
+    Ok(archive_path.to_string_lossy().to_string())
+}
+
+fn package_archive_root(scope: InstallScope) -> Result<PathBuf, YambuckError> {
+    match scope {
+        InstallScope::User => {
+            let home = std::env::var("HOME").map_err(|_| YambuckError::StorageUnavailable)?;
+            Ok(PathBuf::from(home)
+                .join(".local")
+                .join("share")
+                .join("yambuck")
+                .join("package-archives"))
+        }
+        InstallScope::System => Ok(PathBuf::from("/var/lib/yambuck/package-archives")),
+    }
+}
+
+fn maybe_remove_package_archive(path: Option<&str>) -> Result<(), YambuckError> {
+    let Some(value) = path else {
+        return Ok(());
+    };
+
+    let archive_path = Path::new(value);
+    if archive_path.exists() {
+        fs::remove_file(archive_path).map_err(|_| YambuckError::StorageUnavailable)?;
+    }
+    if let Some(parent) = archive_path.parent() {
+        if parent.exists() {
+            let _ = fs::remove_dir(parent);
+        }
+    }
+    Ok(())
+}
+
+fn safe_segment(value: &str) -> String {
+    value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric()
+                || character == '-'
+                || character == '_'
+                || character == '.'
+            {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect()
 }
 
 fn current_unix_timestamp() -> String {
