@@ -35,7 +35,7 @@ log "Building frontend"
 npm --prefix "$APP_DIR" run build
 
 log "Building release binary"
-cargo build --release --manifest-path "${TAURI_DIR}/Cargo.toml"
+cargo build --release --features custom-protocol --manifest-path "${TAURI_DIR}/Cargo.toml"
 
 BIN_SOURCE="${TAURI_DIR}/target/release/example-app"
 if [[ ! -x "$BIN_SOURCE" ]]; then
@@ -46,6 +46,7 @@ fi
 rm -rf "$STAGE_DIR"
 mkdir -p "$STAGE_DIR/app/bin"
 mkdir -p "$STAGE_DIR/assets/screenshots"
+mkdir -p "$STAGE_DIR/assets/licenses"
 mkdir -p "$OUT_DIR"
 
 cp "$BIN_SOURCE" "$STAGE_DIR/app/bin/example-app"
@@ -58,6 +59,7 @@ cp "${APP_DIR}/src/assets/debug/mock-shot-c.svg" "$STAGE_DIR/assets/screenshots/
 cp "${APP_DIR}/src/assets/debug/mock-shot-d.svg" "$STAGE_DIR/assets/screenshots/screenshot-d.svg"
 cp "${APP_DIR}/src/assets/debug/mock-shot-e.svg" "$STAGE_DIR/assets/screenshots/screenshot-e.svg"
 cp "${APP_DIR}/src/assets/debug/mock-shot-f.svg" "$STAGE_DIR/assets/screenshots/screenshot-f.svg"
+cp "${APP_DIR}/assets/licenses/LICENSE.txt" "$STAGE_DIR/assets/licenses/LICENSE.txt"
 
 cat > "${STAGE_DIR}/manifest.json" <<'EOF'
 {
@@ -83,6 +85,8 @@ cat > "${STAGE_DIR}/manifest.json" <<'EOF'
   "homepageUrl": "https://yambuck.com",
   "supportUrl": "https://github.com/yambuck/yambuck",
   "license": "MIT",
+  "licenseFile": "assets/licenses/LICENSE.txt",
+  "requiresLicenseAcceptance": true,
   "trustStatus": "unverified"
 }
 EOF
