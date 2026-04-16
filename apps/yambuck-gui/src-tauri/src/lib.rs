@@ -8,12 +8,20 @@ use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use tauri::{Emitter, Manager};
 use yambuck_core::{
     InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
     UpdateCheckResult,
 };
 
 const DEFAULT_UPDATE_FEED_URL: &str = "https://yambuck.com/updates/stable.json";
+const OPEN_PACKAGE_EVENT: &str = "yambuck://open-package";
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenPackageEventPayload {
+    package_file: String,
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,10 +101,8 @@ fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, String>
 
 #[tauri::command]
 fn get_startup_package_arg() -> Option<String> {
-    let arg = std::env::args()
-        .skip(1)
-        .find(|value| value.ends_with(".yambuck") || value.starts_with("file://"))?;
-    normalize_package_arg(&arg)
+    let args = std::env::args().collect::<Vec<String>>();
+    package_arg_from_launch_args(&args)
 }
 
 #[tauri::command]
@@ -415,6 +421,10 @@ fn normalize_package_arg(raw: &str) -> Option<String> {
     }
 }
 
+fn package_arg_from_launch_args(args: &[String]) -> Option<String> {
+    args.iter().skip(1).find_map(|value| normalize_package_arg(value))
+}
+
 fn percent_decode(input: &str) -> String {
     let bytes = input.as_bytes();
     let mut out = String::with_capacity(input.len());
@@ -485,6 +495,18 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+
+            if let Some(package_file) = package_arg_from_launch_args(&argv) {
+                let payload = OpenPackageEventPayload { package_file };
+                let _ = app.emit(OPEN_PACKAGE_EVENT, payload);
+            }
+        }))
         .invoke_handler(tauri::generate_handler![
             get_installer_context,
             inspect_package,

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { IconBrandGithub, IconSettings } from "@tabler/icons-preact";
@@ -107,6 +108,10 @@ type ToastItem = {
   message: string;
 };
 
+type ExternalPackageOpenPayload = {
+  packageFile: string;
+};
+
 type MetaFieldProps = {
   label: string;
   tooltip: string;
@@ -170,6 +175,7 @@ const MOCK_SHOT_F =
 
 const DESCRIPTION_LIMIT = 500;
 const NOT_SPECIFIED = "Not specified";
+const EXTERNAL_PACKAGE_OPEN_EVENT = "yambuck://open-package";
 
 const truncateDescription = (text: string, maxChars = DESCRIPTION_LIMIT) => {
   if (text.length <= maxChars) {
@@ -252,7 +258,7 @@ function App() {
         if (!startupPath) {
           return;
         }
-        await loadPackageFromPath(startupPath, true);
+        await loadPackageFromPath(startupPath, "startup");
       } catch {
         pushToast("error", "Could not open startup package argument.");
       }
@@ -325,7 +331,7 @@ function App() {
       return;
     }
 
-    await loadPackageFromPath(selected, false);
+    await loadPackageFromPath(selected, "picker");
   };
 
   const clearSelectedPackage = () => {
@@ -360,7 +366,15 @@ function App() {
     setActiveScreenshotIndex(next);
   };
 
-  const loadPackageFromPath = async (packageFile: string, fromStartup: boolean) => {
+  const isInstallFlowLocked = () => {
+    if (!packageInfo) {
+      return false;
+    }
+
+    return step === "trust" || step === "license" || step === "scope" || step === "progress";
+  };
+
+  const loadPackageFromPath = async (packageFile: string, source: "startup" | "picker" | "external") => {
     try {
       const inspected = await invoke<PackageInfo>("inspect_package", {
         packageFile,
@@ -373,15 +387,40 @@ function App() {
       setStep("details");
       setPreview(null);
       setPreflightBlockedMessage("");
-      if (fromStartup) {
-        pushToast("success", `Opened ${inspected.fileName} from file association.`);
-      } else {
+      setPage("installer");
+      if (source === "picker") {
         pushToast("success", `Loaded package ${inspected.fileName}`);
       }
     } catch {
       pushToast("error", "Unable to open package. Choose a valid .yambuck file.");
     }
   };
+
+  useEffect(() => {
+    let detachListener: (() => void) | undefined;
+
+    void listen<ExternalPackageOpenPayload>(EXTERNAL_PACKAGE_OPEN_EVENT, (event) => {
+      const packageFile = event.payload?.packageFile;
+      if (!packageFile) {
+        return;
+      }
+
+      if (isInstallFlowLocked()) {
+        pushToast("warning", "Finish or cancel the current install before opening another package.");
+        return;
+      }
+
+      void loadPackageFromPath(packageFile, "external");
+    }).then((unlisten) => {
+      detachListener = unlisten;
+    });
+
+    return () => {
+      if (detachListener) {
+        detachListener();
+      }
+    };
+  }, [step, packageInfo]);
 
   const checkForUpdates = async (showNoUpdateMessage: boolean) => {
     if (checkingUpdates) {
