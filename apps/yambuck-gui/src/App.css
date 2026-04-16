@@ -1,7 +1,7 @@
 :root {
-  font-family: "Sora", "DM Sans", "Segoe UI", sans-serif;
-  color: #e7eff8;
-  background: radial-gradient(circle at 20% 0%, #154067 0%, #0c1724 45%, #070d16 100%);
+  font-family: var(--font-family-sans);
+  color: var(--colors-text-primary);
+  background: var(--colors-shell-background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -47,11 +47,11 @@ body {
   align-items: center;
   padding: 0.75rem 1rem;
   margin: 0;
-  border: 1px solid rgba(151, 195, 227, 0.24);
+  border: 1px solid var(--colors-surface-border);
   border-left: 0;
   border-right: 0;
   border-radius: 0;
-  background: linear-gradient(120deg, rgba(19, 42, 69, 0.93), rgba(10, 22, 38, 0.9));
+  background: var(--colors-topbar-background);
   backdrop-filter: blur(8px);
   user-select: none;
   position: sticky;
@@ -76,7 +76,7 @@ body {
   font-size: 0.92rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9ed7ff;
+  color: var(--colors-topbar-title);
   font-weight: 700;
 }
 
@@ -98,9 +98,9 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  border: 1px solid rgba(143, 185, 216, 0.45);
-  background: rgba(17, 34, 52, 0.72);
-  color: #cae4f9;
+  border: 1px solid var(--colors-control-border);
+  background: var(--colors-control-background);
+  color: var(--colors-control-text);
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1;
@@ -111,16 +111,16 @@ body {
 }
 
 .window-btn:hover {
-  background: rgba(36, 65, 94, 0.92);
+  background: var(--colors-control-hover-background);
 }
 
 .window-btn.close {
-  background: rgba(143, 38, 47, 0.55);
-  border-color: rgba(255, 148, 148, 0.45);
+  background: var(--colors-close-control-background);
+  border-color: var(--colors-close-control-border);
 }
 
 .window-btn.close:hover {
-  background: rgba(182, 45, 58, 0.76);
+  background: var(--colors-close-control-hover-background);
 }
 
 .window-btn.icon {
@@ -137,7 +137,7 @@ body {
   border-radius: 999px;
   border: 1px solid rgba(132, 182, 219, 0.45);
   background: rgba(17, 34, 52, 0.72);
-  color: #c6e3fd;
+  color: var(--colors-toggle-text);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.4rem 0.75rem;
@@ -174,33 +174,33 @@ body {
   border-radius: 12px;
   border: 1px solid;
   padding: 0.58rem 0.7rem;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 28px var(--colors-toast-shadow);
   font-size: 0.86rem;
   animation: fade-up 180ms ease;
 }
 
 .toast.info {
-  border-color: rgba(121, 197, 255, 0.45);
-  background: rgba(19, 59, 88, 0.9);
-  color: #d4ecff;
+  border-color: var(--colors-toast-info-border);
+  background: var(--colors-toast-info-bg);
+  color: var(--colors-toast-info-text);
 }
 
 .toast.success {
-  border-color: rgba(132, 236, 196, 0.48);
-  background: rgba(16, 78, 57, 0.9);
-  color: #d7ffef;
+  border-color: var(--colors-toast-success-border);
+  background: var(--colors-toast-success-bg);
+  color: var(--colors-toast-success-text);
 }
 
 .toast.warning {
-  border-color: rgba(255, 213, 142, 0.55);
-  background: rgba(92, 61, 17, 0.9);
-  color: #ffeacc;
+  border-color: var(--colors-toast-warning-border);
+  background: var(--colors-toast-warning-bg);
+  color: var(--colors-toast-warning-text);
 }
 
 .toast.error {
-  border-color: rgba(255, 149, 149, 0.55);
-  background: rgba(88, 20, 27, 0.9);
-  color: #ffd9dd;
+  border-color: var(--colors-toast-error-border);
+  background: var(--colors-toast-error-bg);
+  color: var(--colors-toast-error-text);
 }
 
 .toast-close {
@@ -837,6 +837,7 @@ dd {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
   gap: 0.9rem;
+  align-items: center;
   border-radius: 14px;
   border: 1px solid rgba(147, 194, 225, 0.26);
   background: rgba(15, 31, 49, 0.78);
@@ -847,6 +848,22 @@ dd {
   display: flex;
   align-items: center;
   gap: 0.7rem;
+  min-width: 0;
+}
+
+.installed-app-copy {
+  min-width: 0;
+}
+
+.installed-app-copy h2 {
+  overflow-wrap: anywhere;
+}
+
+.installed-app-copy p {
+  overflow-wrap: anywhere;
+}
+
+.installed-app-meta {
   min-width: 0;
 }
 
