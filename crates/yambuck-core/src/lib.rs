@@ -66,6 +66,7 @@ pub struct InstalledApp {
     pub version: String,
     pub install_scope: InstallScope,
     pub installed_at: String,
+    pub icon_data_url: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -485,6 +486,7 @@ pub fn register_install(
         version: package_info.version.clone(),
         install_scope: scope,
         installed_at,
+        icon_data_url: package_info.icon_data_url.clone(),
     })
 }
 
@@ -492,12 +494,21 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
     let mut apps = Vec::new();
     for scope in [InstallScope::User, InstallScope::System] {
         if let Ok(records) = read_index(scope) {
-            apps.extend(records.into_iter().map(|record| InstalledApp {
-                app_id: record.app_id,
-                display_name: record.display_name,
-                version: record.version,
-                install_scope: record.install_scope,
-                installed_at: record.installed_at,
+            apps.extend(records.into_iter().map(|record| {
+                let icon_data_url = record
+                    .package_archive_path
+                    .as_ref()
+                    .and_then(|archive_path| inspect_package(archive_path).ok())
+                    .and_then(|package| package.icon_data_url);
+
+                InstalledApp {
+                    app_id: record.app_id,
+                    display_name: record.display_name,
+                    version: record.version,
+                    install_scope: record.install_scope,
+                    installed_at: record.installed_at,
+                    icon_data_url,
+                }
             }));
         }
     }

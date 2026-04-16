@@ -183,6 +183,7 @@ This is required to make install decisions easy for non-technical users.
 ## Bootstrap Installation (Yambuck itself)
 
 - Website one-liner installs Yambuck binary.
+- Website one-liner uninstall removes Yambuck safely; optional purge mode removes Yambuck-managed app payloads.
 - Verification (checksum) is required by default.
 - Per-user install is default; system install is explicit.
 - Re-running bootstrap should safely replace existing binary for updates.

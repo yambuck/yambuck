@@ -53,6 +53,38 @@ resolve_arch() {
   esac
 }
 
+write_branded_icon_svg() {
+  cat <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#153f66"/>
+      <stop offset="1" stop-color="#081322"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#61d7ff"/>
+      <stop offset="1" stop-color="#55f0c0"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+  <g transform="translate(-20.48 -20.48) scale(1.32)">
+    <path d="M29 36h30l16 20H45z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M75 36h24L69 92H45z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M29 92h30l16-20H45z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="93" cy="34" r="7" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="93" cy="94" r="7" fill="none" stroke="#ffffff" stroke-width="3"/>
+
+    <path d="M29 36h30l16 20H45z" fill="#1b4e72"/>
+    <path d="M75 36h24L69 92H45z" fill="url(#ribbon)"/>
+    <path d="M29 92h30l16-20H45z" fill="#10324e"/>
+    <circle cx="93" cy="34" r="7" fill="#63d8ff"/>
+    <circle cx="93" cy="94" r="7" fill="#55f0c0"/>
+  </g>
+  <rect x="1" y="1" width="126" height="126" rx="23" fill="none" stroke="#97c3e7" stroke-opacity="0.34" stroke-width="2"/>
+</svg>
+EOF
+}
+
 install_system=false
 non_interactive=false
 skip_verify=false
@@ -197,11 +229,20 @@ fi
 
 desktop_file_name="com.yambuck.installer.desktop"
 mime_xml_name="application-x-yambuck-package.xml"
+desktop_icon_name="com.yambuck.installer"
+mime_icon_name="application-x-yambuck-package"
 
 if [[ "$install_system" == true ]]; then
   desktop_dir="/usr/share/applications"
   mime_packages_dir="/usr/share/mime/packages"
+  icon_apps_dir="/usr/share/icons/hicolor/scalable/apps"
+  icon_mime_dir="/usr/share/icons/hicolor/scalable/mimetypes"
   yambuck_exec="${install_dir}/${BIN_NAME}"
+
+  log "Installing branded icons"
+  sudo install -d "$icon_apps_dir" "$icon_mime_dir"
+  write_branded_icon_svg | sudo tee "${icon_apps_dir}/${desktop_icon_name}.svg" >/dev/null
+  write_branded_icon_svg | sudo tee "${icon_mime_dir}/${mime_icon_name}.svg" >/dev/null
 
   log "Installing desktop launcher"
   sudo install -d "$desktop_dir"
@@ -212,7 +253,7 @@ Comment=Install .yambuck application packages
 Exec=${yambuck_exec} %F
 Terminal=false
 Type=Application
-Icon=system-software-install
+Icon=${desktop_icon_name}
 Categories=Utility;PackageManager;
 MimeType=application/x-yambuck-package;
 StartupNotify=true
@@ -225,6 +266,7 @@ EOF
 <mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
   <mime-type type="application/x-yambuck-package">
     <comment>Yambuck package</comment>
+    <icon name="application-x-yambuck-package"/>
     <glob pattern="*.yambuck"/>
   </mime-type>
 </mime-info>
@@ -232,7 +274,14 @@ EOF
 else
   desktop_dir="${HOME}/.local/share/applications"
   mime_packages_dir="${HOME}/.local/share/mime/packages"
+  icon_apps_dir="${HOME}/.local/share/icons/hicolor/scalable/apps"
+  icon_mime_dir="${HOME}/.local/share/icons/hicolor/scalable/mimetypes"
   yambuck_exec="${install_dir}/${BIN_NAME}"
+
+  log "Installing branded icons"
+  install -d "$icon_apps_dir" "$icon_mime_dir"
+  write_branded_icon_svg > "${icon_apps_dir}/${desktop_icon_name}.svg"
+  write_branded_icon_svg > "${icon_mime_dir}/${mime_icon_name}.svg"
 
   log "Installing desktop launcher"
   install -d "$desktop_dir"
@@ -243,7 +292,7 @@ Comment=Install .yambuck application packages
 Exec=${yambuck_exec} %F
 Terminal=false
 Type=Application
-Icon=system-software-install
+Icon=${desktop_icon_name}
 Categories=Utility;PackageManager;
 MimeType=application/x-yambuck-package;
 StartupNotify=true
@@ -256,10 +305,20 @@ EOF
 <mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
   <mime-type type="application/x-yambuck-package">
     <comment>Yambuck package</comment>
+    <icon name="application-x-yambuck-package"/>
     <glob pattern="*.yambuck"/>
   </mime-type>
 </mime-info>
 EOF
+fi
+
+if optional_cmd gtk-update-icon-cache; then
+  log "Refreshing icon cache"
+  if [[ "$install_system" == true ]]; then
+    sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+  else
+    gtk-update-icon-cache -f -t "${HOME}/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+  fi
 fi
 
 if optional_cmd update-mime-database; then

@@ -1,12 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import mockIcon from "./assets/debug/mock-icon.svg";
+import mockShotA from "./assets/debug/mock-shot-a.svg";
+import mockShotB from "./assets/debug/mock-shot-b.svg";
+import mockShotC from "./assets/debug/mock-shot-c.svg";
+import mockShotD from "./assets/debug/mock-shot-d.svg";
+import mockShotE from "./assets/debug/mock-shot-e.svg";
+import mockShotF from "./assets/debug/mock-shot-f.svg";
+
 const screenshots = [
-  "/src/assets/debug/mock-shot-a.svg",
-  "/src/assets/debug/mock-shot-b.svg",
-  "/src/assets/debug/mock-shot-c.svg",
-  "/src/assets/debug/mock-shot-d.svg",
-  "/src/assets/debug/mock-shot-e.svg",
-  "/src/assets/debug/mock-shot-f.svg",
+  mockShotA,
+  mockShotB,
+  mockShotC,
+  mockShotD,
+  mockShotE,
+  mockShotF,
 ];
 
 async function refreshLaunchStatus() {
@@ -44,7 +52,7 @@ window.addEventListener("DOMContentLoaded", () => {
     <div class="app-shell">
       <header class="topbar" data-tauri-drag-region>
         <div class="topbar-left">
-          <img class="topbar-icon" src="/src/assets/debug/mock-icon.svg" alt="Example app icon" />
+          <img class="topbar-icon" src="${mockIcon}" alt="Example app icon" />
           <span class="topbar-name">Example App</span>
         </div>
         <p class="topbar-title">Yambuck Example</p>
@@ -56,7 +64,7 @@ window.addEventListener("DOMContentLoaded", () => {
       <main class="content-scroll">
         <section class="panel">
           <div class="panel-header">
-            <img class="app-icon" src="/src/assets/debug/mock-icon.svg" alt="Example app icon" />
+            <img class="app-icon" src="${mockIcon}" alt="Example app icon" />
             <div>
               <h1>Hello, world.</h1>
               <p class="subtitle">This is a minimal Tauri v2 app used for Yambuck packaging, install, and bundle verification.</p>

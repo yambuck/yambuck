@@ -99,6 +99,12 @@ Voquill is the first reference app for end-to-end v1 testing via `voquill.yambuc
 
 Pre-alpha. The project is in documentation and specification stage.
 
+Website bootstrap commands:
+
+- Install: `curl -fsSL https://yambuck.com/install.sh | bash`
+- Uninstall (safe default): `curl -fsSL https://yambuck.com/uninstall.sh | bash`
+- Uninstall (full purge): `curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes`
+
 ## Common Commands
 
 - Start desktop dev app with Tauri + Vite HMR: `npm --prefix apps/yambuck-gui run tauri dev`

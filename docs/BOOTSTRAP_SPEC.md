@@ -16,6 +16,12 @@ Primary command shown on website:
 curl -fsSL https://yambuck.com/install.sh | bash
 ```
 
+Companion uninstall command:
+
+```bash
+curl -fsSL https://yambuck.com/uninstall.sh | bash
+```
+
 ## Scope and Privilege
 
 - default mode: per-user install
@@ -78,5 +84,6 @@ For internal testing and CI:
 ## Implementation Status
 
 - install script path: `docs/install.sh`
-- active status: bootstrap installer implemented for release artifacts
-- pending: publish first signed release artifact + desktop association integration
+- uninstall script path: `docs/uninstall.sh`
+- active status: bootstrap install + uninstall scripts implemented for release artifacts
+- pending: publish first signed release artifact

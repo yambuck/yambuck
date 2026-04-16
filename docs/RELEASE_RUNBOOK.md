@@ -107,6 +107,18 @@ Validate:
 - checksum verification passes
 - app opens
 
+### Bootstrap uninstall check
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --yes
+```
+
+Validate:
+
+- yambuck binary is removed from install path
+- launcher + MIME integration are removed
+- managed apps are still present unless purge flag is used
+
 ### In-app update check
 
 Validate in running app:

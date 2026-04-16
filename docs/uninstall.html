@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yambuck | Uninstall</title>
+    <meta
+      name="description"
+      content="Uninstall Yambuck safely, or run a full purge for clean-slate testing."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="page">
+      <header class="hero">
+        <div class="brand-lockup" aria-label="Yambuck">
+          <img src="./favicon.svg" alt="" aria-hidden="true" />
+          <span>Yambuck</span>
+        </div>
+        <h1>Uninstall Yambuck</h1>
+        <p class="hero-copy">
+          Choose the safe default if you only want to remove Yambuck, or use full purge mode for
+          a complete clean-slate test reset.
+        </p>
+        <p class="command-note"><a href="./index.html">Back to install page</a></p>
+      </header>
+
+      <section class="install-card" aria-labelledby="safe-uninstall-title">
+        <div class="install-card-header">
+          <h2 id="safe-uninstall-title">Safe uninstall</h2>
+          <span class="status">Recommended</span>
+        </div>
+        <p>
+          Removes Yambuck itself and desktop integration. Leaves Yambuck-managed apps in place.
+        </p>
+        <div class="command-shell">
+          <code id="safe-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash</code>
+          <button id="copy-safe-command" type="button">Copy</button>
+        </div>
+      </section>
+
+      <section class="install-card" aria-labelledby="purge-uninstall-title">
+        <div class="install-card-header">
+          <h2 id="purge-uninstall-title">Full purge</h2>
+          <span class="status">Testing</span>
+        </div>
+        <p>
+          Removes Yambuck and all Yambuck-managed app payloads + metadata for a full clean slate.
+        </p>
+        <div class="command-shell">
+          <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes</code>
+          <button id="copy-purge-command" type="button">Copy</button>
+        </div>
+        <p class="command-note">
+          Prefer explicit download? Get the script directly at <a href="./uninstall.sh">/uninstall.sh</a>.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      async function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        if (!ok) {
+          throw new Error("copy failed");
+        }
+      }
+
+      function wireCopy(buttonId, commandId) {
+        const button = document.getElementById(buttonId);
+        const command = document.getElementById(commandId);
+
+        button?.addEventListener("click", async () => {
+          if (!command) return;
+          try {
+            await copyText(command.textContent || "");
+            button.textContent = "Copied";
+            setTimeout(() => {
+              button.textContent = "Copy";
+            }, 1400);
+          } catch {
+            button.textContent = "Failed";
+            setTimeout(() => {
+              button.textContent = "Copy";
+            }, 1400);
+          }
+        });
+      }
+
+      wireCopy("copy-safe-command", "safe-command");
+      wireCopy("copy-purge-command", "purge-command");
+    </script>
+  </body>
+</html>

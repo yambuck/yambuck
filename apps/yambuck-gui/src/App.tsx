@@ -62,6 +62,7 @@ type InstalledApp = {
   version: string;
   installScope: InstallScope;
   installedAt: string;
+  iconDataUrl?: string;
 };
 
 type InstalledAppDetails = {
@@ -1238,9 +1239,16 @@ function App() {
         <div class="installed-list">
           {installedApps.map((app) => (
             <article class="installed-card" key={app.appId}>
-              <div>
-                <h2>{app.displayName}</h2>
-                <p>{app.appId}</p>
+              <div class="installed-card-main">
+                {app.iconDataUrl ? (
+                  <img class="installed-app-icon" src={app.iconDataUrl} alt={`${app.displayName} icon`} />
+                ) : (
+                  <div class="installed-app-icon placeholder" aria-hidden="true">No icon</div>
+                )}
+                <div>
+                  <h2>{app.displayName}</h2>
+                  <p>{app.appId}</p>
+                </div>
               </div>
               <div>
                 <p>Version {app.version}</p>
