@@ -66,12 +66,13 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 0.85rem;
-  margin: 0;
+  margin: 0 0 0.35rem;
   color: #94cfff;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.72rem;
-  font-weight: 700;
+  letter-spacing: 0.11em;
+  font-size: 0.8rem;
+  line-height: 1;
+  font-weight: 800;
 }
 
 .brand-lockup img {
@@ -89,7 +90,7 @@ code {
 }
 
 h1 {
-  margin: 0.45rem 0 0;
+  margin: 0.55rem 0 0;
   font-size: clamp(1.9rem, 5vw, 3.1rem);
   line-height: 1.08;
 }
@@ -302,6 +303,12 @@ h3 {
   .command-shell code {
     white-space: normal;
     word-break: break-all;
+  }
+
+  .brand-lockup {
+    gap: 0.65rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.1em;
   }
 
   .brand-lockup img {
