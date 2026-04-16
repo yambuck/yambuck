@@ -157,6 +157,8 @@ async fn apply_update_and_restart(
     ensure_user_install_path(&current_exe)?;
     let _ = append_log("INFO", "Starting in-app update apply flow");
 
+    let expected_sha256 = expected_sha256.trim().to_ascii_lowercase();
+
     let response = reqwest::get(&download_url)
         .await
         .map_err(|error| format!("failed to download update: {error}"))?;
@@ -172,7 +174,7 @@ async fn apply_update_and_restart(
         .map_err(|error| format!("failed to read update payload: {error}"))?;
 
     let actual_sha256 = sha256_hex(&bytes);
-    if actual_sha256 != expected_sha256.to_lowercase() {
+    if actual_sha256 != expected_sha256 {
         let _ = append_log("ERROR", "Update checksum verification failed");
         return Err("update checksum verification failed".to_string());
     }
@@ -203,25 +205,68 @@ async fn apply_update_and_restart(
     fs::set_permissions(&staged_bin, fs::Permissions::from_mode(0o755))
         .map_err(|error| error.to_string())?;
 
+    let helper_log = update_helper_log_path()?;
+    if let Some(parent) = helper_log.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+
     let script_path = temp_root.join("apply-update.sh");
-    let script_content = format!(
-        "#!/usr/bin/env bash\nset -euo pipefail\nsleep 1\ninstall -m 0755 \"{}\" \"{}\"\n\"{}\" >/dev/null 2>&1 &\n",
-        staged_bin.display(),
-        current_exe.display(),
-        current_exe.display()
-    );
+    let script_content = r#"#!/bin/sh
+set -eu
+
+PARENT_PID="$1"
+STAGED_BIN="$2"
+TARGET_BIN="$3"
+HELPER_LOG="$4"
+
+{
+  echo "[$(date +%Y-%m-%dT%H:%M:%S%z)] [INFO] Update helper started"
+
+  wait_secs=0
+  while kill -0 "$PARENT_PID" 2>/dev/null; do
+    if [ "$wait_secs" -ge 25 ]; then
+      echo "[$(date +%Y-%m-%dT%H:%M:%S%z)] [ERROR] Timed out waiting for parent process to exit"
+      exit 1
+    fi
+    sleep 1
+    wait_secs=$((wait_secs + 1))
+  done
+
+  tmp_target="${TARGET_BIN}.next"
+  install -m 0755 "$STAGED_BIN" "$tmp_target"
+  mv -f "$tmp_target" "$TARGET_BIN"
+
+  if [ ! -x "$TARGET_BIN" ]; then
+    echo "[$(date +%Y-%m-%dT%H:%M:%S%z)] [ERROR] Updated binary is not executable"
+    exit 1
+  fi
+
+  "$TARGET_BIN" >/dev/null 2>&1 &
+  echo "[$(date +%Y-%m-%dT%H:%M:%S%z)] [INFO] Update helper completed and relaunched app"
+} >>"$HELPER_LOG" 2>&1
+"#;
     fs::write(&script_path, script_content).map_err(|error| error.to_string())?;
     fs::set_permissions(&script_path, fs::Permissions::from_mode(0o755))
         .map_err(|error| error.to_string())?;
 
     Command::new("sh")
-        .arg(script_path)
+        .arg(&script_path)
+        .arg(std::process::id().to_string())
+        .arg(&staged_bin)
+        .arg(&current_exe)
+        .arg(&helper_log)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
         .map_err(|error| format!("failed to schedule update apply: {error}"))?;
 
-    let _ = append_log("INFO", "Update scheduled, app will restart");
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Update scheduled, app will restart (helper log: {})",
+            helper_log.display()
+        ),
+    );
 
     Ok(())
 }
@@ -407,6 +452,16 @@ fn log_file_path() -> Result<PathBuf, String> {
         .join("yambuck")
         .join("logs")
         .join("current.log"))
+}
+
+fn update_helper_log_path() -> Result<PathBuf, String> {
+    let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
+    Ok(PathBuf::from(home)
+        .join(".local")
+        .join("share")
+        .join("yambuck")
+        .join("logs")
+        .join("update-helper.log"))
 }
 
 fn read_os_release_value(key: &str) -> Option<String> {
