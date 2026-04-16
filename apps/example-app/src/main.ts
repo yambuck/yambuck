@@ -1,39 +1,76 @@
-import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getVersion } from "@tauri-apps/api/app";
 
 import mockIcon from "./assets/debug/mock-icon.svg";
-import mockShotA from "./assets/debug/mock-shot-a.svg";
-import mockShotB from "./assets/debug/mock-shot-b.svg";
-import mockShotC from "./assets/debug/mock-shot-c.svg";
-import mockShotD from "./assets/debug/mock-shot-d.svg";
-import mockShotE from "./assets/debug/mock-shot-e.svg";
-import mockShotF from "./assets/debug/mock-shot-f.svg";
 
-const screenshots = [
-  mockShotA,
-  mockShotB,
-  mockShotC,
-  mockShotD,
-  mockShotE,
-  mockShotF,
-];
+const shouldSkipDrag = (event: MouseEvent) => {
+  const target = event.target;
+  return target instanceof Element && target.closest("button, a, input, textarea, select, [data-no-drag='true']");
+};
 
-async function refreshLaunchStatus() {
-  const statusEl = document.querySelector<HTMLElement>("#launch-status");
-  if (!statusEl) {
+const startDragging = async (event: MouseEvent) => {
+  if (event.buttons !== 1 || shouldSkipDrag(event)) {
     return;
   }
 
-  statusEl.textContent = "Checking launch status...";
+  try {
+    await getCurrentWindow().startDragging();
+  } catch {
+    // no-op when running outside Tauri window context
+  }
+};
+
+const setMaximizeLabel = (button: HTMLButtonElement, isMaximized: boolean) => {
+  button.textContent = isMaximized ? "▢" : "□";
+  button.title = isMaximized ? "Restore" : "Maximize";
+};
+
+const handleMinimize = async () => {
+  try {
+    await getCurrentWindow().minimize();
+  } catch {
+    // no-op when running outside Tauri window context
+  }
+};
+
+const handleToggleMaximize = async (button: HTMLButtonElement) => {
+  try {
+    const win = getCurrentWindow();
+    const isMaximized = await win.isMaximized();
+    if (isMaximized) {
+      await win.unmaximize();
+      setMaximizeLabel(button, false);
+      return;
+    }
+
+    await win.maximize();
+    setMaximizeLabel(button, true);
+  } catch {
+    // no-op when running outside Tauri window context
+  }
+};
+
+const handleClose = async () => {
+  try {
+    await getCurrentWindow().close();
+  } catch {
+    // no-op when running outside Tauri window context
+  }
+};
+
+const syncAppVersion = async () => {
+  const versionEl = document.querySelector<HTMLElement>("#app-version");
+  if (!versionEl) {
+    return;
+  }
 
   try {
-    const message = await invoke<string>("get_launch_status");
-    statusEl.textContent = message;
-    statusEl.dataset.tone = "success";
+    const version = await getVersion();
+    versionEl.textContent = `Version ${version}`;
   } catch {
-    statusEl.textContent = "Unable to read launch status from backend.";
-    statusEl.dataset.tone = "error";
+    versionEl.textContent = "Version unavailable";
   }
-}
+};
 
 window.addEventListener("DOMContentLoaded", () => {
   const appRoot = document.querySelector<HTMLElement>("#app");
@@ -41,23 +78,20 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const screenshotTiles = screenshots
-    .map(
-      (source, index) =>
-        `<li class="screenshot-tile"><img src="${source}" alt="Example screenshot ${index + 1}" /></li>`,
-    )
-    .join("");
-
   appRoot.innerHTML = `
     <div class="app-shell">
-      <header class="topbar" data-tauri-drag-region>
+      <header class="topbar" id="topbar">
         <div class="topbar-left">
           <img class="topbar-icon" src="${mockIcon}" alt="Example app icon" />
           <span class="topbar-name">Example App</span>
         </div>
-        <p class="topbar-title">Yambuck Example</p>
-        <div class="topbar-right">
-          <span class="badge">Launch Test Target</span>
+        <p class="topbar-title">Yambuck Example App</p>
+        <div class="topbar-right" data-no-drag="true">
+          <div class="window-controls">
+            <button id="minimize-button" class="window-btn" type="button" title="Minimize">-</button>
+            <button id="maximize-button" class="window-btn" type="button" title="Maximize">□</button>
+            <button id="close-button" class="window-btn close" type="button" title="Close">×</button>
+          </div>
         </div>
       </header>
 
@@ -67,30 +101,51 @@ window.addEventListener("DOMContentLoaded", () => {
             <img class="app-icon" src="${mockIcon}" alt="Example app icon" />
             <div>
               <h1>Hello, world.</h1>
-              <p class="subtitle">This is a minimal Tauri v2 app used for Yambuck packaging, install, and bundle verification.</p>
+              <p class="subtitle">Welcome to the Yambuck Example App - a small desktop app used for demonstration and testing.</p>
             </div>
           </div>
 
-          <div class="status-row">
-            <p id="launch-status" class="status-chip" data-tone="info">Ready to check launch status.</p>
-            <button id="status-button" class="button" type="button">Check launch status</button>
-          </div>
-
-          <section class="meta-section">
-            <h2>Included debug preview assets</h2>
-            <p>Using the same mock icon and six screenshots from the Yambuck debug preview page.</p>
-            <ul class="screenshot-strip">${screenshotTiles}</ul>
+          <section class="install-note">
+            <h2>Installation check</h2>
+            <p>If you can see this window, you have successfully installed and launched the Yambuck Example App.</p>
+            <ul class="checklist">
+              <li>Welcome to the Yambuck Example App.</li>
+              <li>This is a simple Hello World desktop application.</li>
+              <li>If you can see this window, the app has launched successfully.</li>
+            </ul>
           </section>
+
+          <p id="app-version" class="version-label">Version</p>
         </section>
       </main>
     </div>
   `;
 
-  document
-    .querySelector<HTMLButtonElement>("#status-button")
-    ?.addEventListener("click", () => {
-      void refreshLaunchStatus();
+  const topbar = document.querySelector<HTMLElement>("#topbar");
+  topbar?.addEventListener("mousedown", (event) => {
+    void startDragging(event);
+  });
+
+  const maximizeButton = document.querySelector<HTMLButtonElement>("#maximize-button");
+  if (maximizeButton) {
+    void getCurrentWindow().isMaximized().then((isMaximized) => {
+      setMaximizeLabel(maximizeButton, isMaximized);
+    }).catch(() => {
+      // no-op when running outside Tauri window context
     });
 
-  void refreshLaunchStatus();
+    maximizeButton.addEventListener("click", () => {
+      void handleToggleMaximize(maximizeButton);
+    });
+  }
+
+  document.querySelector<HTMLButtonElement>("#minimize-button")?.addEventListener("click", () => {
+    void handleMinimize();
+  });
+
+  document.querySelector<HTMLButtonElement>("#close-button")?.addEventListener("click", () => {
+    void handleClose();
+  });
+
+  void syncAppVersion();
 });
