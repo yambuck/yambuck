@@ -75,6 +75,14 @@ type InstalledAppDetails = {
   packageInfo: PackageInfo;
 };
 
+type UninstallResult = {
+  appId: string;
+  installScope: InstallScope;
+  removedAppFiles: boolean;
+  removedUserData: boolean;
+  warnings: string[];
+};
+
 type UpdateCheckResult = {
   currentVersion: string;
   latestVersion: string;
@@ -224,6 +232,13 @@ function App() {
   const [licenseAccepted, setLicenseAccepted] = useState(false);
   const [licenseViewer, setLicenseViewer] = useState<{ title: string; text: string } | null>(null);
   const [installedAppDetails, setInstalledAppDetails] = useState<InstalledAppDetails | null>(null);
+  const [uninstallTarget, setUninstallTarget] = useState<InstalledApp | null>(null);
+  const [uninstallStep, setUninstallStep] = useState<"confirm" | "options" | "running" | "result">("confirm");
+  const [uninstallRemoveUserData, setUninstallRemoveUserData] = useState(false);
+  const [loadingUninstallDetails, setLoadingUninstallDetails] = useState(false);
+  const [uninstallDetails, setUninstallDetails] = useState<InstalledAppDetails | null>(null);
+  const [uninstallResult, setUninstallResult] = useState<UninstallResult | null>(null);
+  const [uninstallError, setUninstallError] = useState("");
 
   const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
@@ -545,22 +560,68 @@ function App() {
     }
   };
 
-  const uninstallApp = async (app: InstalledApp) => {
-    const approved = window.confirm(`Uninstall ${app.displayName}?`);
-    if (!approved) {
+  const openUninstallWizard = (app: InstalledApp) => {
+    setUninstallTarget(app);
+    setUninstallStep("confirm");
+    setUninstallRemoveUserData(false);
+    setLoadingUninstallDetails(true);
+    setUninstallResult(null);
+    setUninstallError("");
+    setUninstallDetails(null);
+
+    void invoke<InstalledAppDetails>("get_installed_app_details", {
+      appId: app.appId,
+    }).then((details) => {
+      setUninstallDetails(details);
+    }).catch(() => {
+      setUninstallDetails(null);
+    }).finally(() => {
+      setLoadingUninstallDetails(false);
+    });
+  };
+
+  const closeUninstallWizard = () => {
+    if (uninstallStep === "running") {
+      return;
+    }
+    setUninstallTarget(null);
+    setUninstallResult(null);
+    setUninstallError("");
+    setUninstallDetails(null);
+  };
+
+  const runUninstall = async () => {
+    if (!uninstallTarget) {
       return;
     }
 
-    const removeUserData = window.confirm("Also remove user data and settings?");
+    setUninstallStep("running");
+    setUninstallError("");
+
     try {
-      await invoke("uninstall_installed_app", {
-        appId: app.appId,
-        removeUserData,
+      const result = await invoke<UninstallResult>("uninstall_installed_app", {
+        appId: uninstallTarget.appId,
+        scope: uninstallTarget.installScope,
+        removeUserData: uninstallRemoveUserData,
       });
-      pushToast("success", `${app.displayName} removed.`);
+
+      setUninstallResult(result);
+      setUninstallStep("result");
+      if (result.warnings.length > 0) {
+        pushToast("warning", `${uninstallTarget.displayName} removed with warnings.`);
+      } else {
+        pushToast("success", `${uninstallTarget.displayName} removed.`);
+      }
       await refreshInstalledApps();
-    } catch {
-      pushToast("error", `Failed to uninstall ${app.displayName}.`);
+    } catch (error) {
+      const message = typeof error === "string"
+        ? error
+        : error instanceof Error
+          ? error.message
+          : `Failed to uninstall ${uninstallTarget.displayName}.`;
+      setUninstallError(message);
+      setUninstallStep("result");
+      pushToast("error", `Failed to uninstall ${uninstallTarget.displayName}.`);
     }
   };
 
@@ -1300,7 +1361,7 @@ function App() {
                 <button class="button ghost" onClick={() => void launchInstalledApp(app)}>
                   Launch
                 </button>
-                <button class="button ghost" onClick={() => void uninstallApp(app)}>
+                <button class="button ghost" onClick={() => openUninstallWizard(app)}>
                   Uninstall
                 </button>
               </div>
@@ -1786,6 +1847,78 @@ function App() {
                 </div>
                 <p>{installedAppDetails.packageInfo.longDescription}</p>
               </section>
+            ) : null}
+          </section>
+        </div>
+      ) : null}
+
+      {uninstallTarget ? (
+        <div class="modal-overlay" data-no-drag="true" onClick={() => closeUninstallWizard()}>
+          <section class="modal-card" onClick={(event) => event.stopPropagation()}>
+            {uninstallStep === "confirm" ? (
+              <>
+                <h2>{`Uninstall ${uninstallTarget.displayName}?`}</h2>
+                <p class="subtitle">This removes the app from Yambuck and deletes installed app files.</p>
+                <p class="subtitle">{`Scope: ${uninstallTarget.installScope}`}</p>
+                <div class="update-actions">
+                  <button class="button ghost" onClick={() => closeUninstallWizard()}>Cancel</button>
+                  <button class="button primary" onClick={() => setUninstallStep("options")}>Continue</button>
+                </div>
+              </>
+            ) : null}
+
+            {uninstallStep === "options" ? (
+              <>
+                <h2>Uninstall options</h2>
+                <p class="subtitle">App files will be removed. Choose whether to also remove app data paths.</p>
+                <label class="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={uninstallRemoveUserData}
+                    onChange={(event) => setUninstallRemoveUserData((event.currentTarget as HTMLInputElement).checked)}
+                  />
+                  Remove user data and settings paths from package manifest
+                </label>
+                {loadingUninstallDetails ? <p class="subtitle">Loading package metadata...</p> : null}
+                {uninstallDetails?.packageInfo ? (
+                  <ul class="system-info-list">
+                    {uninstallDetails.packageInfo.configPath ? <li>Config: <code>{uninstallDetails.packageInfo.configPath}</code></li> : null}
+                    {uninstallDetails.packageInfo.cachePath ? <li>Cache: <code>{uninstallDetails.packageInfo.cachePath}</code></li> : null}
+                    {uninstallDetails.packageInfo.tempPath ? <li>Temp: <code>{uninstallDetails.packageInfo.tempPath}</code></li> : null}
+                  </ul>
+                ) : null}
+                <div class="update-actions">
+                  <button class="button ghost" onClick={() => setUninstallStep("confirm")}>Back</button>
+                  <button class="button primary" onClick={() => void runUninstall()}>Uninstall</button>
+                </div>
+              </>
+            ) : null}
+
+            {uninstallStep === "running" ? (
+              <>
+                <h2>Uninstalling...</h2>
+                <p class="subtitle">Removing application files and updating installed app index.</p>
+              </>
+            ) : null}
+
+            {uninstallStep === "result" ? (
+              <>
+                <h2>{uninstallError ? "Uninstall failed" : "Uninstall complete"}</h2>
+                {uninstallError ? <p class="subtitle">{uninstallError}</p> : null}
+                {uninstallResult?.warnings.length ? (
+                  <>
+                    <p class="subtitle">Completed with warnings:</p>
+                    <ul class="system-info-list">
+                      {uninstallResult.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+                <div class="update-actions">
+                  <button class="button primary" onClick={() => closeUninstallWizard()}>Close</button>
+                </div>
+              </>
             ) : null}
           </section>
         </div>

@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tauri::{Emitter, Manager};
 use yambuck_core::{
-    InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
-    UpdateCheckResult,
+    InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo,
+    PreflightCheckResult, UninstallResult, UpdateCheckResult,
 };
 
 const DEFAULT_UPDATE_FEED_URL: &str = "https://yambuck.com/updates/stable.json";
@@ -72,8 +72,13 @@ fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, String
 }
 
 #[tauri::command]
-fn uninstall_installed_app(app_id: &str, remove_user_data: bool) -> Result<(), String> {
-    yambuck_core::uninstall_installed_app(app_id, remove_user_data)
+fn uninstall_installed_app(
+    app_id: &str,
+    scope: &str,
+    remove_user_data: bool,
+) -> Result<UninstallResult, String> {
+    let install_scope = yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    yambuck_core::uninstall_installed_app(app_id, install_scope, remove_user_data)
         .map_err(|error| error.to_string())
 }
 

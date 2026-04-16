@@ -82,6 +82,16 @@ pub struct InstalledAppDetails {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct UninstallResult {
+    pub app_id: String,
+    pub install_scope: InstallScope,
+    pub removed_app_files: bool,
+    pub removed_user_data: bool,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PreflightCheckResult {
     pub status: String,
     pub message: String,
@@ -542,43 +552,71 @@ pub fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, Ya
     })
 }
 
-pub fn uninstall_installed_app(app_id: &str, remove_user_data: bool) -> Result<(), YambuckError> {
+pub fn uninstall_installed_app(
+    app_id: &str,
+    scope: InstallScope,
+    remove_user_data: bool,
+) -> Result<UninstallResult, YambuckError> {
     if app_id.trim().is_empty() {
         return Err(YambuckError::InvalidAppId);
     }
 
-    let mut removed_any = false;
-    for scope in [InstallScope::User, InstallScope::System] {
-        let mut records = match read_index(scope) {
-            Ok(value) => value,
-            Err(_) => continue,
-        };
+    let mut records = read_index(scope)?;
 
-        let mut removed_record: Option<InstalledAppRecord> = None;
-        records.retain(|record| {
-            if record.app_id == app_id {
-                removed_record = Some(record.clone());
-                false
-            } else {
-                true
-            }
-        });
+    let mut removed_record: Option<InstalledAppRecord> = None;
+    records.retain(|record| {
+        if record.app_id == app_id {
+            removed_record = Some(record.clone());
+            false
+        } else {
+            true
+        }
+    });
 
-        if let Some(record) = removed_record {
-            write_index(scope, &records)?;
-            removed_any = true;
-            let _ = maybe_remove_package_archive(record.package_archive_path.as_deref());
-            if remove_user_data {
-                let _ = maybe_remove_app_data(&record.destination_path);
+    let Some(record) = removed_record else {
+        return Err(YambuckError::AppNotInstalled);
+    };
+
+    write_index(scope, &records)?;
+
+    let mut warnings = Vec::new();
+    let mut manifest_paths = Vec::new();
+
+    if let Some(archive_path) = record.package_archive_path.as_ref() {
+        if let Ok(package_info) = inspect_package(archive_path) {
+            manifest_paths.push(package_info.config_path);
+            manifest_paths.push(package_info.cache_path);
+            manifest_paths.push(package_info.temp_path);
+        }
+    }
+
+    let mut removed_app_files = true;
+    if let Err(error) = maybe_remove_install_path(&record.destination_path) {
+        removed_app_files = false;
+        warnings.push(format!("Unable to remove app files: {error}"));
+    }
+
+    if let Err(error) = maybe_remove_package_archive(record.package_archive_path.as_deref()) {
+        warnings.push(format!(
+            "Unable to remove archived package snapshot: {error}"
+        ));
+    }
+
+    if remove_user_data {
+        for path in manifest_paths.into_iter().flatten() {
+            if let Err(error) = maybe_remove_user_data_path(&path, scope) {
+                warnings.push(format!("Unable to remove user data path {path}: {error}"));
             }
         }
     }
 
-    if !removed_any {
-        return Err(YambuckError::AppNotInstalled);
-    }
-
-    Ok(())
+    Ok(UninstallResult {
+        app_id: app_id.to_string(),
+        install_scope: scope,
+        removed_app_files,
+        removed_user_data: remove_user_data,
+        warnings,
+    })
 }
 
 pub fn launch_installed_app(app_id: &str) -> Result<(), YambuckError> {
@@ -843,13 +881,44 @@ fn index_file_path(scope: InstallScope) -> Result<PathBuf, YambuckError> {
     }
 }
 
-fn maybe_remove_app_data(destination_path: &str) -> Result<(), YambuckError> {
+fn maybe_remove_install_path(destination_path: &str) -> Result<(), YambuckError> {
     if destination_path.contains("/yambuck/apps/") {
         let path = Path::new(destination_path);
         if path.exists() {
             fs::remove_dir_all(path).map_err(|_| YambuckError::StorageUnavailable)?;
         }
     }
+    Ok(())
+}
+
+fn maybe_remove_user_data_path(value: &str, scope: InstallScope) -> Result<(), YambuckError> {
+    let path = Path::new(value);
+    if !path.is_absolute() || value == "/" {
+        return Ok(());
+    }
+
+    let allowed = match scope {
+        InstallScope::User => std::env::var("HOME")
+            .ok()
+            .map(|home| path.starts_with(Path::new(&home)))
+            .unwrap_or(false),
+        InstallScope::System => path.starts_with("/var") || path.starts_with("/opt"),
+    };
+
+    if !allowed {
+        return Ok(());
+    }
+
+    if !path.exists() {
+        return Ok(());
+    }
+
+    if path.is_file() {
+        fs::remove_file(path).map_err(|_| YambuckError::StorageUnavailable)?;
+    } else if path.is_dir() {
+        fs::remove_dir_all(path).map_err(|_| YambuckError::StorageUnavailable)?;
+    }
+
     Ok(())
 }
 

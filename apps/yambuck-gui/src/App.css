@@ -894,6 +894,19 @@ dd {
   gap: 0.8rem;
 }
 
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #c8e5fc;
+  font-size: 0.9rem;
+}
+
+.checkbox-row input {
+  width: 16px;
+  height: 16px;
+}
+
 .setting-card {
   border-radius: 14px;
   border: 1px solid rgba(147, 194, 225, 0.26);
