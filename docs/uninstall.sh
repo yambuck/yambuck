@@ -37,6 +37,54 @@ optional_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+require_safe_path() {
+  local path="$1"
+  [[ -n "$path" ]] || fail "refusing empty path"
+  [[ "$path" != "/" ]] || fail "refusing root path"
+}
+
+assert_expected_file_target() {
+  local path="$1"
+  if [[ "$install_system" == true ]]; then
+    case "$path" in
+      /usr/local/bin/yambuck|/usr/share/applications/com.yambuck.installer.desktop|/usr/share/mime/packages/application-x-yambuck-package.xml|/usr/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg|/usr/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg)
+        ;;
+      *)
+        fail "refusing unexpected file target: $path"
+        ;;
+    esac
+  else
+    case "$path" in
+      "$HOME/.local/bin/yambuck"|"$HOME/.local/share/applications/com.yambuck.installer.desktop"|"$HOME/.local/share/mime/packages/application-x-yambuck-package.xml"|"$HOME/.local/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"|"$HOME/.local/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg")
+        ;;
+      *)
+        fail "refusing unexpected file target: $path"
+        ;;
+    esac
+  fi
+}
+
+assert_expected_dir_target() {
+  local path="$1"
+  if [[ "$install_system" == true ]]; then
+    case "$path" in
+      /var/lib/yambuck|/opt/yambuck/apps)
+        ;;
+      *)
+        fail "refusing unexpected directory target: $path"
+        ;;
+    esac
+  else
+    case "$path" in
+      "$HOME/.local/share/yambuck"|"$HOME/.local/share/yambuck/apps")
+        ;;
+      *)
+        fail "refusing unexpected directory target: $path"
+        ;;
+    esac
+  fi
+}
+
 install_system=false
 purge_managed_apps=false
 non_interactive=false
@@ -70,16 +118,24 @@ fi
 if [[ "$install_system" == true ]]; then
   need_cmd sudo
   run_rm() {
+    require_safe_path "$1"
+    assert_expected_file_target "$1"
     sudo rm -f "$1"
   }
   run_rmrf() {
+    require_safe_path "$1"
+    assert_expected_dir_target "$1"
     sudo rm -rf "$1"
   }
 else
   run_rm() {
+    require_safe_path "$1"
+    assert_expected_file_target "$1"
     rm -f "$1"
   }
   run_rmrf() {
+    require_safe_path "$1"
+    assert_expected_dir_target "$1"
     rm -rf "$1"
   }
 fi

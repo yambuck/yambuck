@@ -43,6 +43,19 @@ optional_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+guard_install_dir() {
+  local path="$1"
+  if [[ -z "$path" || "$path" == "/" ]]; then
+    fail "refusing unsafe install dir: ${path:-<empty>}"
+  fi
+
+  if [[ "$install_system" == true ]]; then
+    [[ "$path" == "/usr/local/bin" ]] || fail "unexpected system install dir: $path"
+  else
+    [[ "$path" == "${HOME}/.local/bin" ]] || fail "unexpected user install dir: $path"
+  fi
+}
+
 resolve_arch() {
   local arch
   arch="$(uname -m)"
@@ -146,6 +159,7 @@ if [[ "$install_system" == true ]]; then
 else
   install_dir="${HOME}/.local/bin"
 fi
+guard_install_dir "$install_dir"
 
 if [[ -n "${YAMBUCK_INSTALL_URL:-}" ]]; then
   asset_url="$YAMBUCK_INSTALL_URL"
@@ -215,17 +229,24 @@ else
 fi
 
 [[ -n "$candidate_bin" ]] || fail "downloaded archive did not contain ${BIN_NAME} binary"
+[[ -f "$candidate_bin" ]] || fail "downloaded archive candidate is not a file"
+[[ -x "$candidate_bin" ]] || fail "downloaded archive candidate is not executable"
 
 if [[ "$install_system" == true ]]; then
   need_cmd sudo
+  need_cmd install
   log "Installing binary with sudo"
   sudo install -d "$install_dir"
   sudo install -m 0755 "$candidate_bin" "${install_dir}/${BIN_NAME}"
 else
+  need_cmd install
   log "Installing binary"
   install -d "$install_dir"
   install -m 0755 "$candidate_bin" "${install_dir}/${BIN_NAME}"
 fi
+
+installed_bin="${install_dir}/${BIN_NAME}"
+[[ -x "$installed_bin" ]] || fail "installed binary is missing or not executable at ${installed_bin}"
 
 desktop_file_name="com.yambuck.installer.desktop"
 mime_xml_name="application-x-yambuck-package.xml"

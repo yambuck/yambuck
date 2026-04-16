@@ -112,3 +112,20 @@ First test is considered complete when all are true:
 - checksum verification passes in default flow
 - GUI installs a real `.yambuck` test package
 - Installed Apps list and uninstall path behave correctly
+
+## 8) MVP Distro Reliability Matrix
+
+Run the following checks on each distro before release:
+
+- Linux Mint / Ubuntu family
+- Debian family
+- Fedora family
+- Arch family
+
+For each distro, validate:
+
+- website install command succeeds in user mode
+- in-app update (`Update and restart`) applies and relaunches on updated version
+- safe uninstall removes Yambuck but leaves managed apps intact
+- full purge uninstall removes Yambuck and managed app payloads/metadata
+- reinstall after purge behaves like first install

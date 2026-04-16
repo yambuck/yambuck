@@ -126,6 +126,23 @@ Validate in running app:
 - `Check for updates` works
 - update banner appears only once (no duplicate messaging)
 - `Update and restart` works for user installs
+- if update apply fails, inspect `~/.local/share/yambuck/logs/update-helper.log`
+
+### MVP distro matrix gate
+
+Before cutting release, run install/update/uninstall validation on:
+
+- Linux Mint / Ubuntu family
+- Debian family
+- Fedora family
+- Arch family
+
+Minimum pass criteria per distro:
+
+- install command succeeds (`curl .../install.sh | bash`)
+- in-app update applies and relaunches on new version
+- safe uninstall works without deleting managed apps
+- purge uninstall (`--purge-managed-apps --yes`) removes managed payloads/metadata
 
 ## Common Failure Modes
 
