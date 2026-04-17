@@ -1,15 +1,15 @@
 {
   "channel": "stable",
-  "version": "0.1.21",
-  "publishedAt": "2026-04-16T20:00:00Z",
-  "notesUrl": "https://github.com/yambuck/yambuck/releases/tag/v0.1.21",
+  "version": "0.1.22",
+  "publishedAt": "2026-04-17T10:47:44Z",
+  "notesUrl": "https://github.com/yambuck/yambuck/releases/tag/v0.1.22",
   "linux": {
     "x86_64": {
-      "url": "https://github.com/yambuck/yambuck/releases/download/v0.1.21/yambuck-linux-x86_64.tar.gz",
-      "sha256": "e36bf25b2f5bc9f09c47464830dc24761c738669ffd08628da8f738d87c5ea34"
+      "url": "https://github.com/yambuck/yambuck/releases/download/v0.1.22/yambuck-linux-x86_64.tar.gz",
+      "sha256": "93314e627d78b6d9d8cec5289b3b577d034900599a018c823af549ffcb19e8a1"
     },
     "aarch64": {
-      "url": "https://github.com/yambuck/yambuck/releases/download/v0.1.21/yambuck-linux-aarch64.tar.gz",
+      "url": "https://github.com/yambuck/yambuck/releases/download/v0.1.22/yambuck-linux-aarch64.tar.gz",
       "sha256": "unpublished"
     }
   }
