@@ -106,13 +106,16 @@ replace_first_match() {
   local file_path="$1"
   local match_regex="$2"
   local replacement="$3"
+  local safe_replacement
+
+  safe_replacement="${replacement//&/\\&}"
 
   if [[ "$DRY_RUN" == true ]]; then
     log "[dry-run] update first match in ${file_path}: ${replacement}"
     return
   fi
 
-  sed -E -i "0,/${match_regex}/s//${replacement}/" "$file_path"
+  sed -E -i "0,/${match_regex}/s~${match_regex}~${safe_replacement}~" "$file_path"
 }
 
 # -----------------------------------------------------------------------------
