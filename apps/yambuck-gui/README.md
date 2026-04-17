@@ -1,7 +1,21 @@
-# Tauri + Preact + Typescript
+# Yambuck GUI
 
-This template should help get you started developing with Tauri, Preact and Typescript in Vite.
+Desktop installer UI built with Tauri + Preact + TypeScript.
 
-## Recommended IDE Setup
+This app is the primary Yambuck user experience and should optimize for:
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- simple, repeatable install/uninstall flows
+- clear trust and failure states
+- consistency with non-technical user expectations
+
+## Common Commands
+
+- Start Tauri dev app: `npm run tauri dev`
+- Start frontend-only dev server: `npm run dev`
+- Build frontend assets: `npm run build`
+- Verify GUI build + Rust compile: `../../scripts/verify-yambuck-gui.sh`
+
+## Architecture Notes
+
+- Frontend architecture guide: `src/ARCHITECTURE.md`
+- Tauri backend entrypoint: `src-tauri/src/lib.rs`

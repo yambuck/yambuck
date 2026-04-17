@@ -30,6 +30,15 @@ This document defines the current frontend structure and where new code should g
 - Keep visual constants in tokens (`theme/tokens.ts`) rather than inline literals where possible.
 - Prefer small, composable hooks over monolithic orchestrators when adding new behavior.
 
+## UX Invariants (Do Not Regress)
+
+- Never route failed operations to success screens (install/update/uninstall).
+- Success state is shown only after verification checks pass.
+- Failure views always provide plain-language summary plus copyable technical details/logs.
+- Keep window/titlebar controls accessible on modal-like flows; do not obscure native controls.
+- Keep installer flow standardized package-to-package; optional advanced inputs stay collapsed by default.
+- Installed Apps reflects Yambuck-managed ownership data and should not lose entries unless changed by explicit Yambuck actions.
+
 ## Next Backend Refactor Targets
 
 - Split `apps/yambuck-gui/src-tauri/src/lib.rs` helpers into focused modules (`updates`, `logs`, `system`, `launch`).

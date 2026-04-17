@@ -8,6 +8,8 @@ The main goal is not to build another developer-focused packaging tool. The main
 
 Yambuck is Linux-first and GUI-first. The CLI is useful, but secondary.
 
+For a single canonical summary of product goals/principles and trust constraints, see `docs/PRODUCT_CONTEXT.md`.
+
 The UX target is a modern, step-by-step installer experience that feels familiar to users coming from Windows installers.
 
 In practical terms, Yambuck focuses on:
@@ -53,6 +55,20 @@ And developers can:
 - Keep visuals modern, clean, and consistent across desktop environments.
 - Keep dangerous choices explicit and reversible where possible.
 
+## Trust and Predictability Contract (MVP)
+
+For Yambuck to succeed with non-technical users, installs must feel boringly reliable.
+
+- If a `.yambuck` install reports success, the app must launch and remain visible in Yambuck until the user explicitly uninstalls it in Yambuck.
+- Failed installs must never route to success UI. They must show a clear failed state with plain-language reason and copyable technical logs.
+- Install and uninstall must be deterministic and ownership-safe:
+  - Yambuck manages only Yambuck-installed apps.
+  - Yambuck never mutates/removes apps installed by other methods (package manager, `.deb`, manual).
+  - App list entries should not "magically disappear" unless changed by explicit Yambuck actions.
+- Install paths should be Yambuck-managed roots (including a dedicated `yambuck` subdirectory per scope) to avoid cross-manager conflicts.
+- The default installer flow should be highly standardized package-to-package (MSI-like familiarity): same core steps, same wording, minimal decisions.
+- Advanced or app-specific options should be optional and collapsed by default so the normal path stays simple.
+
 Core installer flow (v1):
 
 1. Open package.
@@ -75,6 +91,11 @@ Core installer flow (v1):
 - Package identity includes both:
   - `app_id` (reverse-DNS, e.g. `com.voquill.app`)
   - `app_uuid` (immutable global UUID for future trust and reputation systems)
+- Installed-apps UX should feel like a modern control-panel style manager:
+  - searchable
+  - sortable (at minimum by name/date installed)
+  - filterable (at minimum by install scope)
+  - clear ownership/status metadata per entry
 
 ## Implementation Direction
 

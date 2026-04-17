@@ -32,6 +32,10 @@ Yambuck exists to make Linux app distribution and installation dead simple for n
 - Users are always informed of update progress and outcomes
 - Yambuck only manages Yambuck-installed apps; no cross-manager mutation
 - Existing Yambuck-managed app updates use clean replace (remove then reinstall)
+- Success UI is only shown after verification passes
+- Failed installs always show dedicated failure UI with copyable logs and retry path
+- Default install flow remains highly standardized with minimal decisions
+- Any app-specific install inputs (if supported) belong behind optional "Advanced" UI
 
 ## Update Source (v1)
 
@@ -44,6 +48,9 @@ Yambuck exists to make Linux app distribution and installation dead simple for n
 - Unsigned packages are allowed during MVP
 - Unverified packages must show explicit warning with `Cancel` and `Install anyway`
 - Bootstrap and installer should verify artifacts/integrity where applicable
+- Yambuck-managed payloads should live in dedicated scope-specific roots that include a `yambuck` subdirectory
+- Installed-app entries should be ownership-backed and only change via explicit Yambuck install/uninstall actions
+- Uninstall must never remove/modify non-Yambuck installations (even when app names overlap)
 
 Future direction:
 
@@ -88,3 +95,11 @@ Reference validation app:
 - central app store requirement
 - Windows support in MVP
 - prioritizing CLI over GUI
+
+## Installed Apps UX Direction (v1)
+
+- UI should resemble a modern control-panel app manager experience:
+  - searchable installed list
+  - sortable fields (minimum: name and install date)
+  - scope filter (`user` vs `all users`)
+  - clear visibility of status/scope/location metadata

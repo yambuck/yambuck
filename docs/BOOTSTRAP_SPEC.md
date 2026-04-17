@@ -54,6 +54,13 @@ Bootstrap downloads a prebuilt release artifact from GitHub Releases by default.
 - explicit error messages and next steps when artifact unavailable
 - minimal prompts, with `--yes` support for non-interactive execution
 
+Trust and safety constraints:
+
+- safe defaults first: per-user install is default, system install is explicit (`--system`)
+- no ambiguous success: bootstrap reports success only after verify + install steps complete
+- ownership clarity: bootstrap/uninstall flows must state that Yambuck manages only Yambuck-installed payloads
+- no cross-manager mutation: uninstall/purge must not remove apps installed via package manager, `.deb`, or manual methods
+
 ## CLI Options
 
 - `--system`
@@ -75,6 +82,7 @@ For internal testing and CI:
 - executable installed as `yambuck`
 - command available in install path
 - user sees next-step command: `yambuck --help`
+- output includes short trust reminder that Yambuck install/uninstall actions apply only to Yambuck-managed apps
 
 ## Known v1 Limits
 

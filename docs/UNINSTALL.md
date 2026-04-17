@@ -14,6 +14,8 @@ curl -fsSL https://yambuck.com/uninstall.sh | bash
 
 Removes Yambuck and all Yambuck-managed app payloads/metadata for a fresh system state.
 
+Important: purge only targets Yambuck-managed installs/metadata. It does not remove software installed by other package managers or manual methods.
+
 ```bash
 curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 ```

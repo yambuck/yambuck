@@ -23,6 +23,17 @@ This mission is the primary design constraint for all technical choices.
 5. User installs with a guided flow.
 6. User can later view installed apps and uninstall from Yambuck.
 
+Additional UX contract constraints:
+
+- Success state is only shown after install verification passes.
+- Failed installs always route to a dedicated failure screen (never to success UI).
+- Failure screen includes:
+  - short plain-language summary
+  - technical logs in a copy-friendly block
+  - recovery actions (`Retry`, `Copy logs`, `Open logs`)
+- Default install flow is consistent package-to-package with minimal user decisions.
+- Any app-specific install inputs (if supported) are constrained and shown in an "Advanced" section by default.
+
 ## Architecture Direction
 
 - Rust core for package/install/update logic
@@ -67,6 +78,8 @@ Expected layout:
 - This is install-first (not portable-first) for v1.
 - Portable/run-without-install mode is a future enhancement.
 - Yambuck manages only Yambuck-installed apps; it does not modify apps installed by other package systems.
+- Managed install roots should be explicit per scope and use a dedicated `yambuck` subdirectory to avoid path conflicts with non-Yambuck installs.
+- Install execution should be transactional where possible (all-or-rollback behavior on failure).
 
 ## Manifest Specification (v1)
 
@@ -145,9 +158,10 @@ This is required to make install decisions easy for non-technical users.
 ### Installed apps experience
 
 - list installed apps
-- show app/version/scope
+- show app/version/scope/status/install date/install location
 - uninstall action
 - optional remove user data/config checkbox
+- provide search, sorting, and scope filtering in a control-panel-like management view
 
 ### Ownership and conflict policy (v1)
 
@@ -158,6 +172,7 @@ This is required to make install decisions easy for non-technical users.
 ### Install index
 
 - Yambuck keeps its own local install index for reliable uninstall/update behavior.
+- Each install should persist enough ownership metadata (receipt/manifest-derived data) to support deterministic uninstall and list integrity.
 
 ## Desktop Integration (v1 direction)
 
@@ -174,6 +189,9 @@ This is required to make install decisions easy for non-technical users.
 - unverified packages must show explicit warning and user choice:
   - `Cancel`
   - `Install anyway`
+- package integrity checks are required before install proceeds
+- manifest schema validation failures are hard-fail with readable error output
+- installer must block unsafe extraction/write behavior (path traversal, symlink escape, writes outside approved roots)
 
 ### Future policy
 

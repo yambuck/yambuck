@@ -18,6 +18,16 @@ Provide a simple, user-controlled update experience where users are informed bef
   - show confirmation
   - restart app automatically when possible, or show "Please reopen Yambuck" fallback.
 
+Failure UX requirements:
+
+- Never show success state when any update stage fails.
+- Keep current running version active on any failure.
+- Show dedicated failure state with:
+  - short plain-language summary of what failed
+  - copy-friendly technical logs/details
+  - recovery actions: `Retry`, `Copy logs`, `Open logs`
+- Failure messaging must state whether elevation/permission was required and not granted.
+
 ## Update Source of Truth
 
 Use a Yambuck-hosted update feed JSON:
@@ -57,6 +67,11 @@ This feed points to immutable release assets hosted on GitHub Releases.
   - system install: `/usr/local/bin/yambuck` (requires elevation)
 - Restart process after swap.
 
+Reliability constraints:
+
+- Update apply is all-or-nothing (transactional swap semantics).
+- If swap/apply fails, previous binary remains intact and usable.
+
 ## Privilege Model
 
 - Per-user install updates without elevation.
@@ -68,6 +83,7 @@ This feed points to immutable release assets hosted on GitHub Releases.
 - Always notify user before update.
 - Show progress states: `Checking`, `Downloading`, `Verifying`, `Applying`, `Restarting`.
 - On failure, show actionable message and keep current version.
+- If checksum/verification fails, block apply and surface clear integrity error details.
 
 ## Out of Scope (v1)
 
