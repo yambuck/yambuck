@@ -35,6 +35,9 @@ need_cmd cargo
 need_cmd tar
 need_cmd sha256sum
 
+log "Syncing installer icon from branding source"
+"${ROOT_DIR}/scripts/sync-install-icon.sh"
+
 ARCH="$(resolve_arch)"
 ARTIFACT_NAME="yambuck-linux-${ARCH}.tar.gz"
 CHECKSUM_NAME="${ARTIFACT_NAME}.sha256"
