@@ -5849,7 +5849,7 @@ dependencies = [
 
 [[package]]
 name = "yambuck-gui"
-version = "0.1.22"
+version = "0.1.23"
 dependencies = [
  "chrono",
  "flate2",
