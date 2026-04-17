@@ -114,6 +114,7 @@ Website bootstrap commands:
 - Build real example test package: `./scripts/build-example-app-yambuck.sh`
 - Run one-command example package smoke flow: `./scripts/smoke-example-app.sh`
 - Build release artifact + checksum: `./scripts/package-bootstrap-artifact.sh`
+- Prepare full release bundle (main + example + feed updates): `./scripts/release-all.sh --version 0.1.23`
 
 ## Brand Assets
 

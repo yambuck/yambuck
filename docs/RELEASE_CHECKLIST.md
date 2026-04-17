@@ -4,6 +4,18 @@ Use this checklist for release smoke checks.
 
 For the full repeatable process (version files, artifact, release, feed/hash updates), use `docs/RELEASE_RUNBOOK.md`.
 
+Fast path for release prep:
+
+```bash
+./scripts/release-all.sh --version 0.1.23
+```
+
+Publish only when ready:
+
+```bash
+./scripts/release-all.sh --version 0.1.23 --publish
+```
+
 ## 1) Build Bootstrap Artifact
 
 From repo root:

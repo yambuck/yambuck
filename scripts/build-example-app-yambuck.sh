@@ -6,6 +6,7 @@ APP_DIR="${ROOT_DIR}/apps/example-app"
 TAURI_DIR="${APP_DIR}/src-tauri"
 OUT_DIR="${ROOT_DIR}/release-artifacts/packages"
 STAGE_DIR="${ROOT_DIR}/release-artifacts/.example-app-stage"
+PACKAGE_VERSION=""
 
 resolve_arch() {
   local machine_arch
@@ -31,8 +32,53 @@ need_cmd() {
   }
 }
 
+read_version_from_package_json() {
+  local package_json_path="$1"
+  sed -nE 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$package_json_path" | head -n1
+}
+
 if [[ ! -d "$APP_DIR" ]]; then
   printf "Example app not found at %s\n" "$APP_DIR" >&2
+  exit 1
+fi
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --version)
+      [[ $# -ge 2 ]] || {
+        printf "--version requires a value\n" >&2
+        exit 1
+      }
+      PACKAGE_VERSION="$2"
+      shift
+      ;;
+    -h|--help)
+      cat <<'EOF'
+Build example-app .yambuck package
+
+Usage:
+  build-example-app-yambuck.sh [--version <semver>]
+
+Options:
+  --version <semver>  Override manifest version (default: apps/example-app/package.json)
+  -h, --help          Show this help message
+EOF
+      exit 0
+      ;;
+    *)
+      printf "Unknown option: %s\n" "$1" >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+if [[ -z "$PACKAGE_VERSION" ]]; then
+  PACKAGE_VERSION="$(read_version_from_package_json "${APP_DIR}/package.json")"
+fi
+
+if [[ -z "$PACKAGE_VERSION" ]]; then
+  printf "Could not resolve example app version\n" >&2
   exit 1
 fi
 
@@ -76,7 +122,7 @@ cp "${APP_DIR}/src/assets/debug/mock-shot-e.svg" "$STAGE_DIR/assets/screenshots/
 cp "${APP_DIR}/src/assets/debug/mock-shot-f.svg" "$STAGE_DIR/assets/screenshots/screenshot-f.svg"
 cp "${APP_DIR}/assets/licenses/LICENSE.txt" "$STAGE_DIR/assets/licenses/LICENSE.txt"
 
-cat > "${STAGE_DIR}/manifest.json" <<'EOF'
+cat > "${STAGE_DIR}/manifest.json" <<EOF
 {
   "manifestVersion": "1.0.0",
   "packageUuid": "53fd0f34-8a39-4639-ac39-c67cc87b6a8d",
@@ -85,7 +131,7 @@ cat > "${STAGE_DIR}/manifest.json" <<'EOF'
   "displayName": "Yambuck Example App",
   "description": "Minimal hello-world desktop app for Yambuck install and bundling tests.",
   "longDescription": "This package exists for deterministic Yambuck smoke tests. It ships a real Tauri v2 binary with a tiny GUI and includes the same mock preview icon/screenshots used by Yambuck's debug page.",
-  "version": "0.1.0",
+  "version": "${PACKAGE_VERSION}",
   "publisher": "Yambuck Project",
   "entrypoint": "app/bin/example-app",
   "iconPath": "assets/icon.svg",

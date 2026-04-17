@@ -27,6 +27,38 @@ Update feed metadata:
 
 ## Release Sequence
 
+### Preferred (single command orchestrator)
+
+Use the release orchestrator from repo root:
+
+```bash
+./scripts/release-all.sh --version 0.1.23
+```
+
+This runs these phases in order:
+
+1. sync installer icon block from `assets/branding/yambuck-icon-app.svg`
+2. bump main app version files
+3. build main release artifact + checksum
+4. build example-app `.yambuck` package
+5. update `docs/updates/stable.json` (version, URLs, publishedAt, checksum)
+
+When you are ready to publish tag + GitHub release:
+
+```bash
+./scripts/release-all.sh --version 0.1.23 --publish
+```
+
+Optional example-app version bump in the same run:
+
+```bash
+./scripts/release-all.sh --version 0.1.23 --example-version 0.1.23 --publish
+```
+
+The script requires explicit `--publish` to avoid accidental release cuts.
+
+### Manual (step-by-step fallback)
+
 ### 1) Bump version in app metadata files
 
 Choose target version (example: `0.1.6`) and update all three version fields.
