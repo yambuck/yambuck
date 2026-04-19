@@ -174,18 +174,43 @@ pub(crate) fn complete_install_impl(
     let workflow = get_workflow_from_session(workflow_id)?;
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "Starting install for appId={} scope={scope} destination={destination_path}",
+            workflow.package_info.app_id
+        ),
+    );
     yambuck_core::validate_install_options(&workflow.install_options, submissions)
         .map_err(|error| error.to_string())?;
     let package_info = workflow.package_info;
-    let installed_app = yambuck_core::install_and_register(
-        &package_info,
-        install_scope,
-        destination_path,
-        allow_downgrade,
-    )
-    .map_err(|error| error.to_string())?;
+    let installed_app = match install_scope {
+        yambuck_core::InstallScope::User => yambuck_core::install_and_register(
+            &package_info,
+            install_scope,
+            destination_path,
+            allow_downgrade,
+        )
+        .map_err(|error| error.to_string())?,
+        yambuck_core::InstallScope::System => support::elevation::install_with_elevation_if_needed(
+            &package_info,
+            destination_path,
+            allow_downgrade,
+        )?,
+    };
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "Install completed for appId={} scope={scope}",
+            installed_app.app_id
+        ),
+    );
     remove_workflow_session(workflow_id)?;
     Ok(installed_app)
+}
+
+pub fn maybe_run_elevated_install_mode(args: &[String]) -> Option<i32> {
+    support::elevation::maybe_run_elevated_install_mode(args)
 }
 
 pub(crate) fn launch_installed_app_impl(app_id: &str) -> Result<(), String> {

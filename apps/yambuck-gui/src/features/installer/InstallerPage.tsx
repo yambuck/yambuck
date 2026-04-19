@@ -58,6 +58,13 @@ type InstallerPageProps = {
     capturedAtDisplay: string;
   } | null;
   onCopyPackageOpenErrorDetails: () => void;
+  installFailure: {
+    summary: string;
+    details: string;
+    capturedAtIso8601: string;
+    capturedAtDisplay: string;
+  } | null;
+  onCopyInstallFailureDetails: () => void;
   onSetLicenseAccepted: (value: boolean) => void;
   onSetScope: (scope: InstallScope) => void;
   onStartInstall: () => void;
@@ -108,6 +115,8 @@ export const InstallerPage = ({
   onSetInstallOptionValue,
   packageOpenError,
   onCopyPackageOpenErrorDetails,
+  installFailure,
+  onCopyInstallFailureDetails,
   onSetLicenseAccepted,
   onSetScope,
   onStartInstall,
@@ -553,6 +562,35 @@ export const InstallerPage = ({
         <p class="progress-value">{progress}%</p>
         <div class="actions">
           <button class="button ghost" disabled={isBusy}>Cancel</button>
+        </div>
+      </section>
+    );
+  }
+
+  if (step === "failed") {
+    return (
+      <section class="panel package-panel">
+        <h1>Install failed</h1>
+        <p class="subtitle">{installFailure?.summary ?? "Yambuck could not complete this install."}</p>
+
+        {installFailure ? (
+          <section class="meta-section technical">
+            <div class="meta-section-header">
+              <h2>Failure details</h2>
+            </div>
+            <div class="trust-box warning open-package-error-box">
+              <p>
+                <strong>Time:</strong> <code>{installFailure.capturedAtDisplay}</code>
+              </p>
+              <pre class="open-package-error-pre"><code>{installFailure.details}</code></pre>
+            </div>
+          </section>
+        ) : null}
+
+        <div class="actions">
+          <button class="button ghost" onClick={() => onSetStep("scope")}>Retry</button>
+          <button class="button ghost" onClick={onCopyInstallFailureDetails} disabled={!installFailure}>Copy details</button>
+          <button class="button primary" onClick={onClearSelectedPackage}>Close</button>
         </div>
       </section>
     );

@@ -107,9 +107,9 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
   - Strategic note: stronger trust and ease-of-use should increase user demand for software packaged in `.yambuck` format.
 
 ## Tasks
-- [ ] Define and implement correct privilege escalation flow for all-users installs.
-- [ ] Add install-failed screen and wire failed install paths to it (never route failures to success screen).
-- [ ] Surface structured failure details/log output in the failed screen for support/debug use.
+- [x] Define and implement correct privilege escalation flow for all-users installs.
+- [x] Add install-failed screen and wire failed install paths to it (never route failures to success screen).
+- [x] Surface structured failure details/log output in the failed screen for support/debug use.
 - [ ] Verify/install flow behavior on both X11 and Wayland with native-first portal usage where appropriate.
 - [ ] Implement `.yambuck` MIME type + icon integration so file managers show Yambuck icon instead of blank file icon.
 - [ ] Validate `.yambuck` icon visibility and open-with association on Linux Mint first, then test other Linux desktop environments.

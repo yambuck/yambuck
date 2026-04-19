@@ -6,6 +6,7 @@ import {
   createInstallPreview as createInstallPreviewApi,
   discardInstallWorkflow,
   getInstallDecision,
+  getRecentLogs,
   getStartupPackageArg,
   inspectPackageWorkflow,
   listInstalledApps,
@@ -52,6 +53,31 @@ const normalizeOpenPackageError = (error: unknown): string => {
   return "Package validation failed.";
 };
 
+type InstallFailureState = {
+  summary: string;
+  details: string;
+  capturedAtIso8601: string;
+  capturedAtDisplay: string;
+};
+
+const normalizeInstallFailureMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    const trimmed = error.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  if (error instanceof Error) {
+    const trimmed = error.message.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return "Install failed. Check details and try again.";
+};
+
 export const useInstallerFlow = ({
   setPage,
   onRefreshInstalledApps,
@@ -89,6 +115,7 @@ export const useInstallerFlow = ({
     capturedAtIso8601: string;
     capturedAtDisplay: string;
   } | null>(null);
+  const [installFailure, setInstallFailure] = useState<InstallFailureState | null>(null);
 
   const getStepNext = useCallback(
     (currentStep: WizardStep, fallback: WizardStep): WizardStep => {
@@ -165,6 +192,7 @@ export const useInstallerFlow = ({
     setConfirmWipeOnReinstall(false);
     setAllowDowngrade(false);
     setPackageOpenError(null);
+    setInstallFailure(null);
   }, [workflowId]);
 
   const installOptions = installWorkflow?.installOptions ?? [];
@@ -226,6 +254,7 @@ export const useInstallerFlow = ({
       setConfirmWipeOnReinstall(false);
       setAllowDowngrade(false);
       setPackageOpenError(null);
+      setInstallFailure(null);
       setPage("installer");
     } catch (error) {
       const message = normalizeOpenPackageError(error);
@@ -243,6 +272,7 @@ export const useInstallerFlow = ({
       setWipeOnReinstall(false);
       setConfirmWipeOnReinstall(false);
       setAllowDowngrade(false);
+      setInstallFailure(null);
       setPackageOpenError({
         packageFile,
         message,
@@ -272,6 +302,31 @@ export const useInstallerFlow = ({
       onToast("success", "Error details copied.");
     } catch {
       onToast("error", "Could not copy error details.");
+    }
+  };
+
+  const copyInstallFailureDetails = async () => {
+    if (!installFailure || !packageInfo) {
+      return;
+    }
+
+    const details = [
+      "Yambuck install failure",
+      `Time: ${installFailure.capturedAtIso8601}`,
+      `App: ${packageInfo.displayName}`,
+      `App ID: ${packageInfo.appId}`,
+      `Scope: ${scope}`,
+      `Summary: ${installFailure.summary}`,
+      "",
+      "Technical details:",
+      installFailure.details,
+    ].join("\n");
+
+    try {
+      await copyPlainText(details);
+      onToast("success", "Install failure details copied.");
+    } catch {
+      onToast("error", "Could not copy install failure details.");
     }
   };
 
@@ -480,11 +535,51 @@ export const useInstallerFlow = ({
     setLicenseViewer(null);
   };
 
+  const handleInstallFailure = async (
+    selectedPackage: PackageInfo,
+    installScope: InstallScope,
+    error: unknown,
+  ) => {
+    const capturedAt = new Date();
+    const summary = normalizeInstallFailureMessage(error);
+    let recentLogs = "";
+
+    try {
+      recentLogs = await getRecentLogs(220);
+    } catch {
+      recentLogs = "Could not load recent logs from the runtime log store.";
+    }
+
+    const logSection = recentLogs.trim() ? recentLogs.trim() : "(No recent logs found.)";
+    const details = [
+      `Error: ${summary}`,
+      `Package: ${selectedPackage.packageFile}`,
+      `App ID: ${selectedPackage.appId}`,
+      `Scope: ${installScope}`,
+      `Time: ${toIso8601WithOffset(capturedAt)}`,
+      "",
+      "Recent logs:",
+      logSection,
+    ].join("\n");
+
+    setInstallFailure({
+      summary,
+      details,
+      capturedAtIso8601: toIso8601WithOffset(capturedAt),
+      capturedAtDisplay: toReadableLocalTimeWithOffset(capturedAt),
+    });
+    setIsBusy(false);
+    setStatusText("Install failed");
+    setProgress(100);
+    setStep("failed");
+    onToast("error", "Install failed. Review details and try again.", 5200);
+  };
+
   const completeInstall = async (
     selectedPackage: PackageInfo,
     installPreview: InstallPreview,
     installScope: InstallScope,
-  ) => {
+  ): Promise<boolean> => {
     try {
       if (!workflowId) {
         throw new Error("Missing workflow session");
@@ -498,9 +593,15 @@ export const useInstallerFlow = ({
         allowDowngrade,
       );
       onToast("success", `${selectedPackage.displayName} installed.`);
-      await onRefreshInstalledApps();
-    } catch {
-      onToast("error", "Install finished with issues. Could not update installed apps index.");
+      try {
+        await onRefreshInstalledApps();
+      } catch {
+        onToast("warning", "Install succeeded, but the app list could not refresh yet.");
+      }
+      return true;
+    } catch (error) {
+      await handleInstallFailure(selectedPackage, installScope, error);
+      return false;
     }
   };
 
@@ -576,6 +677,7 @@ export const useInstallerFlow = ({
     setIsBusy(true);
     setStep("progress");
     setProgress(0);
+    setInstallFailure(null);
     setStatusText("Preparing install preview");
 
     const verifiedPublisher = packageInfo.trustStatus === "verified";
@@ -588,6 +690,8 @@ export const useInstallerFlow = ({
         verifiedPublisher,
       );
       setPreview(installPreview);
+      setProgress(30);
+      setStatusText("Validating package integrity");
     } catch {
       onToast("error", "Failed to generate install preview.");
       setIsBusy(false);
@@ -595,25 +699,18 @@ export const useInstallerFlow = ({
       return;
     }
 
-    let nextProgress = 0;
-    const timer = window.setInterval(() => {
-      nextProgress += 10;
-      setProgress(nextProgress);
-      if (nextProgress <= 40) {
-        setStatusText("Validating package integrity");
-      } else if (nextProgress <= 80) {
-        setStatusText("Installing application files");
-      } else {
-        setStatusText("Finalizing desktop integration");
-      }
-      if (nextProgress >= 100) {
-        window.clearInterval(timer);
-        setStatusText("Install complete");
-        setIsBusy(false);
-        setStep("complete");
-        void completeInstall(selectedPackage, installPreview, scope);
-      }
-    }, 220);
+    setProgress(58);
+    setStatusText("Installing application files");
+
+    const completed = await completeInstall(selectedPackage, installPreview, scope);
+    if (!completed) {
+      return;
+    }
+
+    setStatusText("Install complete");
+    setProgress(100);
+    setIsBusy(false);
+    setStep("complete");
   };
 
   const launchCurrentPackage = async () => {
@@ -668,6 +765,8 @@ export const useInstallerFlow = ({
     setInstallOptionValue,
     packageOpenError,
     copyPackageOpenErrorDetails,
+    installFailure,
+    copyInstallFailureDetails,
     choosePackage,
     clearSelectedPackage,
     closeInstallComplete,
