@@ -151,12 +151,12 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Add screenshot aspect-ratio guardrails (reject extreme banner/tall-strip shapes that degrade preview UX).
 - [x] Fail validation when required asset paths point to missing files, directories, or unreadable/corrupt image data.
 - [x] Return field-specific manifest/file errors (for example `iconPath`, `screenshots[0]`) with clear fix guidance for packagers.
-- [ ] Add fixture-based tests for strict media validation cases: blank files, renamed text files, corrupt images, too-small dimensions, unsupported extensions, and missing required assets.
+- [x] Add fixture-based tests for strict media validation cases: blank files, renamed text files, corrupt images, too-small dimensions, unsupported extensions, and missing required assets.
 - [x] Add versioned manifest parsing pipeline with explicit handlers per major version (`v1`, future `v2`, etc.).
 - [x] Preserve backward compatibility by routing older package manifests to their matching parser/validator instead of newest-only rules.
 - [x] Define manifest evolution policy: allowed minor additions, major-version breaking changes, and deprecation windows.
-- [ ] Add fixture-based compatibility tests for multiple manifest versions (valid/invalid cases per version + upgrade safety checks).
-- [ ] Explore code-defined schema representation (or generated schema artifact) per manifest version to keep spec and validation in sync.
+- [x] Add fixture-based compatibility tests for multiple manifest versions (valid/invalid cases per version + upgrade safety checks).
+- [x] Explore code-defined schema representation (or generated schema artifact) per manifest version to keep spec and validation in sync. (See `docs/MANIFEST_SCHEMA_STRATEGY.md`.)
 - [ ] Add path safety protections (block traversal/symlink escape and writes outside approved roots).
 - [x] Limit privilege escalation to required steps only; log why elevation was required.
 - [ ] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
