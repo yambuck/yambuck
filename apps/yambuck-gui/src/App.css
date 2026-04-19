@@ -625,7 +625,7 @@ dt {
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
-.meta-grid div:hover .meta-tooltip,
+.meta-term:hover .meta-tooltip,
 .meta-term:focus-visible .meta-tooltip {
   opacity: 1;
   transform: translateY(0);

@@ -112,10 +112,10 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Surface structured failure details/log output in the failed screen for support/debug use.
 - [x] Verify/install flow behavior on both X11 and Wayland with native-first portal usage where appropriate.
 - [x] Implement `.yambuck` MIME type + icon integration so file managers show Yambuck icon instead of blank file icon.
-- [ ] Validate `.yambuck` icon visibility and open-with association on Linux Mint first, then test other Linux desktop environments.
+- [ ] Validate `.yambuck` icon visibility and open-with association on Linux Mint first, then test other Linux desktop environments. (Linux Mint validated; GNOME/KDE/XFCE checks pending.)
 - [x] Refactor review screen to use the same shell/container/modal code path as `.yambuck` open flow.
 - [x] Ensure review screen always preserves visible native title bar/window controls and includes standard top-right `X` close action.
-- [ ] Fix license-section tooltip layering/pointer behavior so `View license` is reliably clickable.
+- [x] Fix license-section tooltip layering/pointer behavior so `View license` is reliably clickable.
 - [ ] Add expandable technical-information panel in review screen (aligned with `.yambuck` open screen UX).
 - [ ] Populate technical panel with install path, config location, and broad manifest metadata useful for debugging/support.
 - [ ] Audit major pages for nested-card usage and identify where cards add value vs visual clutter.
