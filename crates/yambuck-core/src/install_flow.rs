@@ -6,8 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
 
 use crate::storage::{
-    archive_package_file, current_canonical_timestamp, maybe_remove_package_archive, read_index,
-    write_index, InstalledAppRecord,
+    archive_package_file, current_canonical_timestamp, managed_app_destination_path,
+    maybe_remove_package_archive, read_index, write_index, InstalledAppRecord,
 };
 use crate::{
     InstallAction, InstallDecision, InstallPreview, InstallScope, InstalledApp, PackageInfo,
@@ -308,13 +308,9 @@ pub fn create_install_preview(
         return Err(YambuckError::InvalidAppId);
     }
 
-    let destination_path = match scope {
-        InstallScope::User => {
-            let home = std::env::var("HOME").unwrap_or_else(|_| "~".to_string());
-            format!("{home}/.local/share/yambuck/apps/{app_id}")
-        }
-        InstallScope::System => format!("/opt/yambuck/apps/{app_id}"),
-    };
+    let destination_path = managed_app_destination_path(scope, app_id)?
+        .to_string_lossy()
+        .to_string();
 
     let trust_status = if verified_publisher {
         "verified"

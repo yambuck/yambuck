@@ -33,6 +33,31 @@ pub(crate) fn read_index(scope: InstallScope) -> Result<Vec<InstalledAppRecord>,
     Ok(records)
 }
 
+pub(crate) fn managed_app_payload_root(scope: InstallScope) -> Result<PathBuf, YambuckError> {
+    match scope {
+        InstallScope::User => {
+            let home = std::env::var("HOME").map_err(|_| YambuckError::StorageUnavailable)?;
+            Ok(PathBuf::from(home)
+                .join(".local")
+                .join("share")
+                .join("yambuck")
+                .join("apps"))
+        }
+        InstallScope::System => Ok(PathBuf::from("/opt").join("yambuck").join("apps")),
+    }
+}
+
+pub(crate) fn managed_app_destination_path(
+    scope: InstallScope,
+    app_id: &str,
+) -> Result<PathBuf, YambuckError> {
+    if app_id.trim().is_empty() {
+        return Err(YambuckError::InvalidAppId);
+    }
+    let root = managed_app_payload_root(scope)?;
+    Ok(root.join(safe_segment(app_id)))
+}
+
 pub(crate) fn write_index(
     scope: InstallScope,
     records: &[InstalledAppRecord],
@@ -98,30 +123,23 @@ pub(crate) fn current_canonical_timestamp() -> String {
 }
 
 fn index_file_path(scope: InstallScope) -> Result<PathBuf, YambuckError> {
-    match scope {
-        InstallScope::User => {
-            let home = std::env::var("HOME").map_err(|_| YambuckError::StorageUnavailable)?;
-            Ok(PathBuf::from(home)
-                .join(".local")
-                .join("share")
-                .join("yambuck")
-                .join("installed-apps.json"))
-        }
-        InstallScope::System => Ok(PathBuf::from("/var/lib/yambuck/installed-apps.json")),
-    }
+    metadata_root(scope).map(|root| root.join("installed-apps.json"))
 }
 
 fn package_archive_root(scope: InstallScope) -> Result<PathBuf, YambuckError> {
+    metadata_root(scope).map(|root| root.join("package-archives"))
+}
+
+fn metadata_root(scope: InstallScope) -> Result<PathBuf, YambuckError> {
     match scope {
         InstallScope::User => {
             let home = std::env::var("HOME").map_err(|_| YambuckError::StorageUnavailable)?;
             Ok(PathBuf::from(home)
                 .join(".local")
                 .join("share")
-                .join("yambuck")
-                .join("package-archives"))
+                .join("yambuck"))
         }
-        InstallScope::System => Ok(PathBuf::from("/var/lib/yambuck/package-archives")),
+        InstallScope::System => Ok(PathBuf::from("/var").join("lib").join("yambuck")),
     }
 }
 
