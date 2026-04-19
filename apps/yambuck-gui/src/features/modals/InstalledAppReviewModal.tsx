@@ -95,15 +95,21 @@ export const InstalledAppReviewModal = ({
           </div>
           {showTechnicalDetails ? (
             <dl class="meta-grid">
+              <MetaField label="Install path" tooltip="Installed payload root managed by Yambuck." value={<code>{details.destinationPath}</code>} />
               <MetaField label="Package" tooltip="Archived .yambuck file name stored by Yambuck." value={details.packageInfo.fileName} />
               <MetaField label="Manifest" tooltip="Manifest schema version from the archived package." value={details.packageInfo.manifestVersion} />
               <MetaField label="App ID" tooltip="Stable app identifier used by Yambuck." value={details.appId} />
               <MetaField label="App UUID" tooltip="Publisher-defined immutable app identity UUID." value={details.packageInfo.appUuid} />
               <MetaField label="Package UUID" tooltip="Immutable UUID for this archived package build." value={details.packageInfo.packageUuid} />
               <MetaField label="Entrypoint" tooltip="Launch command path declared by the package manifest." value={<code>{details.packageInfo.entrypoint}</code>} />
-              <MetaField label="Config path" tooltip="Optional config path from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.configPath)} />
-              <MetaField label="Cache path" tooltip="Optional cache path from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.cachePath)} />
-              <MetaField label="Temp path" tooltip="Optional temp path from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.tempPath)} />
+              <MetaField label="Config location" tooltip="Optional config location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.configPath)} />
+              <MetaField label="Cache location" tooltip="Optional cache location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.cachePath)} />
+              <MetaField label="Temp location" tooltip="Optional temp location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.tempPath)} />
+              <MetaField label="Icon asset" tooltip="Manifest icon path relative to package root." value={displayOrFallback(details.packageInfo.iconPath)} />
+              <MetaField label="License file" tooltip="Manifest license file path if provided by publisher." value={displayOrFallback(details.packageInfo.licenseFile)} />
+              <MetaField label="Support URL" tooltip="Publisher support URL from package metadata." value={displayOrFallback(details.packageInfo.supportUrl)} />
+              <MetaField label="Homepage URL" tooltip="Publisher homepage URL from package metadata." value={displayOrFallback(details.packageInfo.homepageUrl)} />
+              <MetaField label="Screenshots" tooltip="Screenshot assets declared in the manifest." value={details.packageInfo.screenshots.length} />
             </dl>
           ) : null}
         </section>

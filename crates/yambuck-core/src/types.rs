@@ -153,6 +153,7 @@ pub struct InstalledAppDetails {
     pub version: String,
     pub install_scope: InstallScope,
     pub installed_at: String,
+    pub destination_path: String,
     pub package_info: PackageInfo,
 }
 

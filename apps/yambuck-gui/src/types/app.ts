@@ -115,6 +115,7 @@ export type InstalledAppDetails = {
   version: string;
   installScope: InstallScope;
   installedAt: string;
+  destinationPath: string;
   packageInfo: PackageInfo;
 };
 

@@ -59,6 +59,7 @@ pub fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, Ya
         version: record.version,
         install_scope: record.install_scope,
         installed_at: record.installed_at,
+        destination_path: record.destination_path,
         package_info,
     })
 }

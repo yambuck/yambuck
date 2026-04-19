@@ -117,7 +117,7 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Ensure review screen always preserves visible native title bar/window controls and includes standard top-right `X` close action.
 - [x] Fix license-section tooltip layering/pointer behavior so `View license` is reliably clickable.
 - [x] Add expandable technical-information panel in review screen (aligned with `.yambuck` open screen UX).
-- [ ] Populate technical panel with install path, config location, and broad manifest metadata useful for debugging/support.
+- [x] Populate technical panel with install path, config location, and broad manifest metadata useful for debugging/support.
 - [ ] Audit major pages for nested-card usage and identify where cards add value vs visual clutter.
 - [ ] Refactor Installed Apps view to a width-fluid list/table container (remove fixed narrow card constraints).
 - [ ] Ensure layout scales from small window to fullscreen with progressive information density.
