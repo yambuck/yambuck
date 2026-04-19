@@ -138,13 +138,13 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Persist per-install ownership receipts/manifests (files, paths, version, scope, timestamps) as source of truth.
 - [x] Define clear install state machine (queued, downloading, validating, installing, verifying, success, failed).
 - [x] Improve failure UX with one-click recovery actions (`Retry`, `Copy logs`, `Open logs`) and short plain-language root-cause summary.
-- [ ] Add package integrity/authenticity validation for `.yambuck` payloads before install execution.
-- [ ] Enforce manifest schema validation with user-readable hard-fail errors.
-- [ ] Tighten manifest validation to require non-empty `iconPath`, `description`, and `longDescription` fields (trim whitespace; hard-fail when missing/blank).
-- [ ] Require at least 1 screenshot in `screenshots` and cap at 6 (to match installer preview limits).
-- [ ] Restrict screenshot formats to `.png`, `.jpg`, `.jpeg`, or `.gif` only (hard-fail unsupported formats).
-- [ ] Restrict icon formats to `.png`, `.jpg`, or `.jpeg` only (no `.webp` in v1 strict mode).
-- [ ] Validate icon and screenshot files by actual file signature (magic bytes) and decode success, not filename extension.
+- [x] Add package integrity/authenticity validation for `.yambuck` payloads before install execution.
+- [x] Enforce manifest schema validation with user-readable hard-fail errors.
+- [x] Tighten manifest validation to require non-empty `iconPath`, `description`, and `longDescription` fields (trim whitespace; hard-fail when missing/blank).
+- [x] Require at least 1 screenshot in `screenshots` and cap at 6 (to match installer preview limits).
+- [x] Restrict screenshot formats to `.png`, `.jpg`, `.jpeg`, or `.gif` only (hard-fail unsupported formats).
+- [x] Restrict icon formats to `.png`, `.jpg`, or `.jpeg` only (no `.webp` in v1 strict mode).
+- [x] Validate icon and screenshot files by actual file signature (magic bytes) and decode success, not filename extension.
 - [ ] Reject zero-byte and tiny placeholder image assets using minimum file-size thresholds for icon and screenshots.
 - [ ] Enforce minimum media dimensions (`icon`: at least `128x128`; `screenshots`: at least `256x256`).
 - [ ] Ensure installer screenshot rendering never stretches images and always preserves original aspect ratio in preview and modal.

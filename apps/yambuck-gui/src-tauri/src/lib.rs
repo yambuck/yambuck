@@ -184,6 +184,19 @@ pub(crate) fn complete_install_impl(
     yambuck_core::validate_install_options(&workflow.install_options, submissions)
         .map_err(|error| error.to_string())?;
     let package_info = workflow.package_info;
+
+    let verified_package = yambuck_core::inspect_package(&package_info.package_file)
+        .map_err(|error| error.to_string())?;
+    if verified_package.package_uuid != package_info.package_uuid
+        || verified_package.app_uuid != package_info.app_uuid
+        || verified_package.app_id != package_info.app_id
+    {
+        return Err(
+            "Package integrity check failed: package metadata changed since inspection. Re-open the package and try again."
+                .to_string(),
+        );
+    }
+
     let installed_app = match install_scope {
         yambuck_core::InstallScope::User => yambuck_core::install_and_register(
             &package_info,
