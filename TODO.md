@@ -127,7 +127,7 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Define or adopt a reusable data-table component for Installed Apps (sorting + filtering + search).
 - [x] Implement table sorting (minimum: app name and date installed).
 - [x] Implement scope filter control (user-installed vs system-wide).
-- [ ] Audit current install/uninstall paths for user + system scopes and document exact directories in use.
+- [x] Audit current install/uninstall paths for user + system scopes and document exact directories in use. (See `docs/INSTALL_UNINSTALL_PATHS.md`.)
 - [ ] Implement dedicated Yambuck-managed install roots (including `/yambuck` subdirectory strategy per scope).
 - [ ] Persist and rely on Yambuck ownership metadata so only Yambuck-installed apps are listed/managed by Yambuck.
 - [ ] Guard uninstall logic to never touch non-Yambuck installs, even when app names overlap.
