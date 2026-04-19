@@ -89,6 +89,7 @@ function App() {
     setScope,
     progress,
     statusText,
+    installLifecycleState,
     packageInfo,
     installOptions,
     managedExistingInstall,
@@ -107,6 +108,7 @@ function App() {
     copyPackageOpenErrorDetails,
     installFailure,
     copyInstallFailureDetails,
+    openInstallLogsDirectory,
     preview,
     isBusy,
     preflightBlockedMessage,
@@ -196,6 +198,7 @@ function App() {
         licenseAccepted={licenseAccepted}
         scope={scope}
         statusText={statusText}
+        installLifecycleState={installLifecycleState}
         progress={progress}
         isBusy={isBusy}
         preview={preview}
@@ -230,6 +233,7 @@ function App() {
         onCopyPackageOpenErrorDetails={() => void copyPackageOpenErrorDetails()}
         installFailure={installFailure}
         onCopyInstallFailureDetails={() => void copyInstallFailureDetails()}
+        onOpenInstallLogsDirectory={() => void openInstallLogsDirectory()}
         onSetLicenseAccepted={setLicenseAccepted}
         onSetScope={setScope}
         onStartInstall={() => void startInstall()}

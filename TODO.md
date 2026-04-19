@@ -136,8 +136,8 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Add post-install verification checks (payload files, launchers/entry points, registration) before showing success state.
 - [x] Implement deterministic uninstall that removes all Yambuck-managed artifacts while never touching non-Yambuck installs.
 - [x] Persist per-install ownership receipts/manifests (files, paths, version, scope, timestamps) as source of truth.
-- [ ] Define clear install state machine (queued, downloading, validating, installing, verifying, success, failed).
-- [ ] Improve failure UX with one-click recovery actions (`Retry`, `Copy logs`, `Open logs`) and short plain-language root-cause summary.
+- [x] Define clear install state machine (queued, downloading, validating, installing, verifying, success, failed).
+- [x] Improve failure UX with one-click recovery actions (`Retry`, `Copy logs`, `Open logs`) and short plain-language root-cause summary.
 - [ ] Add package integrity/authenticity validation for `.yambuck` payloads before install execution.
 - [ ] Enforce manifest schema validation with user-readable hard-fail errors.
 - [ ] Tighten manifest validation to require non-empty `iconPath`, `description`, and `longDescription` fields (trim whitespace; hard-fail when missing/blank).

@@ -40,6 +40,8 @@ export const logUiEvent = (level: "INFO" | "WARN" | "ERROR", message: string) =>
 
 export const clearLogs = () => invoke("clear_logs");
 
+export const openLogsDirectory = () => invoke("open_logs_directory");
+
 export const listInstalledApps = () => invoke<InstalledApp[]>("list_installed_apps");
 
 export const getInstalledAppDetails = (appId: string) =>

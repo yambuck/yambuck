@@ -21,6 +21,7 @@ type InstallerPageProps = {
   licenseAccepted: boolean;
   scope: InstallScope;
   statusText: string;
+  installLifecycleState: "queued" | "downloading" | "validating" | "installing" | "verifying" | "success" | "failed";
   progress: number;
   isBusy: boolean;
   preview: InstallPreview | null;
@@ -65,6 +66,7 @@ type InstallerPageProps = {
     capturedAtDisplay: string;
   } | null;
   onCopyInstallFailureDetails: () => void;
+  onOpenInstallLogsDirectory: () => void;
   onSetLicenseAccepted: (value: boolean) => void;
   onSetScope: (scope: InstallScope) => void;
   onStartInstall: () => void;
@@ -83,6 +85,7 @@ export const InstallerPage = ({
   licenseAccepted,
   scope,
   statusText,
+  installLifecycleState,
   progress,
   isBusy,
   preview,
@@ -117,6 +120,7 @@ export const InstallerPage = ({
   onCopyPackageOpenErrorDetails,
   installFailure,
   onCopyInstallFailureDetails,
+  onOpenInstallLogsDirectory,
   onSetLicenseAccepted,
   onSetScope,
   onStartInstall,
@@ -556,6 +560,7 @@ export const InstallerPage = ({
       <section class="panel">
         <h1>Installing {packageInfo.displayName}</h1>
         <p class="subtitle">{statusText}</p>
+        <p class="subtitle">{`State: ${installLifecycleState}`}</p>
         <div class="progress-shell" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
           <div class="progress-bar" style={{ width: `${progress}%` }} />
         </div>
@@ -572,6 +577,7 @@ export const InstallerPage = ({
       <section class="panel package-panel">
         <h1>Install failed</h1>
         <p class="subtitle">{installFailure?.summary ?? "Yambuck could not complete this install."}</p>
+        <p class="subtitle">Root cause summary: {installFailure?.summary ?? "Unknown failure"}</p>
 
         {installFailure ? (
           <section class="meta-section technical">
@@ -590,6 +596,7 @@ export const InstallerPage = ({
         <div class="actions">
           <button class="button ghost" onClick={() => onSetStep("scope")}>Retry</button>
           <button class="button ghost" onClick={onCopyInstallFailureDetails} disabled={!installFailure}>Copy details</button>
+          <button class="button ghost" onClick={onOpenInstallLogsDirectory}>Open logs</button>
           <button class="button primary" onClick={onClearSelectedPackage}>Close</button>
         </div>
       </section>

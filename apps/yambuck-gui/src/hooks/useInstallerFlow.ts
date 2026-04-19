@@ -6,6 +6,7 @@ import {
   createInstallPreview as createInstallPreviewApi,
   discardInstallWorkflow,
   getInstallDecision,
+  openLogsDirectory,
   getRecentLogs,
   getStartupPackageArg,
   inspectPackageWorkflow,
@@ -60,6 +61,15 @@ type InstallFailureState = {
   capturedAtDisplay: string;
 };
 
+type InstallLifecycleState =
+  | "queued"
+  | "downloading"
+  | "validating"
+  | "installing"
+  | "verifying"
+  | "success"
+  | "failed";
+
 const normalizeInstallFailureMessage = (error: unknown): string => {
   if (typeof error === "string") {
     const trimmed = error.trim();
@@ -88,6 +98,7 @@ export const useInstallerFlow = ({
   const [scope, setScope] = useState<InstallScope>("user");
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("Ready to install package");
+  const [installLifecycleState, setInstallLifecycleState] = useState<InstallLifecycleState>("queued");
   const [packageInfo, setPackageInfo] = useState<PackageInfo | null>(null);
   const [installWorkflow, setInstallWorkflow] = useState<InstallWorkflow | null>(null);
   const [workflowId, setWorkflowId] = useState<string | null>(null);
@@ -569,6 +580,7 @@ export const useInstallerFlow = ({
       capturedAtDisplay: toReadableLocalTimeWithOffset(capturedAt),
     });
     setIsBusy(false);
+    setInstallLifecycleState("failed");
     setStatusText("Install failed");
     setProgress(100);
     setStep("failed");
@@ -675,10 +687,14 @@ export const useInstallerFlow = ({
     }
 
     setIsBusy(true);
+    setInstallLifecycleState("queued");
     setStep("progress");
     setProgress(0);
     setInstallFailure(null);
-    setStatusText("Preparing install preview");
+    setStatusText("Queued install task");
+
+    setInstallLifecycleState("downloading");
+    setStatusText("Loading package payload");
 
     const verifiedPublisher = packageInfo.trustStatus === "verified";
     let installPreview: InstallPreview;
@@ -690,6 +706,7 @@ export const useInstallerFlow = ({
         verifiedPublisher,
       );
       setPreview(installPreview);
+      setInstallLifecycleState("validating");
       setProgress(30);
       setStatusText("Validating package integrity");
     } catch {
@@ -699,14 +716,20 @@ export const useInstallerFlow = ({
       return;
     }
 
+    setInstallLifecycleState("installing");
     setProgress(58);
     setStatusText("Installing application files");
+
+    setInstallLifecycleState("verifying");
+    setProgress(84);
+    setStatusText("Verifying installed payload");
 
     const completed = await completeInstall(selectedPackage, installPreview, scope);
     if (!completed) {
       return;
     }
 
+    setInstallLifecycleState("success");
     setStatusText("Install complete");
     setProgress(100);
     setIsBusy(false);
@@ -728,6 +751,14 @@ export const useInstallerFlow = ({
     });
   };
 
+  const openInstallLogsDirectory = async () => {
+    try {
+      await openLogsDirectory();
+    } catch {
+      onToast("error", "Could not open logs directory.");
+    }
+  };
+
   return {
     step,
     setStep,
@@ -735,6 +766,7 @@ export const useInstallerFlow = ({
     setScope,
     progress,
     statusText,
+    installLifecycleState,
     packageInfo,
     preview,
     isBusy,
@@ -767,6 +799,7 @@ export const useInstallerFlow = ({
     copyPackageOpenErrorDetails,
     installFailure,
     copyInstallFailureDetails,
+    openInstallLogsDirectory,
     choosePackage,
     clearSelectedPackage,
     closeInstallComplete,

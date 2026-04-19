@@ -299,6 +299,23 @@ pub(crate) fn log_ui_event_impl(level: Option<String>, message: String) -> Resul
     support::logging::append_log(&normalized, &message)
 }
 
+pub(crate) fn open_logs_directory_impl() -> Result<(), String> {
+    let log_file = support::logging::log_file_path()?;
+    let log_dir = log_file
+        .parent()
+        .ok_or_else(|| "invalid log directory path".to_string())?
+        .to_path_buf();
+
+    std::fs::create_dir_all(&log_dir).map_err(|error| error.to_string())?;
+
+    std::process::Command::new("xdg-open")
+        .arg(&log_dir)
+        .spawn()
+        .map_err(|error| error.to_string())?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -339,6 +356,7 @@ pub fn run() {
             commands::logs::get_recent_logs,
             commands::logs::clear_logs,
             commands::logs::log_ui_event,
+            commands::logs::open_logs_directory,
             commands::installer::preflight_install_check,
             commands::installer::get_startup_package_arg,
             commands::installer::list_installed_apps,
