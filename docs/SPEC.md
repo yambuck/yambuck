@@ -39,6 +39,13 @@ Additional UX contract constraints:
 - Default install flow is consistent package-to-package with minimal user decisions.
 - Any app-specific install inputs (if supported) are constrained and shown in an "Advanced" section by default.
 
+Time standard:
+
+- Canonical timestamps for logs, copied diagnostics, and exported error details must use ISO 8601 / RFC 3339 with milliseconds and explicit numeric offset.
+- Example canonical timestamp: `2026-04-19T14:32:10.123+01:00`.
+- UI may present a friendlier local display, but copy/export payloads must include the canonical timestamp value.
+- Installer/runtime record fields such as `installedAt` must store canonical timestamps.
+
 ## Architecture Direction
 
 - Rust core for package/install/update logic

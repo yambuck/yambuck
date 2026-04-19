@@ -103,6 +103,8 @@ function App() {
     installOptionError,
     validatingInstallOptions,
     setInstallOptionValue,
+    packageOpenError,
+    copyPackageOpenErrorDetails,
     preview,
     isBusy,
     preflightBlockedMessage,
@@ -222,6 +224,8 @@ function App() {
         installOptionError={installOptionError}
         validatingInstallOptions={validatingInstallOptions}
         onSetInstallOptionValue={setInstallOptionValue}
+        packageOpenError={packageOpenError}
+        onCopyPackageOpenErrorDetails={() => void copyPackageOpenErrorDetails()}
         onSetLicenseAccepted={setLicenseAccepted}
         onSetScope={setScope}
         onStartInstall={() => void startInstall()}

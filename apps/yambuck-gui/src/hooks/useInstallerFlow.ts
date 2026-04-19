@@ -13,6 +13,8 @@ import {
   uninstallInstalledApp,
   validateInstallOptions,
 } from "../lib/tauri/api";
+import { copyPlainText } from "../utils/clipboard";
+import { toIso8601WithOffset, toReadableLocalTimeWithOffset } from "../utils/time";
 import type {
   AppPage,
   ExternalPackageOpenPayload,
@@ -34,6 +36,20 @@ type UseInstallerFlowOptions = {
   onRefreshInstalledApps: () => Promise<void>;
   onLaunchInstalledApp: (app: InstalledApp) => Promise<void>;
   onToast: (tone: "info" | "success" | "warning" | "error", message: string, durationMs?: number) => void;
+};
+
+const normalizeOpenPackageError = (error: unknown): string => {
+  if (typeof error === "string") {
+    const trimmed = error.trim();
+    return trimmed || "Package validation failed.";
+  }
+
+  if (error instanceof Error) {
+    const trimmed = error.message.trim();
+    return trimmed || "Package validation failed.";
+  }
+
+  return "Package validation failed.";
 };
 
 export const useInstallerFlow = ({
@@ -67,6 +83,12 @@ export const useInstallerFlow = ({
   const [wipeOnReinstall, setWipeOnReinstall] = useState(false);
   const [confirmWipeOnReinstall, setConfirmWipeOnReinstall] = useState(false);
   const [allowDowngrade, setAllowDowngrade] = useState(false);
+  const [packageOpenError, setPackageOpenError] = useState<{
+    packageFile: string;
+    message: string;
+    capturedAtIso8601: string;
+    capturedAtDisplay: string;
+  } | null>(null);
 
   const getStepNext = useCallback(
     (currentStep: WizardStep, fallback: WizardStep): WizardStep => {
@@ -142,6 +164,7 @@ export const useInstallerFlow = ({
     setWipeOnReinstall(false);
     setConfirmWipeOnReinstall(false);
     setAllowDowngrade(false);
+    setPackageOpenError(null);
   }, [workflowId]);
 
   const installOptions = installWorkflow?.installOptions ?? [];
@@ -202,9 +225,53 @@ export const useInstallerFlow = ({
       setWipeOnReinstall(false);
       setConfirmWipeOnReinstall(false);
       setAllowDowngrade(false);
+      setPackageOpenError(null);
       setPage("installer");
+    } catch (error) {
+      const message = normalizeOpenPackageError(error);
+      const capturedAt = new Date();
+      setPackageInfo(null);
+      setInstallWorkflow(null);
+      setWorkflowId(null);
+      setPreview(null);
+      setStep("details");
+      setPreflightBlockedMessage("");
+      setInstallOptionValues({});
+      setInstallOptionError("");
+      setManagedExistingInstall(false);
+      setInstallDecision(null);
+      setWipeOnReinstall(false);
+      setConfirmWipeOnReinstall(false);
+      setAllowDowngrade(false);
+      setPackageOpenError({
+        packageFile,
+        message,
+        capturedAtIso8601: toIso8601WithOffset(capturedAt),
+        capturedAtDisplay: toReadableLocalTimeWithOffset(capturedAt),
+      });
+      setPage("installer");
+      onToast("error", "We couldn't open this package.");
+    }
+  };
+
+  const copyPackageOpenErrorDetails = async () => {
+    if (!packageOpenError) {
+      return;
+    }
+
+    const details = [
+      "Yambuck package validation error",
+      `Time: ${packageOpenError.capturedAtIso8601}`,
+      `Package: ${packageOpenError.packageFile}`,
+      `Error: ${packageOpenError.message}`,
+    ].join("\n");
+
+    try {
+      await copyPlainText(details);
+
+      onToast("success", "Error details copied.");
     } catch {
-      onToast("error", "Unable to open package. Choose a valid .yambuck file.");
+      onToast("error", "Could not copy error details.");
     }
   };
 
@@ -599,6 +666,8 @@ export const useInstallerFlow = ({
     installOptionError,
     validatingInstallOptions,
     setInstallOptionValue,
+    packageOpenError,
+    copyPackageOpenErrorDetails,
     choosePackage,
     clearSelectedPackage,
     closeInstallComplete,

@@ -209,6 +209,7 @@ pub enum YambuckError {
     InvalidInstallScope,
     InvalidPackageFile,
     InvalidManifest,
+    InvalidManifestDetails(String),
     InvalidManifestFieldNames(String),
     UnsupportedManifestVersion(String),
     ManifestVersionNotImplemented(String),
@@ -230,6 +231,7 @@ impl Display for YambuckError {
             YambuckError::InvalidInstallScope => formatter.write_str("invalid install scope"),
             YambuckError::InvalidPackageFile => formatter.write_str("invalid package file"),
             YambuckError::InvalidManifest => formatter.write_str("invalid package manifest"),
+            YambuckError::InvalidManifestDetails(message) => formatter.write_str(message),
             YambuckError::InvalidManifestFieldNames(message) => formatter.write_str(message),
             YambuckError::UnsupportedManifestVersion(version) => {
                 write!(

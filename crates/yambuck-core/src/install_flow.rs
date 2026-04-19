@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
 
 use crate::storage::{
-    archive_package_file, current_unix_timestamp, maybe_remove_package_archive, read_index,
+    archive_package_file, current_canonical_timestamp, maybe_remove_package_archive, read_index,
     write_index, InstalledAppRecord,
 };
 use crate::{
@@ -353,7 +353,7 @@ pub fn register_install(
 
     let package_archive_path = archive_package_file(package_info, scope)?;
 
-    let installed_at = current_unix_timestamp();
+    let installed_at = current_canonical_timestamp();
     let record = InstalledAppRecord {
         app_id: package_info.app_id.clone(),
         app_uuid: package_info.app_uuid.clone(),

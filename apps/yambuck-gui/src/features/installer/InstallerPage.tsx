@@ -51,6 +51,13 @@ type InstallerPageProps = {
   installOptionError: string;
   validatingInstallOptions: boolean;
   onSetInstallOptionValue: (id: string, value: InstallOptionValue) => void;
+  packageOpenError: {
+    packageFile: string;
+    message: string;
+    capturedAtIso8601: string;
+    capturedAtDisplay: string;
+  } | null;
+  onCopyPackageOpenErrorDetails: () => void;
   onSetLicenseAccepted: (value: boolean) => void;
   onSetScope: (scope: InstallScope) => void;
   onStartInstall: () => void;
@@ -99,6 +106,8 @@ export const InstallerPage = ({
   installOptionError,
   validatingInstallOptions,
   onSetInstallOptionValue,
+  packageOpenError,
+  onCopyPackageOpenErrorDetails,
   onSetLicenseAccepted,
   onSetScope,
   onStartInstall,
@@ -257,6 +266,30 @@ export const InstallerPage = ({
                 <p>{packageInfo.longDescription}</p>
               </section>
             ) : null}
+          </>
+        ) : packageOpenError ? (
+          <>
+            <h1>We couldn't open this package</h1>
+            <p class="subtitle">Looks like there was an issue opening this .yambuck file.</p>
+            <p class="subtitle">The package may be missing required information or contains invalid files. Please contact the developer or publisher and share the error details below.</p>
+            <section class="meta-section technical open-package-error-section">
+              <div class="meta-section-header">
+                <h2>Error details</h2>
+              </div>
+              <div class="trust-box warning open-package-error-box">
+                <p>
+                  <strong>Package:</strong> <code>{packageOpenError.packageFile}</code>
+                </p>
+                <p>
+                  <strong>Time:</strong> <code>{packageOpenError.capturedAtDisplay}</code>
+                </p>
+                <pre class="open-package-error-pre"><code>Error: {packageOpenError.message}</code></pre>
+              </div>
+            </section>
+            <div class="actions">
+              <button class="button ghost" onClick={onClearSelectedPackage}>Close</button>
+              <button class="button primary" onClick={onCopyPackageOpenErrorDetails}>Copy details</button>
+            </div>
           </>
         ) : (
           <>

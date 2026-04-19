@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { clearLogs as clearLogsApi, getRecentLogs, getSystemInfo, logUiEvent } from "../lib/tauri/api";
+import { copyPlainText } from "../utils/clipboard";
 import type { SystemInfo } from "../types/app";
 
 type UseDebugToolsOptions = {
@@ -31,19 +32,7 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
     }
 
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(value);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = value;
-        textArea.setAttribute("readonly", "");
-        textArea.style.position = "absolute";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
+      await copyPlainText(value);
       onToast("success", successMessage);
       await logUiEvent("INFO", successMessage);
     } catch {

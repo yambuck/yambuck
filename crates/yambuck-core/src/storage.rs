@@ -1,7 +1,7 @@
+use chrono::{Local, SecondsFormat};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{InstallScope, PackageInfo, YambuckError};
 
@@ -93,11 +93,8 @@ pub(crate) fn maybe_remove_package_archive(path: Option<&str>) -> Result<(), Yam
     Ok(())
 }
 
-pub(crate) fn current_unix_timestamp() -> String {
-    let duration = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    duration.as_secs().to_string()
+pub(crate) fn current_canonical_timestamp() -> String {
+    Local::now().to_rfc3339_opts(SecondsFormat::Millis, false)
 }
 
 fn index_file_path(scope: InstallScope) -> Result<PathBuf, YambuckError> {

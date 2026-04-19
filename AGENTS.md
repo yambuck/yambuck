@@ -20,3 +20,8 @@ This file defines project-level conventions for AI/code agents working in this r
 
 - Treat manifest key naming as part of the package contract.
 - Reject non-canonical manifest key styles during validation with clear, actionable errors.
+
+## Time Standard
+
+- Canonical timestamps for logs, copied diagnostics, and exported error details must use ISO 8601 / RFC 3339 with milliseconds and explicit numeric offset (example: `2026-04-19T14:32:10.123+01:00`).
+- UI text may present a friendlier local timestamp, but copy/export payloads should include canonical timestamps.

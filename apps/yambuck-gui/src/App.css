@@ -483,6 +483,31 @@ h2 {
   margin-top: 0.7rem;
 }
 
+.open-package-error-section {
+  margin-top: 1rem;
+}
+
+.open-package-error-box p {
+  margin: 0 0 0.45rem;
+  color: #f8e8c5;
+}
+
+.open-package-error-pre {
+  margin: 0.75rem 0 0;
+  max-height: 240px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 224, 169, 0.35);
+  background: rgba(44, 24, 6, 0.42);
+  padding: 0.7rem;
+  color: #ffe8be;
+  line-height: 1.38;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "Fira Mono", "JetBrains Mono", monospace;
+  font-size: 0.82rem;
+}
+
 .meta-section.long-description {
   margin-top: 0.7rem;
   border-radius: 12px;

@@ -1,6 +1,7 @@
 import { MetaField } from "../../components/ui/MetaField";
 import type { InstalledAppDetails } from "../../types/app";
 import { displayOrFallback, truncateDescription } from "../../utils/text";
+import { formatCanonicalTimestampForDisplay } from "../../utils/time";
 
 type InstalledAppReviewModalProps = {
   details: InstalledAppDetails;
@@ -53,7 +54,11 @@ export const InstalledAppReviewModal = ({
       <dl class="meta-grid compact">
         <MetaField label="Publisher" tooltip="The team or company that published this app." value={details.packageInfo.publisher} />
         <MetaField label="Version" tooltip="The app version from the archived package manifest." value={details.version} />
-        <MetaField label="Installed" tooltip="Unix timestamp when Yambuck registered this installation." value={details.installedAt} />
+        <MetaField
+          label="Installed"
+          tooltip="Timestamp when Yambuck registered this installation (ISO 8601)."
+          value={formatCanonicalTimestampForDisplay(details.installedAt)}
+        />
         <MetaField label="Scope" tooltip="Install scope used for this app." value={details.installScope} />
         <MetaField
           label="License"
