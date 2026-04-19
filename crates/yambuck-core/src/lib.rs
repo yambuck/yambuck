@@ -1,5 +1,7 @@
 mod install_flow;
+mod install_options;
 mod installed_apps;
+mod manifest;
 mod package_inspection;
 mod storage;
 mod types;
@@ -19,6 +21,25 @@ pub fn installer_context(app_version: &str) -> InstallerContext {
 
 pub fn inspect_package(package_file: &str) -> Result<PackageInfo, YambuckError> {
     package_inspection::inspect_package(package_file)
+}
+
+pub fn inspect_package_workflow(package_file: &str) -> Result<InstallWorkflow, YambuckError> {
+    package_inspection::inspect_package_workflow(package_file)
+}
+
+pub fn validate_install_options_for_package(
+    package_file: &str,
+    submissions: Vec<InstallOptionSubmission>,
+) -> Result<Vec<InstallOptionSubmission>, YambuckError> {
+    let workflow = package_inspection::inspect_package_workflow(package_file)?;
+    install_options::validate_install_options(&workflow.install_options, submissions)
+}
+
+pub fn validate_install_options(
+    definitions: &[InstallOptionDefinition],
+    submissions: Vec<InstallOptionSubmission>,
+) -> Result<Vec<InstallOptionSubmission>, YambuckError> {
+    install_options::validate_install_options(definitions, submissions)
 }
 
 pub fn install_package(package_file: &str, destination_path: &str) -> Result<(), YambuckError> {

@@ -22,8 +22,7 @@ Update feed metadata:
 - `docs/updates/stable.json`
   - `version`
   - `notesUrl`
-  - linux asset `url`
-  - linux asset `sha256`
+  - linux asset `url` and `sha256` per architecture entry
 
 ## Release Sequence
 
@@ -116,6 +115,7 @@ Example values to update:
 - `linux.x86_64.url`: `https://github.com/yambuck/yambuck/releases/download/v0.1.6/yambuck-linux-x86_64.tar.gz`
 - `linux.x86_64.sha256`: `<computed hash>`
 - `linux.aarch64.url`: `https://github.com/yambuck/yambuck/releases/download/v0.1.6/yambuck-linux-aarch64.tar.gz`
+- `linux.aarch64.sha256`: `<computed hash or "unpublished" if artifact not shipped yet>`
 
 Commit and push feed update:
 
@@ -157,8 +157,12 @@ Validate in running app:
 
 - `Check for updates` works
 - update banner appears only once (no duplicate messaging)
-- `Update and restart` works for user installs
+- `Update and restart` works for user installs (`~/.local/bin/yambuck`)
 - if update apply fails, inspect `~/.local/share/yambuck/logs/update-helper.log`
+
+Note:
+
+- system install update apply with elevation is still planned work and not a release blocker for current MVP scope
 
 ### MVP distro matrix gate
 

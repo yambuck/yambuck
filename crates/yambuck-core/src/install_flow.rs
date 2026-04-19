@@ -1,6 +1,7 @@
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
 
 use crate::storage::{
@@ -17,12 +18,104 @@ pub fn install_package(package_file: &str, destination_path: &str) -> Result<(),
         return Err(YambuckError::InstallFailed);
     }
 
-    let destination_root = Path::new(destination_path);
-    if destination_root.exists() {
-        fs::remove_dir_all(destination_root).map_err(|_| YambuckError::InstallFailed)?;
-    }
-    fs::create_dir_all(destination_root).map_err(|_| YambuckError::InstallFailed)?;
+    let mut transaction = prepare_install_transaction(package_file, destination_path)?;
+    transaction.commit()?;
+    transaction.finalize_success()
+}
 
+struct InstallTransaction {
+    destination_root: PathBuf,
+    staging_root: PathBuf,
+    backup_root: Option<PathBuf>,
+    committed: bool,
+}
+
+impl InstallTransaction {
+    fn commit(&mut self) -> Result<(), YambuckError> {
+        if self.committed {
+            return Ok(());
+        }
+
+        if self.destination_root.exists() {
+            let backup_root = self
+                .backup_root
+                .as_ref()
+                .ok_or(YambuckError::InstallFailed)?;
+            fs::rename(&self.destination_root, backup_root)
+                .map_err(|_| YambuckError::InstallFailed)?;
+        }
+
+        if fs::rename(&self.staging_root, &self.destination_root).is_err() {
+            if let Some(backup_root) = self.backup_root.as_ref() {
+                if !self.destination_root.exists() {
+                    let _ = fs::rename(backup_root, &self.destination_root);
+                }
+            }
+            return Err(YambuckError::InstallFailed);
+        }
+
+        self.committed = true;
+        Ok(())
+    }
+
+    fn rollback(&mut self) {
+        let _ = fs::remove_dir_all(&self.staging_root);
+
+        if self.committed {
+            let _ = fs::remove_dir_all(&self.destination_root);
+        }
+
+        if let Some(backup_root) = self.backup_root.as_ref() {
+            if backup_root.exists() {
+                let _ = fs::rename(backup_root, &self.destination_root);
+            }
+        }
+    }
+
+    fn finalize_success(&mut self) -> Result<(), YambuckError> {
+        if let Some(backup_root) = self.backup_root.as_ref() {
+            if backup_root.exists() {
+                fs::remove_dir_all(backup_root).map_err(|_| YambuckError::InstallFailed)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+fn prepare_install_transaction(
+    package_file: &str,
+    destination_path: &str,
+) -> Result<InstallTransaction, YambuckError> {
+    let destination_root = PathBuf::from(destination_path);
+    let destination_parent = destination_root
+        .parent()
+        .ok_or(YambuckError::InstallFailed)?;
+    fs::create_dir_all(destination_parent).map_err(|_| YambuckError::InstallFailed)?;
+
+    let unique_suffix = unique_install_suffix();
+    let staging_root = destination_parent.join(format!(".yambuck-staging-{}", unique_suffix));
+    let backup_root = destination_parent.join(format!(".yambuck-backup-{}", unique_suffix));
+
+    fs::create_dir_all(&staging_root).map_err(|_| YambuckError::InstallFailed)?;
+
+    let extraction_result = extract_package_to_root(package_file, &staging_root);
+    if let Err(error) = extraction_result {
+        let _ = fs::remove_dir_all(&staging_root);
+        return Err(error);
+    }
+
+    Ok(InstallTransaction {
+        destination_root,
+        staging_root,
+        backup_root: Some(backup_root),
+        committed: false,
+    })
+}
+
+fn extract_package_to_root(
+    package_file: &str,
+    destination_root: &Path,
+) -> Result<(), YambuckError> {
     let package = fs::File::open(package_file).map_err(|_| YambuckError::InvalidPackageFile)?;
     let mut archive = ZipArchive::new(package).map_err(|_| YambuckError::InvalidPackageFile)?;
 
@@ -69,13 +162,34 @@ pub fn install_package(package_file: &str, destination_path: &str) -> Result<(),
     Ok(())
 }
 
+fn unique_install_suffix() -> String {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let pid = std::process::id();
+    format!("{pid}-{nanos}")
+}
+
 pub fn install_and_register(
     package_info: &PackageInfo,
     scope: InstallScope,
     destination_path: &str,
 ) -> Result<InstalledApp, YambuckError> {
-    install_package(&package_info.package_file, destination_path)?;
-    register_install(package_info, scope, destination_path)
+    let mut transaction =
+        prepare_install_transaction(&package_info.package_file, destination_path)?;
+    transaction.commit()?;
+
+    let installed_app = match register_install(package_info, scope, destination_path) {
+        Ok(value) => value,
+        Err(error) => {
+            transaction.rollback();
+            return Err(error);
+        }
+    };
+
+    transaction.finalize_success()?;
+    Ok(installed_app)
 }
 
 pub fn create_install_preview(
@@ -149,7 +263,10 @@ pub fn register_install(
         package_archive_path: Some(package_archive_path.clone()),
     };
     records.push(record);
-    write_index(scope, &records)?;
+    if write_index(scope, &records).is_err() {
+        let _ = maybe_remove_package_archive(Some(package_archive_path.as_str()));
+        return Err(YambuckError::StorageUnavailable);
+    }
 
     for replaced in replaced_records {
         if replaced.package_archive_path.as_deref() != Some(package_archive_path.as_str()) {

@@ -4,13 +4,20 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import {
   completeInstall as completeInstallApi,
   createInstallPreview as createInstallPreviewApi,
+  discardInstallWorkflow,
   getStartupPackageArg,
-  inspectPackage,
+  inspectPackageWorkflow,
+  listInstalledApps,
   preflightInstallCheck,
+  uninstallInstalledApp,
+  validateInstallOptions,
 } from "../lib/tauri/api";
 import type {
   AppPage,
   ExternalPackageOpenPayload,
+  InstallOptionSubmission,
+  InstallOptionValue,
+  InstallWorkflow,
   InstallPreview,
   InstallScope,
   InstalledApp,
@@ -38,6 +45,8 @@ export const useInstallerFlow = ({
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("Ready to install package");
   const [packageInfo, setPackageInfo] = useState<PackageInfo | null>(null);
+  const [installWorkflow, setInstallWorkflow] = useState<InstallWorkflow | null>(null);
+  const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [preview, setPreview] = useState<InstallPreview | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [preflightBlockedMessage, setPreflightBlockedMessage] = useState("");
@@ -48,9 +57,70 @@ export const useInstallerFlow = ({
   const [showCompleteTechnicalDetails, setShowCompleteTechnicalDetails] = useState(false);
   const [licenseAccepted, setLicenseAccepted] = useState(false);
   const [licenseViewer, setLicenseViewer] = useState<{ title: string; text: string } | null>(null);
+  const [installOptionValues, setInstallOptionValues] = useState<Record<string, InstallOptionValue>>({});
+  const [installOptionError, setInstallOptionError] = useState("");
+  const [validatingInstallOptions, setValidatingInstallOptions] = useState(false);
+  const [managedExistingInstall, setManagedExistingInstall] = useState(false);
+  const [wipeOnReinstall, setWipeOnReinstall] = useState(false);
+  const [confirmWipeOnReinstall, setConfirmWipeOnReinstall] = useState(false);
+
+  const getStepNext = useCallback(
+    (currentStep: WizardStep, fallback: WizardStep): WizardStep => {
+      if (!installWorkflow) {
+        return fallback;
+      }
+      const currentIndex = installWorkflow.wizardSteps.indexOf(currentStep);
+      const nextStep =
+        currentIndex >= 0 ? installWorkflow.wizardSteps[currentIndex + 1] : undefined;
+      return nextStep ?? fallback;
+    },
+    [installWorkflow],
+  );
+
+  const getStepPrevious = useCallback(
+    (currentStep: WizardStep, fallback: WizardStep): WizardStep => {
+      if (!installWorkflow) {
+        return fallback;
+      }
+      const currentIndex = installWorkflow.wizardSteps.indexOf(currentStep);
+      const previousStep = currentIndex > 0 ? installWorkflow.wizardSteps[currentIndex - 1] : undefined;
+      return previousStep ?? fallback;
+    },
+    [installWorkflow],
+  );
+
+  const serializeInstallOptions = useCallback(
+    (values: Record<string, InstallOptionValue>): InstallOptionSubmission[] =>
+      Object.entries(values).map(([id, value]) => ({ id, value })),
+    [],
+  );
+
+  const initializeInstallOptionValues = useCallback((workflow: InstallWorkflow) => {
+    const defaults: Record<string, InstallOptionValue> = {};
+    for (const option of workflow.installOptions) {
+      if (option.defaultValue === undefined) {
+        continue;
+      }
+      if (option.inputType === "checkbox") {
+        defaults[option.id] = { type: "checkbox", value: option.defaultValue === "true" };
+      } else if (option.inputType === "select") {
+        defaults[option.id] = { type: "select", value: option.defaultValue };
+      } else {
+        defaults[option.id] = { type: "text", value: option.defaultValue };
+      }
+    }
+    setInstallOptionValues(defaults);
+  }, []);
 
   const clearSelectedPackage = useCallback(() => {
+    const activeWorkflowId = workflowId;
+    if (activeWorkflowId) {
+      void discardInstallWorkflow(activeWorkflowId);
+    }
+
     setPackageInfo(null);
+    setInstallWorkflow(null);
+    setWorkflowId(null);
     setPreview(null);
     setStep("details");
     setPreflightBlockedMessage("");
@@ -60,7 +130,15 @@ export const useInstallerFlow = ({
     setShowCompleteTechnicalDetails(false);
     setLicenseAccepted(false);
     setLicenseViewer(null);
-  }, []);
+    setInstallOptionValues({});
+    setInstallOptionError("");
+    setValidatingInstallOptions(false);
+    setManagedExistingInstall(false);
+    setWipeOnReinstall(false);
+    setConfirmWipeOnReinstall(false);
+  }, [workflowId]);
+
+  const installOptions = installWorkflow?.installOptions ?? [];
 
   const closeInstallComplete = useCallback(() => {
     clearSelectedPackage();
@@ -96,15 +174,26 @@ export const useInstallerFlow = ({
 
   const loadPackageFromPath = async (packageFile: string) => {
     try {
-      const inspected = await inspectPackage(packageFile);
-      setPackageInfo(inspected);
+      if (workflowId) {
+        await discardInstallWorkflow(workflowId);
+      }
+
+      const inspected = await inspectPackageWorkflow(packageFile);
+      setWorkflowId(inspected.workflowId);
+      setInstallWorkflow(inspected.workflow);
+      setPackageInfo(inspected.workflow.packageInfo);
       setShowTechnicalDetails(false);
       setShowCompleteTechnicalDetails(false);
       setLicenseAccepted(false);
       setLicenseViewer(null);
-      setStep("details");
+      initializeInstallOptionValues(inspected.workflow);
+      setStep(inspected.workflow.wizardSteps[0] ?? "details");
       setPreview(null);
       setPreflightBlockedMessage("");
+      setInstallOptionError("");
+      setManagedExistingInstall(false);
+      setWipeOnReinstall(false);
+      setConfirmWipeOnReinstall(false);
       setPage("installer");
     } catch {
       onToast("error", "Unable to open package. Choose a valid .yambuck file.");
@@ -195,9 +284,11 @@ export const useInstallerFlow = ({
       }
 
       setPreflightBlockedMessage("");
+      setManagedExistingInstall(false);
 
       if (result.status === "managed_existing") {
         onToast("info", "Existing Yambuck-managed install detected. Proceeding with replace.");
+        setManagedExistingInstall(true);
       }
 
       setStep("trust");
@@ -209,14 +300,74 @@ export const useInstallerFlow = ({
   };
 
   const continueFromTrustStep = () => {
-    if (!packageInfo) {
+    if (!packageInfo || !workflowId) {
       return;
     }
-    if (packageInfo.requiresLicenseAcceptance) {
-      setStep("license");
+    setStep(getStepNext("trust", "scope"));
+  };
+
+  const continueFromLicenseStep = () => {
+    setStep(getStepNext("license", "scope"));
+  };
+
+  const continueFromOptionsStep = async () => {
+    if (!packageInfo || !workflowId) {
       return;
     }
-    setStep("scope");
+
+    setValidatingInstallOptions(true);
+    setInstallOptionError("");
+    try {
+      const normalized = await validateInstallOptions(
+        workflowId,
+        serializeInstallOptions(installOptionValues),
+      );
+      const normalizedValues: Record<string, InstallOptionValue> = {};
+      for (const submission of normalized) {
+        normalizedValues[submission.id] = submission.value;
+      }
+      setInstallOptionValues(normalizedValues);
+      setStep(getStepNext("options", "scope"));
+    } catch {
+      const message = "Installer options are invalid. Review values and try again.";
+      setInstallOptionError(message);
+      onToast("error", message);
+    } finally {
+      setValidatingInstallOptions(false);
+    }
+  };
+
+  const goBackFromTrustStep = () => {
+    setStep(getStepPrevious("trust", "details"));
+  };
+
+  const goBackFromLicenseStep = () => {
+    setStep(getStepPrevious("license", "trust"));
+  };
+
+  const goBackFromOptionsStep = () => {
+    setStep(getStepPrevious("options", "license"));
+  };
+
+  const goBackFromScopeStep = () => {
+    setStep(getStepPrevious("scope", "trust"));
+  };
+
+  const setInstallOptionValue = (id: string, value: InstallOptionValue) => {
+    setInstallOptionValues((current) => ({
+      ...current,
+      [id]: value,
+    }));
+    if (installOptionError) {
+      setInstallOptionError("");
+    }
+  };
+
+  const setReinstallWipeChoice = (value: boolean) => {
+    setWipeOnReinstall(value);
+    if (!value) {
+      setConfirmWipeOnReinstall(false);
+    }
   };
 
   const openLicenseViewer = (title: string, text: string) => {
@@ -233,7 +384,16 @@ export const useInstallerFlow = ({
     installScope: InstallScope,
   ) => {
     try {
-      await completeInstallApi(selectedPackage, installScope, installPreview.destinationPath);
+      if (!workflowId) {
+        throw new Error("Missing workflow session");
+      }
+
+      await completeInstallApi(
+        workflowId,
+        installScope,
+        installPreview.destinationPath,
+        serializeInstallOptions(installOptionValues),
+      );
       onToast("success", `${selectedPackage.displayName} installed.`);
       await onRefreshInstalledApps();
     } catch {
@@ -242,7 +402,7 @@ export const useInstallerFlow = ({
   };
 
   const startInstall = async () => {
-    if (!packageInfo) {
+    if (!packageInfo || !workflowId) {
       onToast("warning", "Choose a .yambuck package before installing.");
       return;
     }
@@ -256,6 +416,41 @@ export const useInstallerFlow = ({
     }
 
     setPreflightBlockedMessage("");
+
+    if (managedExistingInstall && wipeOnReinstall) {
+      if (!confirmWipeOnReinstall) {
+        onToast("warning", "Confirm data wipe before reinstalling.");
+        setStep("scope");
+        return;
+      }
+
+      try {
+        const installedApps = await listInstalledApps();
+        const existing = installedApps.find((installed) => installed.appId === selectedPackage.appId);
+        if (existing) {
+          await uninstallInstalledApp(existing.appId, existing.installScope, true);
+          onToast("info", "Existing install and app data removed. Continuing reinstall.");
+        }
+      } catch {
+        onToast("error", "Could not remove existing install before reinstall.");
+        return;
+      }
+    }
+
+    if (installWorkflow?.wizardSteps.includes("options")) {
+      try {
+        if (!workflowId) {
+          throw new Error("Missing workflow session");
+        }
+        await validateInstallOptions(workflowId, serializeInstallOptions(installOptionValues));
+      } catch {
+        const message = "Installer options are invalid. Review values and try again.";
+        setInstallOptionError(message);
+        onToast("error", message);
+        setStep("options");
+        return;
+      }
+    }
 
     try {
       const preflight = await preflightInstallCheck(selectedPackage.appId);
@@ -279,8 +474,7 @@ export const useInstallerFlow = ({
 
     try {
       installPreview = await createInstallPreviewApi(
-        selectedPackage.packageFile,
-        selectedPackage.appId,
+        workflowId,
         scope,
         verifiedPublisher,
       );
@@ -349,12 +543,29 @@ export const useInstallerFlow = ({
     licenseViewer,
     openLicenseViewer,
     closeLicenseViewer,
+    installWorkflow,
+    installOptions,
+    managedExistingInstall,
+    wipeOnReinstall,
+    confirmWipeOnReinstall,
+    setReinstallWipeChoice,
+    setConfirmWipeOnReinstall,
+    installOptionValues,
+    installOptionError,
+    validatingInstallOptions,
+    setInstallOptionValue,
     choosePackage,
     clearSelectedPackage,
     closeInstallComplete,
     openScreenshotModal,
     handleContinueFromDetails,
     continueFromTrustStep,
+    continueFromLicenseStep,
+    continueFromOptionsStep,
+    goBackFromTrustStep,
+    goBackFromLicenseStep,
+    goBackFromOptionsStep,
+    goBackFromScopeStep,
     startInstall,
     launchCurrentPackage,
     activeScreenshotIndex,

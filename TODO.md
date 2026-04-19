@@ -85,6 +85,22 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
   - Investigate manifest-defined install options model (only when truly required by package).
   - Ensure optional choices are constrained/standardized so installer experience remains familiar.
 
+- [ ] Add multi-architecture package support with compatibility preflight and clear user messaging.
+  - Support a single `.yambuck` file containing multiple architecture payloads (at minimum `x86_64` and `aarch64`).
+  - On open/install, detect host architecture early and select matching payload automatically.
+  - If no compatible payload exists, block before install execution and show plain-language reason plus expandable technical details.
+  - Keep this behavior deterministic and consistent across supported distro families.
+
+- [ ] Persist rich installed-app metadata independently of the original downloaded `.yambuck` file.
+  - Keep icon, screenshots, key manifest fields, and ownership/install metadata in Yambuck-managed state after install.
+  - Ensure Installed Apps remains fully informative even if user deletes the downloaded installer file from `Downloads`.
+  - Retain only metadata/assets required for Installed Apps UX and lifecycle actions.
+
+- [ ] Enforce multi-arch storage hygiene after install.
+  - Install and retain only the host-matching payload.
+  - Do not retain unused architecture binaries from the package after successful install.
+  - Ensure uninstall receipts/ownership metadata only reference actually installed artifacts.
+
 - [ ] Trust and adoption depend on reliability + clarity at every stage.
   - User confidence target: installed means installed, removable means fully removed via Yambuck.
   - UX target: refined, uncluttered, repeatable interactions with clear status and no ambiguous outcomes.
@@ -124,6 +140,23 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [ ] Improve failure UX with one-click recovery actions (`Retry`, `Copy logs`, `Open logs`) and short plain-language root-cause summary.
 - [ ] Add package integrity/authenticity validation for `.yambuck` payloads before install execution.
 - [ ] Enforce manifest schema validation with user-readable hard-fail errors.
+- [ ] Tighten manifest validation to require non-empty `iconPath`, `description`, and `longDescription` fields (trim whitespace; hard-fail when missing/blank).
+- [ ] Require at least 1 screenshot in `screenshots` and cap at 6 (to match installer preview limits).
+- [ ] Restrict screenshot formats to `.png`, `.jpg`, `.jpeg`, or `.gif` only (hard-fail unsupported formats).
+- [ ] Restrict icon formats to `.png`, `.jpg`, or `.jpeg` only (no `.webp` in v1 strict mode).
+- [ ] Validate icon and screenshot files by actual file signature (magic bytes) and decode success, not filename extension.
+- [ ] Reject zero-byte and tiny placeholder image assets using minimum file-size thresholds for icon and screenshots.
+- [ ] Enforce minimum media dimensions (`icon`: at least `128x128`; `screenshots`: at least `256x256`).
+- [ ] Ensure installer screenshot rendering never stretches images and always preserves original aspect ratio in preview and modal.
+- [ ] Add screenshot aspect-ratio guardrails (reject extreme banner/tall-strip shapes that degrade preview UX).
+- [ ] Fail validation when required asset paths point to missing files, directories, or unreadable/corrupt image data.
+- [ ] Return field-specific manifest/file errors (for example `iconPath`, `screenshots[0]`) with clear fix guidance for packagers.
+- [ ] Add fixture-based tests for strict media validation cases: blank files, renamed text files, corrupt images, too-small dimensions, unsupported extensions, and missing required assets.
+- [ ] Add versioned manifest parsing pipeline with explicit handlers per major version (`v1`, future `v2`, etc.).
+- [ ] Preserve backward compatibility by routing older package manifests to their matching parser/validator instead of newest-only rules.
+- [ ] Define manifest evolution policy: allowed minor additions, major-version breaking changes, and deprecation windows.
+- [ ] Add fixture-based compatibility tests for multiple manifest versions (valid/invalid cases per version + upgrade safety checks).
+- [ ] Explore code-defined schema representation (or generated schema artifact) per manifest version to keep spec and validation in sync.
 - [ ] Add path safety protections (block traversal/symlink escape and writes outside approved roots).
 - [ ] Limit privilege escalation to required steps only; log why elevation was required.
 - [ ] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
@@ -134,3 +167,7 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [ ] Define dependency/conflict handling rules (missing deps, incompatible versions, duplicate app IDs/names).
 - [ ] Define upgrade/downgrade behavior rules across versions and install scopes.
 - [ ] Add interruption resilience plan (power loss/crash during install) with resume-or-rollback guarantees.
+- [ ] Define multi-architecture manifest schema and validation rules (required arch map, payload paths, optional fallback guidance).
+- [ ] Add host compatibility preflight stage before install execution (arch/target support checks with clear block reasons).
+- [ ] Persist Installed Apps presentation metadata (icon, screenshots, descriptions) in Yambuck-managed state independent of source package file.
+- [ ] Ensure post-install cleanup keeps only selected host payload and removes unused architecture payloads.

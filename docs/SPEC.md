@@ -23,6 +23,11 @@ This mission is the primary design constraint for all technical choices.
 5. User installs with a guided flow.
 6. User can later view installed apps and uninstall from Yambuck.
 
+Compatibility preflight requirement:
+
+- Before install execution, Yambuck checks package compatibility for host architecture/target.
+- If unsupported, install is blocked with clear plain-language reason and optional technical details.
+
 Additional UX contract constraints:
 
 - Success state is only shown after install verification passes.
@@ -61,9 +66,9 @@ Expected layout:
 ├── app/
 │   └── ... packaged app payload ...
 └── assets/
-    ├── icon.(png|jpg|webp)
+    ├── icon.(png|jpg|jpeg)
     └── screenshots/
-        └── ... optional screenshot images ...
+        └── ... required screenshot images ...
 ```
 
 ### Payload Strategy
@@ -71,6 +76,13 @@ Expected layout:
 - v1 packaging is **bundle-first**.
 - The package should include what the app needs to run after install, rather than relying on distro-specific dependency resolution.
 - Yambuck v1 does not attempt full distro dependency resolution for app runtime.
+
+### Multi-Architecture Direction
+
+- A single `.yambuck` package may contain payloads for multiple architectures (for example `x86_64`, `aarch64`).
+- Installer selects the host-matching payload automatically during preflight.
+- If host architecture is unsupported by the package, installer must stop before install execution with clear user-facing messaging.
+- Post-install state should retain only the selected host payload artifacts (no retention of unused architecture binaries).
 
 ### Install Model
 
@@ -89,6 +101,7 @@ Expected layout:
 - Unknown major versions are rejected.
 - New optional fields may be added in backward-compatible minor/patch updates.
 - `minInstallerVersion` may be provided by packages that require newer Yambuck behavior.
+- Manifest field names are canonical `camelCase`; non-canonical forms (snake_case/kebab-case) are invalid.
 
 ### Identity
 
@@ -108,11 +121,11 @@ Expected layout:
 - `packageUuid`
 - `entrypoint`
 - `iconPath`
+- `longDescription`
+- `screenshots` (1-6 image paths)
 
 ### Optional v1 fields
 
-- `screenshots` (array of local asset paths)
-- `longDescription` (plain text, paragraph-friendly app details)
 - `homepageUrl`
 - `supportUrl`
 - `license`
@@ -121,6 +134,7 @@ Expected layout:
 - `releaseNotes`
 - `target` / `targets`
 - `runtimeDependencies` (informational only in v1)
+- `architectures` (optional map/list describing architecture payload availability and package paths)
 - `configPath` (optional app-declared config location)
 - `cachePath` (optional app-declared cache location)
 - `tempPath` (optional app-declared temp/work location)
@@ -135,16 +149,31 @@ When opening a package, Yambuck should be able to show:
 - version
 - description
 - icon
-- screenshots (if packaged)
+- screenshots
 - trust state (`verified` or `unverified`)
 
 UI behavior:
 
 - `description` is the quick summary shown at a glance and is truncated in preview UI at 500 characters with `...`.
-- `longDescription` (if present) is shown as plain text with paragraph breaks for deeper context.
+- `longDescription` is required and is shown as plain text with paragraph breaks for deeper context.
 - `licenseFile` (if present) is viewable in-app from bundled package content, without internet access.
 - when `requiresLicenseAcceptance` is `true`, installer requires explicit acceptance before install can continue.
-- installer preview renders up to 6 screenshots.
+- `screenshots` is required with at least 1 image and installer preview renders up to 6 screenshots.
+
+### Media Validation Rules (v1)
+
+- `iconPath` is required and must reference a bundled image file.
+- `screenshots` is required and must contain between 1 and 6 bundled image paths.
+- Allowed icon formats: PNG, JPG, JPEG.
+- Allowed screenshot formats: PNG, JPG, JPEG, GIF.
+- Image validation must use actual file signature/content checks (not extension-only checks).
+- Image assets must decode successfully as valid images.
+- Zero-byte assets are invalid.
+- Minimum dimensions:
+  - icon: at least 128x128
+  - screenshot: at least 256x256
+- Validation failures are hard-fail and should return actionable field-level errors (for example `iconPath` or `screenshots[0]`).
+- Installer preview and screenshot modal must preserve source aspect ratio (no stretching).
 
 This is required to make install decisions easy for non-technical users.
 
@@ -173,6 +202,8 @@ This is required to make install decisions easy for non-technical users.
 
 - Yambuck keeps its own local install index for reliable uninstall/update behavior.
 - Each install should persist enough ownership metadata (receipt/manifest-derived data) to support deterministic uninstall and list integrity.
+- Installed Apps should remain informative even when the original downloaded `.yambuck` file is deleted.
+- Yambuck should persist the metadata/assets required for Installed Apps presentation (icon, screenshots, core manifest fields) in Yambuck-managed state.
 
 ## Desktop Integration (v1 direction)
 

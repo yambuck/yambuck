@@ -1,10 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  InstallOptionSubmission,
+  InstallWorkflowSession,
   InstallPreview,
   InstalledApp,
   InstalledAppDetails,
   InstallerContext,
-  PackageInfo,
   PreflightCheckResult,
   SystemInfo,
   UninstallResult,
@@ -15,7 +16,14 @@ export const getInstallerContext = () => invoke<InstallerContext>("get_installer
 
 export const getStartupPackageArg = () => invoke<string | null>("get_startup_package_arg");
 
-export const inspectPackage = (packageFile: string) => invoke<PackageInfo>("inspect_package", { packageFile });
+export const inspectPackageWorkflow = (packageFile: string) =>
+  invoke<InstallWorkflowSession>("inspect_package_workflow", { packageFile });
+
+export const validateInstallOptions = (workflowId: string, submissions: InstallOptionSubmission[]) =>
+  invoke<InstallOptionSubmission[]>("validate_install_options", { workflowId, submissions });
+
+export const discardInstallWorkflow = (workflowId: string) =>
+  invoke("discard_install_workflow", { workflowId });
 
 export const checkForUpdates = () => invoke<UpdateCheckResult>("check_for_updates");
 
@@ -41,11 +49,15 @@ export const launchInstalledApp = (appId: string) => invoke("launch_installed_ap
 export const preflightInstallCheck = (appId: string) =>
   invoke<PreflightCheckResult>("preflight_install_check", { appId });
 
-export const createInstallPreview = (packageFile: string, appId: string, scope: string, verifiedPublisher: boolean) =>
-  invoke<InstallPreview>("create_install_preview", { packageFile, appId, scope, verifiedPublisher });
+export const createInstallPreview = (workflowId: string, scope: string, verifiedPublisher: boolean) =>
+  invoke<InstallPreview>("create_install_preview", { workflowId, scope, verifiedPublisher });
 
-export const completeInstall = (packageInfo: PackageInfo, scope: string, destinationPath: string) =>
-  invoke<InstalledApp>("complete_install", { packageInfo, scope, destinationPath });
+export const completeInstall = (
+  workflowId: string,
+  scope: string,
+  destinationPath: string,
+  submissions: InstallOptionSubmission[],
+) => invoke<InstalledApp>("complete_install", { workflowId, scope, destinationPath, submissions });
 
 export const applyUpdateAndRestart = (downloadUrl: string, expectedSha256: string) =>
   invoke("apply_update_and_restart", { downloadUrl, expectedSha256 });

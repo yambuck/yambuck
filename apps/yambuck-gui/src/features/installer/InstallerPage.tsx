@@ -1,6 +1,13 @@
 import { CardCloseButton } from "../../CardCloseButton";
 import { MetaField } from "../../components/ui/MetaField";
-import type { InstallPreview, InstallScope, PackageInfo, WizardStep } from "../../types/app";
+import type {
+  InstallOptionDefinition,
+  InstallOptionValue,
+  InstallPreview,
+  InstallScope,
+  PackageInfo,
+  WizardStep,
+} from "../../types/app";
 import { displayOrFallback, truncateDescription } from "../../utils/text";
 
 type InstallerPageProps = {
@@ -23,7 +30,23 @@ type InstallerPageProps = {
   onOpenLicenseViewer: (title: string, text: string) => void;
   onToggleTechnicalDetails: () => void;
   onSetStep: (step: WizardStep) => void;
+  onGoBackFromTrustStep: () => void;
   onContinueFromTrustStep: () => void;
+  onGoBackFromLicenseStep: () => void;
+  onContinueFromLicenseStep: () => void;
+  onGoBackFromOptionsStep: () => void;
+  onContinueFromOptionsStep: () => void;
+  onGoBackFromScopeStep: () => void;
+  installOptions: InstallOptionDefinition[];
+  managedExistingInstall: boolean;
+  wipeOnReinstall: boolean;
+  confirmWipeOnReinstall: boolean;
+  onSetReinstallWipeChoice: (value: boolean) => void;
+  onSetConfirmWipeOnReinstall: (value: boolean) => void;
+  installOptionValues: Record<string, InstallOptionValue>;
+  installOptionError: string;
+  validatingInstallOptions: boolean;
+  onSetInstallOptionValue: (id: string, value: InstallOptionValue) => void;
   onSetLicenseAccepted: (value: boolean) => void;
   onSetScope: (scope: InstallScope) => void;
   onStartInstall: () => void;
@@ -52,7 +75,23 @@ export const InstallerPage = ({
   onOpenLicenseViewer,
   onToggleTechnicalDetails,
   onSetStep,
+  onGoBackFromTrustStep,
   onContinueFromTrustStep,
+  onGoBackFromLicenseStep,
+  onContinueFromLicenseStep,
+  onGoBackFromOptionsStep,
+  onContinueFromOptionsStep,
+  onGoBackFromScopeStep,
+  installOptions,
+  managedExistingInstall,
+  wipeOnReinstall,
+  confirmWipeOnReinstall,
+  onSetReinstallWipeChoice,
+  onSetConfirmWipeOnReinstall,
+  installOptionValues,
+  installOptionError,
+  validatingInstallOptions,
+  onSetInstallOptionValue,
   onSetLicenseAccepted,
   onSetScope,
   onStartInstall,
@@ -241,7 +280,7 @@ export const InstallerPage = ({
           <p>{isVerified ? "This package is signed by a trusted publisher key." : "Only install if you trust this source."}</p>
         </div>
         <div class="actions">
-          <button class="button ghost" onClick={() => onSetStep("details")}>Back</button>
+          <button class="button ghost" onClick={onGoBackFromTrustStep}>Back</button>
           <button class="button primary" onClick={onContinueFromTrustStep}>
             {isVerified ? "Next" : "Install anyway"}
           </button>
@@ -279,8 +318,8 @@ export const InstallerPage = ({
           <span>I have read and accept this package license.</span>
         </label>
         <div class="actions">
-          <button class="button ghost" onClick={() => onSetStep("trust")}>Back</button>
-          <button class="button primary" onClick={() => onSetStep("scope")} disabled={!licenseText || !licenseAccepted}>
+          <button class="button ghost" onClick={onGoBackFromLicenseStep}>Back</button>
+          <button class="button primary" onClick={onContinueFromLicenseStep} disabled={!licenseText || !licenseAccepted}>
             Continue
           </button>
         </div>
@@ -291,8 +330,12 @@ export const InstallerPage = ({
   if (step === "scope") {
     return (
       <section class="panel">
-        <h1>Install scope</h1>
-        <p class="subtitle">Choose who can use this application</p>
+        <h1>{managedExistingInstall ? "Reinstall scope" : "Install scope"}</h1>
+        <p class="subtitle">
+          {managedExistingInstall
+            ? "Choose reinstall behavior and who can use this application"
+            : "Choose who can use this application"}
+        </p>
         <div class="scope-grid">
           <label class={`scope-card ${scope === "user" ? "active" : ""}`}>
             <input type="radio" name="scope" checked={scope === "user"} onChange={() => onSetScope("user")} />
@@ -305,9 +348,131 @@ export const InstallerPage = ({
             <small>May require admin permissions.</small>
           </label>
         </div>
+        {managedExistingInstall ? (
+          <section class="meta-section technical">
+            <div class="meta-section-header">
+              <h2>Reinstall options</h2>
+            </div>
+            <label class="license-acceptance">
+              <input
+                type="checkbox"
+                checked={wipeOnReinstall}
+                onChange={(event) => onSetReinstallWipeChoice((event.target as HTMLInputElement).checked)}
+              />
+              <span>Remove existing app settings, cache, and temp data before reinstall.</span>
+            </label>
+            {wipeOnReinstall ? (
+              <label class="license-acceptance">
+                <input
+                  type="checkbox"
+                  checked={confirmWipeOnReinstall}
+                  onChange={(event) => onSetConfirmWipeOnReinstall((event.target as HTMLInputElement).checked)}
+                />
+                <span>I understand this permanently deletes existing app data.</span>
+              </label>
+            ) : null}
+          </section>
+        ) : null}
         <div class="actions">
-          <button class="button ghost" onClick={() => onSetStep("trust")}>Back</button>
-          <button class="button primary" onClick={onStartInstall}>Install</button>
+          <button class="button ghost" onClick={onGoBackFromScopeStep}>Back</button>
+          <button
+            class="button primary"
+            onClick={onStartInstall}
+            disabled={managedExistingInstall && wipeOnReinstall && !confirmWipeOnReinstall}
+          >
+            {managedExistingInstall ? "Reinstall" : "Install"}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (step === "options") {
+    return (
+      <section class="panel">
+        <h1>Installer options</h1>
+        <p class="subtitle">Choose any package-defined options before continuing.</p>
+        {installOptions.length === 0 ? (
+          <div class="trust-box warning">
+            <p class="trust-title">No options defined</p>
+            <p>This step is present in the workflow but the package provided no option schema.</p>
+          </div>
+        ) : (
+          <div class="meta-grid">
+            {installOptions.map((option) => {
+              const current = installOptionValues[option.id];
+              const selectedValue = current?.type === "select" ? current.value : "";
+              const checkboxValue = current?.type === "checkbox" ? current.value : false;
+              const textValue = current?.type === "text" ? current.value : "";
+
+              return (
+                <div key={option.id}>
+                  <dt>{option.label}</dt>
+                  <dd>
+                    {option.description ? <small>{option.description}</small> : null}
+                    {option.inputType === "select" ? (
+                      <select
+                        value={selectedValue}
+                        onChange={(event) =>
+                          onSetInstallOptionValue(option.id, {
+                            type: "select",
+                            value: (event.target as HTMLSelectElement).value,
+                          })
+                        }
+                      >
+                        {!option.required ? <option value="">No selection</option> : null}
+                        {option.choices.map((choice) => (
+                          <option key={`${option.id}-${choice.value}`} value={choice.value}>
+                            {choice.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    {option.inputType === "checkbox" ? (
+                      <label class="license-acceptance">
+                        <input
+                          type="checkbox"
+                          checked={checkboxValue}
+                          onChange={(event) =>
+                            onSetInstallOptionValue(option.id, {
+                              type: "checkbox",
+                              value: (event.target as HTMLInputElement).checked,
+                            })
+                          }
+                        />
+                        <span>Enabled</span>
+                      </label>
+                    ) : null}
+                    {option.inputType === "text" ? (
+                      <input
+                        type="text"
+                        value={textValue}
+                        onInput={(event) =>
+                          onSetInstallOptionValue(option.id, {
+                            type: "text",
+                            value: (event.target as HTMLInputElement).value,
+                          })
+                        }
+                        placeholder={option.required ? "Required" : "Optional"}
+                      />
+                    ) : null}
+                  </dd>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {installOptionError ? (
+          <div class="trust-box warning">
+            <p class="trust-title">Invalid options</p>
+            <p>{installOptionError}</p>
+          </div>
+        ) : null}
+        <div class="actions">
+          <button class="button ghost" onClick={onGoBackFromOptionsStep}>Back</button>
+          <button class="button primary" onClick={onContinueFromOptionsStep} disabled={validatingInstallOptions}>
+            {validatingInstallOptions ? "Validating..." : "Continue"}
+          </button>
         </div>
       </section>
     );

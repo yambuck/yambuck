@@ -75,7 +75,12 @@ Reliability constraints:
 ## Privilege Model
 
 - Per-user install updates without elevation.
-- System install update prompts for elevation when user clicks update.
+- System install update should prompt for elevation when user clicks update.
+
+Current implementation status:
+
+- in-app update apply currently targets user installs first
+- system install update apply with elevation is planned next
 
 ## Safety and Transparency
 

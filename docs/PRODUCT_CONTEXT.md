@@ -28,6 +28,12 @@ The product should feel:
 - If Yambuck is clearly easier and more reliable, users will prefer it.
 - If users prefer it, developers have stronger incentive to ship `.yambuck` packages.
 
+Important framing:
+
+- App stores cover only part of Linux software distribution.
+- The highest friction point is software installed outside app stores (GitHub/vendor downloads).
+- Yambuck v1 is focused on making that downloaded-app install path predictable.
+
 Core strategic loop:
 
 1. Better UX and trust.
@@ -108,6 +114,7 @@ MVP is successful when users consistently experience:
 - exact model for optional app-specific install inputs in manifest
 - final install location layout per scope and migration/compatibility details
 - full desktop-environment matrix and edge-case handling
+- finalized multi-architecture manifest structure and payload mapping rules
 
 ## Source of Truth Map
 

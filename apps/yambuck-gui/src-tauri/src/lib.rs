@@ -1,8 +1,12 @@
 use serde::Serialize;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 use yambuck_core::{
-    InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo,
-    PreflightCheckResult, UninstallResult, UpdateCheckResult,
+    InstallOptionSubmission, InstallPreview, InstallWorkflow, InstalledApp, InstalledAppDetails,
+    InstallerContext, PackageInfo, PreflightCheckResult, UninstallResult, UpdateCheckResult,
 };
 
 mod commands;
@@ -10,11 +14,84 @@ mod support;
 
 pub(crate) const DEFAULT_UPDATE_FEED_URL: &str = "https://yambuck.com/updates/stable.json";
 const OPEN_PACKAGE_EVENT: &str = "yambuck://open-package";
+static WORKFLOW_COUNTER: AtomicU64 = AtomicU64::new(1);
+static INSTALL_WORKFLOW_SESSIONS: LazyLock<Mutex<HashMap<String, WorkflowSessionEntry>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+const WORKFLOW_SESSION_TTL: Duration = Duration::from_secs(30 * 60);
+
+#[derive(Clone)]
+struct WorkflowSessionEntry {
+    workflow: InstallWorkflow,
+    last_touched: Instant,
+}
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct OpenPackageEventPayload {
     package_file: String,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct InstallWorkflowSession {
+    workflow_id: String,
+    workflow: InstallWorkflow,
+}
+
+fn next_workflow_id() -> String {
+    let next = WORKFLOW_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("workflow-{next}")
+}
+
+fn purge_expired_workflow_sessions(sessions: &mut HashMap<String, WorkflowSessionEntry>) {
+    let now = Instant::now();
+    sessions.retain(|_, entry| now.duration_since(entry.last_touched) < WORKFLOW_SESSION_TTL);
+}
+
+fn store_workflow_session(workflow: InstallWorkflow) -> Result<InstallWorkflowSession, String> {
+    let workflow_id = next_workflow_id();
+    let mut sessions = INSTALL_WORKFLOW_SESSIONS
+        .lock()
+        .map_err(|_| "failed to lock workflow session store".to_string())?;
+    purge_expired_workflow_sessions(&mut sessions);
+    sessions.insert(
+        workflow_id.clone(),
+        WorkflowSessionEntry {
+            workflow: workflow.clone(),
+            last_touched: Instant::now(),
+        },
+    );
+    Ok(InstallWorkflowSession {
+        workflow_id,
+        workflow,
+    })
+}
+
+fn get_workflow_from_session(workflow_id: &str) -> Result<InstallWorkflow, String> {
+    let mut sessions = INSTALL_WORKFLOW_SESSIONS
+        .lock()
+        .map_err(|_| "failed to lock workflow session store".to_string())?;
+    purge_expired_workflow_sessions(&mut sessions);
+    sessions
+        .get_mut(workflow_id)
+        .map(|entry| {
+            entry.last_touched = Instant::now();
+            entry.workflow.clone()
+        })
+        .ok_or_else(|| format!("install workflow session not found: {workflow_id}"))
+}
+
+fn remove_workflow_session(workflow_id: &str) -> Result<(), String> {
+    let mut sessions = INSTALL_WORKFLOW_SESSIONS
+        .lock()
+        .map_err(|_| "failed to lock workflow session store".to_string())?;
+    purge_expired_workflow_sessions(&mut sessions);
+    sessions.remove(workflow_id);
+    Ok(())
+}
+
+pub(crate) fn discard_install_workflow_impl(workflow_id: &str) -> Result<(), String> {
+    remove_workflow_session(workflow_id)
 }
 
 pub(crate) fn get_installer_context_impl() -> InstallerContext {
@@ -26,15 +103,39 @@ pub(crate) fn inspect_package_impl(package_file: &str) -> Result<PackageInfo, St
     yambuck_core::inspect_package(package_file).map_err(|error| error.to_string())
 }
 
-pub(crate) fn create_install_preview_impl(
+pub(crate) fn inspect_package_workflow_impl(
     package_file: &str,
-    app_id: &str,
+) -> Result<InstallWorkflowSession, String> {
+    let workflow =
+        yambuck_core::inspect_package_workflow(package_file).map_err(|error| error.to_string())?;
+    store_workflow_session(workflow)
+}
+
+pub(crate) fn validate_install_options_impl(
+    workflow_id: &str,
+    submissions: Vec<InstallOptionSubmission>,
+) -> Result<Vec<InstallOptionSubmission>, String> {
+    let workflow = get_workflow_from_session(workflow_id)?;
+    yambuck_core::validate_install_options(&workflow.install_options, submissions)
+        .map_err(|error| error.to_string())
+}
+
+pub(crate) fn create_install_preview_impl(
+    workflow_id: &str,
     scope: &str,
     verified_publisher: bool,
 ) -> Result<InstallPreview, String> {
-    let install_scope = yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    yambuck_core::create_install_preview(package_file, app_id, install_scope, verified_publisher)
-        .map_err(|error| error.to_string())
+    let workflow = get_workflow_from_session(workflow_id)?;
+    let package_info = workflow.package_info;
+    let install_scope =
+        yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    yambuck_core::create_install_preview(
+        &package_info.package_file,
+        &package_info.app_id,
+        install_scope,
+        verified_publisher,
+    )
+    .map_err(|error| error.to_string())
 }
 
 pub(crate) fn list_installed_apps_impl() -> Vec<InstalledApp> {
@@ -50,19 +151,29 @@ pub(crate) fn uninstall_installed_app_impl(
     scope: &str,
     remove_user_data: bool,
 ) -> Result<UninstallResult, String> {
-    let install_scope = yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    let install_scope =
+        yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
     yambuck_core::uninstall_installed_app(app_id, install_scope, remove_user_data)
         .map_err(|error| error.to_string())
 }
 
 pub(crate) fn complete_install_impl(
-    package_info: PackageInfo,
+    workflow_id: &str,
     scope: &str,
     destination_path: &str,
+    submissions: Vec<InstallOptionSubmission>,
 ) -> Result<InstalledApp, String> {
-    let install_scope = yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    yambuck_core::install_and_register(&package_info, install_scope, destination_path)
-        .map_err(|error| error.to_string())
+    let workflow = get_workflow_from_session(workflow_id)?;
+    let install_scope =
+        yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    yambuck_core::validate_install_options(&workflow.install_options, submissions)
+        .map_err(|error| error.to_string())?;
+    let package_info = workflow.package_info;
+    let installed_app =
+        yambuck_core::install_and_register(&package_info, install_scope, destination_path)
+            .map_err(|error| error.to_string())?;
+    remove_workflow_session(workflow_id)?;
+    Ok(installed_app)
 }
 
 pub(crate) fn launch_installed_app_impl(app_id: &str) -> Result<(), String> {
@@ -78,7 +189,9 @@ pub(crate) fn get_startup_package_arg_impl() -> Option<String> {
     support::launch_args::package_arg_from_launch_args(&args)
 }
 
-pub(crate) async fn check_for_updates_impl(feed_url: Option<String>) -> Result<UpdateCheckResult, String> {
+pub(crate) async fn check_for_updates_impl(
+    feed_url: Option<String>,
+) -> Result<UpdateCheckResult, String> {
     let url = feed_url.unwrap_or_else(|| DEFAULT_UPDATE_FEED_URL.to_string());
     let _ = support::logging::append_log("INFO", &format!("Checking updates from {url}"));
     let response = reqwest::get(url)
@@ -163,6 +276,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::installer::get_installer_context,
             commands::installer::inspect_package,
+            commands::installer::inspect_package_workflow,
+            commands::installer::validate_install_options,
+            commands::installer::discard_install_workflow,
             commands::installer::create_install_preview,
             commands::update::check_for_updates,
             commands::update::apply_update_and_restart,

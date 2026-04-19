@@ -90,6 +90,16 @@ function App() {
     progress,
     statusText,
     packageInfo,
+    installOptions,
+    managedExistingInstall,
+    wipeOnReinstall,
+    confirmWipeOnReinstall,
+    setReinstallWipeChoice,
+    setConfirmWipeOnReinstall,
+    installOptionValues,
+    installOptionError,
+    validatingInstallOptions,
+    setInstallOptionValue,
     preview,
     isBusy,
     preflightBlockedMessage,
@@ -109,6 +119,12 @@ function App() {
     openScreenshotModal,
     handleContinueFromDetails,
     continueFromTrustStep,
+    continueFromLicenseStep,
+    continueFromOptionsStep,
+    goBackFromTrustStep,
+    goBackFromLicenseStep,
+    goBackFromOptionsStep,
+    goBackFromScopeStep,
     startInstall,
     launchCurrentPackage,
     activeScreenshotIndex,
@@ -183,7 +199,23 @@ function App() {
         onOpenLicenseViewer={openLicenseViewer}
         onToggleTechnicalDetails={() => setShowTechnicalDetails((prev) => !prev)}
         onSetStep={setStep}
+        onGoBackFromTrustStep={goBackFromTrustStep}
         onContinueFromTrustStep={continueFromTrustStep}
+        onGoBackFromLicenseStep={goBackFromLicenseStep}
+        onContinueFromLicenseStep={continueFromLicenseStep}
+        onGoBackFromOptionsStep={goBackFromOptionsStep}
+        onContinueFromOptionsStep={() => void continueFromOptionsStep()}
+        onGoBackFromScopeStep={goBackFromScopeStep}
+        installOptions={installOptions}
+        managedExistingInstall={managedExistingInstall}
+        wipeOnReinstall={wipeOnReinstall}
+        confirmWipeOnReinstall={confirmWipeOnReinstall}
+        onSetReinstallWipeChoice={setReinstallWipeChoice}
+        onSetConfirmWipeOnReinstall={setConfirmWipeOnReinstall}
+        installOptionValues={installOptionValues}
+        installOptionError={installOptionError}
+        validatingInstallOptions={validatingInstallOptions}
+        onSetInstallOptionValue={setInstallOptionValue}
         onSetLicenseAccepted={setLicenseAccepted}
         onSetScope={setScope}
         onStartInstall={() => void startInstall()}

@@ -93,5 +93,6 @@ For internal testing and CI:
 
 - install script path: `docs/install.sh`
 - uninstall script path: `docs/uninstall.sh`
-- active status: bootstrap install + uninstall scripts implemented for release artifacts
-- pending: publish first signed release artifact
+- active status: bootstrap install + uninstall scripts implemented and wired to live GitHub Release artifacts
+- active status: checksum verification is required by default in normal flow
+- pending: add release signing workflow and signature verification policy in bootstrap

@@ -1,4 +1,4 @@
-export type WizardStep = "details" | "trust" | "license" | "scope" | "progress" | "complete";
+export type WizardStep = "details" | "trust" | "license" | "scope" | "options" | "progress" | "complete";
 export type InstallScope = "user" | "system";
 export type UninstallStep = "confirm" | "options" | "running" | "result";
 export type AppPage = "installer" | "installed" | "settings" | "mockPreview";
@@ -39,6 +39,44 @@ export type PackageInfo = {
   tempPath?: string;
   packageUuid: string;
   trustStatus: string;
+};
+
+export type InstallWorkflow = {
+  manifestMajor: number;
+  packageInfo: PackageInfo;
+  wizardSteps: WizardStep[];
+  installOptions: InstallOptionDefinition[];
+};
+
+export type InstallWorkflowSession = {
+  workflowId: string;
+  workflow: InstallWorkflow;
+};
+
+export type InstallOptionDefinition = {
+  id: string;
+  label: string;
+  description?: string;
+  inputType: "select" | "checkbox" | "text";
+  required: boolean;
+  defaultValue?: string;
+  choices: InstallOptionChoice[];
+};
+
+export type InstallOptionChoice = {
+  value: string;
+  label: string;
+  description?: string;
+};
+
+export type InstallOptionValue =
+  | { type: "select"; value: string }
+  | { type: "checkbox"; value: boolean }
+  | { type: "text"; value: string };
+
+export type InstallOptionSubmission = {
+  id: string;
+  value: InstallOptionValue;
 };
 
 export type InstallPreview = {

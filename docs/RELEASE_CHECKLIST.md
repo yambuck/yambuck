@@ -73,6 +73,8 @@ Verify:
 - `/usr/local/bin/yambuck` exists
 - `yambuck --help` runs
 
+Note: in-app update apply for system installs is planned; current release gating expects in-app apply validation for user installs.
+
 ## 5) Validate First Package Flow
 
 Build and use the canonical test package:
@@ -137,7 +139,7 @@ Run the following checks on each distro before release:
 For each distro, validate:
 
 - website install command succeeds in user mode
-- in-app update (`Update and restart`) applies and relaunches on updated version
+- in-app update (`Update and restart`) applies and relaunches on updated version for user installs
 - safe uninstall removes Yambuck but leaves managed apps intact
 - full purge uninstall removes Yambuck and managed app payloads/metadata
 - reinstall after purge behaves like first install

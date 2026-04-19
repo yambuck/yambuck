@@ -23,6 +23,13 @@ In practical terms, Yambuck focuses on:
 
 Today, Linux app distribution is fragmented across formats, package managers, distros, and user expectations. This creates friction for both developers and users, especially non-technical users who just want to download and install an app.
 
+Common real-world friction points:
+
+- users must choose between `.deb`, `.rpm`, AppImage, and architecture variants before install
+- metadata quality and install UI differ across distros and package frontends
+- file manager/open behavior is inconsistent (for example AppImage execution confusion)
+- uninstall visibility and lifecycle clarity are inconsistent across install methods
+
 ## Vision
 
 Yambuck aims to provide a consistent system where users can:
@@ -38,6 +45,14 @@ And developers can:
 1. Package applications once in a predictable format.
 2. Distribute to users on different Linux distributions.
 3. Provide a cleaner install and update experience.
+
+## Early Adopter Focus
+
+Yambuck v1 is optimized for users and developers who install/distribute software outside app stores:
+
+- indie developers shipping apps via GitHub releases or vendor websites
+- users who run multiple distro families and want one predictable install UX
+- internal teams distributing Linux desktop apps directly without store dependence
 
 ## Scope (Early)
 
@@ -88,14 +103,25 @@ Core installer flow (v1):
 - Distribution is direct-download only: vendors/devs host their own files.
 - Bootstrap setup is a single command from the website, followed by GUI-first use.
 - Update UX is user-controlled: notify clearly, then `Update and restart` or `Later`.
+- Package support direction includes multi-architecture payloads in a single `.yambuck` file, with installer-side host matching and clear unsupported-system messaging.
 - Package identity includes both:
-  - `app_id` (reverse-DNS, e.g. `com.voquill.app`)
-  - `app_uuid` (immutable global UUID for future trust and reputation systems)
+  - `appId` (reverse-DNS, e.g. `com.voquill.app`)
+  - `appUuid` (immutable global UUID for future trust and reputation systems)
+  - `packageUuid` (required, immutable package artifact identity)
 - Installed-apps UX should feel like a modern control-panel style manager:
   - searchable
   - sortable (at minimum by name/date installed)
   - filterable (at minimum by install scope)
   - clear ownership/status metadata per entry
+
+## MVP Outcome Criteria
+
+v1 is successful when a user can:
+
+- install Yambuck once, then open downloaded `.yambuck` files with a consistent flow
+- install and uninstall the same app across Debian/Ubuntu, Fedora, and Arch families with clear outcomes
+- receive clear block reasons for unsupported systems (for example architecture mismatch) before install execution
+- rely on Installed Apps as the source of truth for Yambuck-managed installs until explicitly uninstalled
 
 ## Implementation Direction
 
@@ -118,7 +144,7 @@ Voquill is the first reference app for end-to-end v1 testing via `voquill.yambuc
 
 ## Status
 
-Pre-alpha. The project is in documentation and specification stage.
+Pre-alpha with a working end-to-end prototype flow (bootstrap, user-scope install/uninstall, update feed wiring), plus active reliability and UX hardening in progress.
 
 Website bootstrap commands:
 
@@ -145,9 +171,16 @@ Website bootstrap commands:
 - Regenerate Tauri app icon outputs from the SVG source:
   - `npm --prefix apps/yambuck-gui run tauri icon src-tauri/icons/icon-source.svg`
 
-## Initial Naming
+## Naming Conventions
 
-- Project: `yambuck`
-- Candidate package extension: `.yambuck`
+- Project/tool name: `yambuck`
+- Package extension: `.yambuck`
+- Manifest JSON keys: `camelCase` only (canonical)
+- Rust code identifiers: `snake_case`
+- TypeScript code identifiers: `camelCase`
+- CLI flags and file names: `kebab-case`
 
-These can be refined later if needed.
+Notes:
+
+- For package manifest validation, non-canonical key styles should be rejected with clear guidance.
+- Docs may occasionally reference policy labels in snake_case for readability, but manifest examples and schema remain `camelCase`.

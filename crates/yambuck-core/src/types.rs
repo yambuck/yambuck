@@ -42,6 +42,70 @@ pub struct PackageInfo {
     pub trust_status: String,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallWorkflow {
+    pub manifest_major: u64,
+    pub package_info: PackageInfo,
+    pub wizard_steps: Vec<InstallWizardStep>,
+    pub install_options: Vec<InstallOptionDefinition>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum InstallWizardStep {
+    Details,
+    Trust,
+    License,
+    Scope,
+    Options,
+    Progress,
+    Complete,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallOptionDefinition {
+    pub id: String,
+    pub label: String,
+    pub description: Option<String>,
+    pub input_type: InstallOptionInputType,
+    pub required: bool,
+    pub default_value: Option<String>,
+    pub choices: Vec<InstallOptionChoice>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallOptionSubmission {
+    pub id: String,
+    pub value: InstallOptionValue,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
+pub enum InstallOptionValue {
+    Select(String),
+    Checkbox(bool),
+    Text(String),
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallOptionChoice {
+    pub value: String,
+    pub label: String,
+    pub description: Option<String>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum InstallOptionInputType {
+    Select,
+    Checkbox,
+    Text,
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallPreview {
@@ -126,6 +190,10 @@ pub enum YambuckError {
     InvalidInstallScope,
     InvalidPackageFile,
     InvalidManifest,
+    InvalidManifestFieldNames(String),
+    UnsupportedManifestVersion(String),
+    ManifestVersionNotImplemented(String),
+    InvalidInstallOptions(String),
     InvalidAppId,
     AppNotInstalled,
     StorageUnavailable,
@@ -142,6 +210,17 @@ impl Display for YambuckError {
             YambuckError::InvalidInstallScope => formatter.write_str("invalid install scope"),
             YambuckError::InvalidPackageFile => formatter.write_str("invalid package file"),
             YambuckError::InvalidManifest => formatter.write_str("invalid package manifest"),
+            YambuckError::InvalidManifestFieldNames(message) => formatter.write_str(message),
+            YambuckError::UnsupportedManifestVersion(version) => {
+                write!(
+                    formatter,
+                    "unsupported manifest major version: {version} (supported: 1.x)"
+                )
+            }
+            YambuckError::ManifestVersionNotImplemented(version) => {
+                write!(formatter, "manifest major version recognized but not yet implemented: {version} (v2 parser stub is present, handling is pending)")
+            }
+            YambuckError::InvalidInstallOptions(message) => formatter.write_str(message),
             YambuckError::InvalidAppId => formatter.write_str("invalid app id"),
             YambuckError::AppNotInstalled => formatter.write_str("app is not installed"),
             YambuckError::StorageUnavailable => formatter.write_str("local storage unavailable"),

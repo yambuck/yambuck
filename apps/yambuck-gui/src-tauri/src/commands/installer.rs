@@ -1,6 +1,7 @@
+use crate::InstallWorkflowSession;
 use yambuck_core::{
-    InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo,
-    PreflightCheckResult, UninstallResult,
+    InstallOptionSubmission, InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext,
+    PackageInfo, PreflightCheckResult, UninstallResult,
 };
 
 #[tauri::command]
@@ -14,13 +15,30 @@ pub fn inspect_package(package_file: &str) -> Result<PackageInfo, String> {
 }
 
 #[tauri::command]
+pub fn inspect_package_workflow(package_file: &str) -> Result<InstallWorkflowSession, String> {
+    crate::inspect_package_workflow_impl(package_file)
+}
+
+#[tauri::command]
+pub fn validate_install_options(
+    workflow_id: &str,
+    submissions: Vec<InstallOptionSubmission>,
+) -> Result<Vec<InstallOptionSubmission>, String> {
+    crate::validate_install_options_impl(workflow_id, submissions)
+}
+
+#[tauri::command]
+pub fn discard_install_workflow(workflow_id: &str) -> Result<(), String> {
+    crate::discard_install_workflow_impl(workflow_id)
+}
+
+#[tauri::command]
 pub fn create_install_preview(
-    package_file: &str,
-    app_id: &str,
+    workflow_id: &str,
     scope: &str,
     verified_publisher: bool,
 ) -> Result<InstallPreview, String> {
-    crate::create_install_preview_impl(package_file, app_id, scope, verified_publisher)
+    crate::create_install_preview_impl(workflow_id, scope, verified_publisher)
 }
 
 #[tauri::command]
@@ -44,11 +62,12 @@ pub fn uninstall_installed_app(
 
 #[tauri::command]
 pub fn complete_install(
-    package_info: PackageInfo,
+    workflow_id: &str,
     scope: &str,
     destination_path: &str,
+    submissions: Vec<InstallOptionSubmission>,
 ) -> Result<InstalledApp, String> {
-    crate::complete_install_impl(package_info, scope, destination_path)
+    crate::complete_install_impl(workflow_id, scope, destination_path, submissions)
 }
 
 #[tauri::command]

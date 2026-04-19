@@ -36,12 +36,18 @@ Yambuck exists to make Linux app distribution and installation dead simple for n
 - Failed installs always show dedicated failure UI with copyable logs and retry path
 - Default install flow remains highly standardized with minimal decisions
 - Any app-specific install inputs (if supported) belong behind optional "Advanced" UI
+- Compatibility should be checked early in the flow (before install execution) with clear unsupported-system messaging
 
 ## Update Source (v1)
 
 - Latest update metadata is published at `https://yambuck.com/updates/stable.json`
 - Feed points to immutable GitHub Release artifacts
 - No silent background auto-update in v1
+
+Current implementation status:
+
+- in-app apply flow currently targets user installs first
+- system install update path with elevation remains planned work
 
 ## Security/Trust (v1)
 
@@ -61,9 +67,21 @@ Future direction:
 
 Manifest uses dual identity:
 
-- `app_id` (required, reverse-DNS, stable): human-readable identity (e.g. `com.voquill.app`)
-- `app_uuid` (required, immutable): global machine identity for future trust/reputation
-- `package_uuid` (optional): unique artifact/build id
+- `appId` (required, reverse-DNS, stable): human-readable identity (e.g. `com.voquill.app`)
+- `appUuid` (required, immutable): global machine identity for future trust/reputation
+- `packageUuid` (required, immutable): unique package artifact/build identity
+
+Field naming note:
+
+- manifest schema fields are canonical camelCase (`appId`, `packageUuid`) as defined in `docs/SPEC.md`
+- manifest keys are canonical camelCase; snake_case and kebab-case manifest keys should fail validation with actionable error text
+
+## Multi-Architecture Package Direction (v1)
+
+- Single `.yambuck` files may include multiple architecture payloads
+- Installer selects the host-matching payload automatically
+- Unsupported architecture/target combinations must fail early with clear plain-language feedback
+- Yambuck should install/manage only the selected host payload artifacts
 
 ## Architecture Direction
 
