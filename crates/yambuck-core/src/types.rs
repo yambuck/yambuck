@@ -186,7 +186,7 @@ pub struct UpdateCheckResult {
     pub sha256: Option<String>,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum InstallScope {
     User,

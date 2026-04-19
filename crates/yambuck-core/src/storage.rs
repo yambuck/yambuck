@@ -21,6 +21,17 @@ pub(crate) struct InstalledAppRecord {
     pub package_archive_path: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OwnershipReceipt {
+    app_id: String,
+    app_uuid: String,
+    install_scope: InstallScope,
+    version: String,
+    installed_at: String,
+    destination_path: String,
+}
+
 pub(crate) fn read_index(scope: InstallScope) -> Result<Vec<InstalledAppRecord>, YambuckError> {
     let path = index_file_path(scope)?;
     if !path.exists() {
@@ -75,7 +86,54 @@ pub(crate) fn find_installed_record(app_id: &str) -> Option<InstalledAppRecord> 
         .into_iter()
         .filter_map(|scope| read_index(scope).ok())
         .flatten()
-        .find(|record| record.app_id == app_id)
+        .find(|record| record.app_id == app_id && is_record_owned(record))
+}
+
+pub(crate) fn write_ownership_receipt(record: &InstalledAppRecord) -> Result<(), YambuckError> {
+    let receipt_path = ownership_receipt_path(&record.destination_path);
+    let parent = receipt_path
+        .parent()
+        .ok_or(YambuckError::StorageUnavailable)?;
+    fs::create_dir_all(parent).map_err(|_| YambuckError::StorageUnavailable)?;
+
+    let receipt = OwnershipReceipt {
+        app_id: record.app_id.clone(),
+        app_uuid: record.app_uuid.clone(),
+        install_scope: record.install_scope,
+        version: record.version.clone(),
+        installed_at: record.installed_at.clone(),
+        destination_path: record.destination_path.clone(),
+    };
+    let content =
+        serde_json::to_string_pretty(&receipt).map_err(|_| YambuckError::StorageUnavailable)?;
+    fs::write(receipt_path, content).map_err(|_| YambuckError::StorageUnavailable)
+}
+
+pub(crate) fn maybe_remove_ownership_receipt(destination_path: &str) {
+    let receipt_path = ownership_receipt_path(destination_path);
+    if receipt_path.exists() {
+        let _ = fs::remove_file(&receipt_path);
+    }
+    if let Some(parent) = receipt_path.parent() {
+        if parent.exists() {
+            let _ = fs::remove_dir(parent);
+        }
+    }
+}
+
+pub(crate) fn is_record_owned(record: &InstalledAppRecord) -> bool {
+    let receipt_path = ownership_receipt_path(&record.destination_path);
+    let Ok(content) = fs::read_to_string(receipt_path) else {
+        return false;
+    };
+    let Ok(receipt) = serde_json::from_str::<OwnershipReceipt>(&content) else {
+        return false;
+    };
+
+    receipt.app_id == record.app_id
+        && receipt.app_uuid == record.app_uuid
+        && receipt.install_scope == record.install_scope
+        && receipt.destination_path == record.destination_path
 }
 
 pub(crate) fn archive_package_file(
@@ -158,4 +216,10 @@ fn safe_segment(value: &str) -> String {
             }
         })
         .collect()
+}
+
+fn ownership_receipt_path(destination_path: &str) -> PathBuf {
+    PathBuf::from(destination_path)
+        .join(".yambuck")
+        .join("ownership.json")
 }

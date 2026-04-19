@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::package_inspection;
 use crate::storage::{
-    find_installed_record, maybe_remove_package_archive, read_index, write_index,
+    find_installed_record, is_record_owned, maybe_remove_package_archive, read_index, write_index,
     InstalledAppRecord,
 };
 use crate::{
@@ -15,7 +15,7 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
     let mut apps = Vec::new();
     for scope in [InstallScope::User, InstallScope::System] {
         if let Ok(records) = read_index(scope) {
-            apps.extend(records.into_iter().map(|record| {
+            apps.extend(records.into_iter().filter(is_record_owned).map(|record| {
                 let icon_data_url = record
                     .package_archive_path
                     .as_ref()
@@ -77,7 +77,7 @@ pub fn uninstall_installed_app(
 
     let mut removed_record: Option<InstalledAppRecord> = None;
     records.retain(|record| {
-        if record.app_id == app_id {
+        if record.app_id == app_id && is_record_owned(record) {
             removed_record = Some(record.clone());
             false
         } else {

@@ -7,7 +7,8 @@ use zip::ZipArchive;
 
 use crate::storage::{
     archive_package_file, current_canonical_timestamp, managed_app_destination_path,
-    maybe_remove_package_archive, read_index, write_index, InstalledAppRecord,
+    maybe_remove_ownership_receipt, maybe_remove_package_archive, read_index,
+    write_index, write_ownership_receipt, InstalledAppRecord,
 };
 use crate::{
     InstallAction, InstallDecision, InstallPreview, InstallScope, InstalledApp, PackageInfo,
@@ -361,8 +362,15 @@ pub fn register_install(
         entrypoint: package_info.entrypoint.clone(),
         package_archive_path: Some(package_archive_path.clone()),
     };
+
+    if write_ownership_receipt(&record).is_err() {
+        let _ = maybe_remove_package_archive(Some(package_archive_path.as_str()));
+        return Err(YambuckError::StorageUnavailable);
+    }
+
     records.push(record);
     if write_index(scope, &records).is_err() {
+        maybe_remove_ownership_receipt(destination_path);
         let _ = maybe_remove_package_archive(Some(package_archive_path.as_str()));
         return Err(YambuckError::StorageUnavailable);
     }
