@@ -6,6 +6,7 @@ APP_DIR="${ROOT_DIR}/apps/example-app"
 TAURI_DIR="${APP_DIR}/src-tauri"
 OUT_DIR="${ROOT_DIR}/release-artifacts/packages"
 STAGE_DIR="${ROOT_DIR}/release-artifacts/.example-app-stage"
+GENERATE_MEDIA_SCRIPT="${ROOT_DIR}/scripts/generate-example-media.sh"
 PACKAGE_VERSION=""
 
 resolve_arch() {
@@ -85,6 +86,7 @@ fi
 need_cmd npm
 need_cmd cargo
 need_cmd zip
+need_cmd bash
 
 ARCH="$(resolve_arch)"
 PACKAGE_PATH="${OUT_DIR}/example-app-linux-${ARCH}.yambuck"
@@ -113,13 +115,14 @@ mkdir -p "$OUT_DIR"
 cp "$BIN_SOURCE" "$STAGE_DIR/app/bin/example-app"
 chmod +x "$STAGE_DIR/app/bin/example-app"
 
-cp "${APP_DIR}/src/assets/debug/mock-icon.svg" "$STAGE_DIR/assets/icon.svg"
-cp "${APP_DIR}/src/assets/debug/mock-shot-a.svg" "$STAGE_DIR/assets/screenshots/screenshot-a.svg"
-cp "${APP_DIR}/src/assets/debug/mock-shot-b.svg" "$STAGE_DIR/assets/screenshots/screenshot-b.svg"
-cp "${APP_DIR}/src/assets/debug/mock-shot-c.svg" "$STAGE_DIR/assets/screenshots/screenshot-c.svg"
-cp "${APP_DIR}/src/assets/debug/mock-shot-d.svg" "$STAGE_DIR/assets/screenshots/screenshot-d.svg"
-cp "${APP_DIR}/src/assets/debug/mock-shot-e.svg" "$STAGE_DIR/assets/screenshots/screenshot-e.svg"
-cp "${APP_DIR}/src/assets/debug/mock-shot-f.svg" "$STAGE_DIR/assets/screenshots/screenshot-f.svg"
+if [[ ! -x "$GENERATE_MEDIA_SCRIPT" ]]; then
+  printf "Expected executable media generator script at %s\n" "$GENERATE_MEDIA_SCRIPT" >&2
+  exit 1
+fi
+
+log "Generating raster icon/screenshots from SVG source assets"
+bash "$GENERATE_MEDIA_SCRIPT" --output-dir "$STAGE_DIR/assets" --screenshot-width 1024 --screenshot-height 640 --icon-size 256
+
 cp "${APP_DIR}/assets/licenses/LICENSE.txt" "$STAGE_DIR/assets/licenses/LICENSE.txt"
 
 cat > "${STAGE_DIR}/manifest.json" <<EOF
@@ -130,18 +133,18 @@ cat > "${STAGE_DIR}/manifest.json" <<EOF
   "appUuid": "61144f08-8dd6-4bb2-9745-e8d2d8a3eefa",
   "displayName": "Yambuck Example App",
   "description": "Minimal hello-world desktop app for Yambuck install and bundling tests.",
-  "longDescription": "This package exists for deterministic Yambuck smoke tests. It ships a real Tauri v2 binary with a tiny GUI and includes the same mock preview icon/screenshots used by Yambuck's debug page.",
+  "longDescription": "This package exists for deterministic Yambuck smoke tests. It ships a real Tauri v2 binary with a tiny GUI and includes packaged PNG icon/screenshot assets that satisfy current manifest media validation rules.",
   "version": "${PACKAGE_VERSION}",
   "publisher": "Yambuck Project",
   "entrypoint": "app/bin/example-app",
-  "iconPath": "assets/icon.svg",
+  "iconPath": "assets/icon.png",
   "screenshots": [
-    "assets/screenshots/screenshot-a.svg",
-    "assets/screenshots/screenshot-b.svg",
-    "assets/screenshots/screenshot-c.svg",
-    "assets/screenshots/screenshot-d.svg",
-    "assets/screenshots/screenshot-e.svg",
-    "assets/screenshots/screenshot-f.svg"
+    "assets/screenshots/screenshot-a.png",
+    "assets/screenshots/screenshot-b.png",
+    "assets/screenshots/screenshot-c.png",
+    "assets/screenshots/screenshot-d.png",
+    "assets/screenshots/screenshot-e.png",
+    "assets/screenshots/screenshot-f.png"
   ],
   "homepageUrl": "https://yambuck.com",
   "supportUrl": "https://github.com/yambuck/yambuck",

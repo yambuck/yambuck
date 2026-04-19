@@ -48,7 +48,7 @@ Usage:
 
 Options:
   --version <x.y.z>         Target Yambuck release version (required)
-  --example-version <x.y.z> Optional example-app version bump
+  --example-version <x.y.z> Optional example-app version override (default: main release version)
   --publish                 Run git + GitHub release publishing phase
   --yes                     Skip publish confirmation prompt
   --dry-run                 Print planned actions without mutating files
@@ -159,6 +159,8 @@ validate_semver "$VERSION" || fail "invalid version '$VERSION' (expected x.y.z)"
 
 if [[ -n "$EXAMPLE_VERSION" ]]; then
   validate_semver "$EXAMPLE_VERSION" || fail "invalid example version '$EXAMPLE_VERSION' (expected x.y.z)"
+else
+  EXAMPLE_VERSION="$VERSION"
 fi
 
 # -----------------------------------------------------------------------------
@@ -204,12 +206,10 @@ replace_first_match "$MAIN_PACKAGE_JSON" '"version"[[:space:]]*:[[:space:]]*"[^"
 replace_first_match "$MAIN_TAURI_CONF" '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "\"version\": \"${VERSION}\""
 replace_first_match "$MAIN_CARGO_TOML" '^version = "[^"]+"' "version = \"${VERSION}\""
 
-if [[ -n "$EXAMPLE_VERSION" ]]; then
-  log "Bumping example app versions to ${EXAMPLE_VERSION}"
-  replace_first_match "$EXAMPLE_PACKAGE_JSON" '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "\"version\": \"${EXAMPLE_VERSION}\""
-  replace_first_match "$EXAMPLE_TAURI_CONF" '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "\"version\": \"${EXAMPLE_VERSION}\""
-  replace_first_match "$EXAMPLE_CARGO_TOML" '^version = "[^"]+"' "version = \"${EXAMPLE_VERSION}\""
-fi
+log "Bumping example app versions to ${EXAMPLE_VERSION}"
+replace_first_match "$EXAMPLE_PACKAGE_JSON" '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "\"version\": \"${EXAMPLE_VERSION}\""
+replace_first_match "$EXAMPLE_TAURI_CONF" '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "\"version\": \"${EXAMPLE_VERSION}\""
+replace_first_match "$EXAMPLE_CARGO_TOML" '^version = "[^"]+"' "version = \"${EXAMPLE_VERSION}\""
 
 # -----------------------------------------------------------------------------
 # Phase 3: Build release artifacts
@@ -219,11 +219,7 @@ log "Phase 3/5: Build main release artifact"
 run_cmd "${ROOT_DIR}/scripts/package-bootstrap-artifact.sh"
 
 log "Build example app package"
-if [[ -n "$EXAMPLE_VERSION" ]]; then
-  run_cmd "${ROOT_DIR}/scripts/build-example-app-yambuck.sh" --version "$EXAMPLE_VERSION"
-else
-  run_cmd "${ROOT_DIR}/scripts/build-example-app-yambuck.sh"
-fi
+run_cmd "${ROOT_DIR}/scripts/build-example-app-yambuck.sh" --version "$EXAMPLE_VERSION"
 
 # -----------------------------------------------------------------------------
 # Phase 4: Update stable feed metadata
@@ -287,14 +283,12 @@ FILES_TO_STAGE=(
   "$STABLE_FEED_JSON"
 )
 
-if [[ -n "$EXAMPLE_VERSION" ]]; then
-  FILES_TO_STAGE+=(
-    "$EXAMPLE_PACKAGE_JSON"
-    "$EXAMPLE_CARGO_TOML"
-    "$EXAMPLE_CARGO_LOCK"
-    "$EXAMPLE_TAURI_CONF"
-  )
-fi
+FILES_TO_STAGE+=(
+  "$EXAMPLE_PACKAGE_JSON"
+  "$EXAMPLE_CARGO_TOML"
+  "$EXAMPLE_CARGO_LOCK"
+  "$EXAMPLE_TAURI_CONF"
+)
 
 if [[ "$DRY_RUN" == true ]]; then
   log "[dry-run] git add selected release files"
