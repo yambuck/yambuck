@@ -249,6 +249,10 @@ body {
   padding: 1rem;
 }
 
+.modal-overlay.topbar-safe {
+  top: 62px;
+}
+
 .modal-card {
   width: min(620px, 100%);
   border-radius: 18px;

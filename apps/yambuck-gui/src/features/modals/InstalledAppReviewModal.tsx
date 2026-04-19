@@ -1,4 +1,5 @@
 import { MetaField } from "../../components/ui/MetaField";
+import { CardCloseButton } from "../../CardCloseButton";
 import type { InstalledAppDetails } from "../../types/app";
 import { displayOrFallback, truncateDescription } from "../../utils/text";
 import { formatCanonicalTimestampForDisplay } from "../../utils/time";
@@ -16,11 +17,11 @@ export const InstalledAppReviewModal = ({
   onOpenScreenshot,
   onOpenLicense,
 }: InstalledAppReviewModalProps) => (
-  <div class="modal-overlay" data-no-drag="true" onClick={onClose}>
-    <section class="modal-card installed-review-modal" onClick={(event) => event.stopPropagation()}>
+  <div class="modal-overlay topbar-safe" data-no-drag="true" onClick={onClose}>
+    <section class="modal-card panel package-panel installed-review-modal" onClick={(event) => event.stopPropagation()}>
+      <CardCloseButton title="Close review" onClick={onClose} />
       <div class="screenshot-modal-toolbar">
         <span>{`Installed package review: ${details.displayName}`}</span>
-        <button class="button ghost" onClick={onClose}>Close</button>
       </div>
 
       <p class="subtitle">Review archived package details from the package snapshot Yambuck kept at install time.</p>
