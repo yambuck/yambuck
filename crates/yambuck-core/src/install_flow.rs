@@ -1,3 +1,4 @@
+use semver::Version;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -8,7 +9,10 @@ use crate::storage::{
     archive_package_file, current_unix_timestamp, maybe_remove_package_archive, read_index,
     write_index, InstalledAppRecord,
 };
-use crate::{InstallPreview, InstallScope, InstalledApp, PackageInfo, YambuckError};
+use crate::{
+    InstallAction, InstallDecision, InstallPreview, InstallScope, InstalledApp, PackageInfo,
+    YambuckError,
+};
 
 pub fn install_package(package_file: &str, destination_path: &str) -> Result<(), YambuckError> {
     if package_file.trim().is_empty() || !package_file.ends_with(".yambuck") {
@@ -175,7 +179,10 @@ pub fn install_and_register(
     package_info: &PackageInfo,
     scope: InstallScope,
     destination_path: &str,
+    allow_downgrade: bool,
 ) -> Result<InstalledApp, YambuckError> {
+    enforce_install_policy(package_info, allow_downgrade)?;
+
     let mut transaction =
         prepare_install_transaction(&package_info.package_file, destination_path)?;
     transaction.commit()?;
@@ -190,6 +197,102 @@ pub fn install_and_register(
 
     transaction.finalize_success()?;
     Ok(installed_app)
+}
+
+pub fn evaluate_install_decision(
+    package_info: &PackageInfo,
+) -> Result<InstallDecision, YambuckError> {
+    if package_info.app_id.trim().is_empty() || package_info.app_uuid.trim().is_empty() {
+        return Err(YambuckError::InvalidAppId);
+    }
+
+    let existing_records = all_records_for_app(&package_info.app_id);
+    if existing_records.is_empty() {
+        return Ok(InstallDecision {
+            action: InstallAction::NewInstall,
+            message: "No existing Yambuck-managed install found. This will be a new install."
+                .to_string(),
+            existing_version: None,
+            incoming_version: package_info.version.clone(),
+        });
+    }
+
+    let mut matching_uuid = existing_records
+        .iter()
+        .filter(|record| record.app_uuid == package_info.app_uuid)
+        .collect::<Vec<&InstalledAppRecord>>();
+
+    if matching_uuid.is_empty() {
+        return Ok(InstallDecision {
+            action: InstallAction::BlockedIdentityMismatch,
+            message: "An installed app with this appId has a different appUuid. Install is blocked to protect identity integrity.".to_string(),
+            existing_version: existing_records.first().map(|record| record.version.clone()),
+            incoming_version: package_info.version.clone(),
+        });
+    }
+
+    matching_uuid.sort_by(|left, right| compare_versions(&left.version, &right.version));
+    let selected = matching_uuid
+        .last()
+        .copied()
+        .ok_or(YambuckError::InstallFailed)?;
+
+    let action = match compare_versions(&package_info.version, &selected.version) {
+        std::cmp::Ordering::Greater => InstallAction::Update,
+        std::cmp::Ordering::Equal => InstallAction::Reinstall,
+        std::cmp::Ordering::Less => InstallAction::Downgrade,
+    };
+
+    let message = match action {
+        InstallAction::Update => "A newer package version is available. Installing will update the existing app.".to_string(),
+        InstallAction::Reinstall => "This package matches the installed version. Installing will reinstall the app.".to_string(),
+        InstallAction::Downgrade => "This package is older than the installed version. Downgrade requires explicit confirmation.".to_string(),
+        InstallAction::NewInstall | InstallAction::BlockedIdentityMismatch => {
+            "Install decision evaluated.".to_string()
+        }
+    };
+
+    Ok(InstallDecision {
+        action,
+        message,
+        existing_version: Some(selected.version.clone()),
+        incoming_version: package_info.version.clone(),
+    })
+}
+
+fn enforce_install_policy(
+    package_info: &PackageInfo,
+    allow_downgrade: bool,
+) -> Result<(), YambuckError> {
+    let decision = evaluate_install_decision(package_info)?;
+
+    if decision.action == InstallAction::BlockedIdentityMismatch {
+        return Err(YambuckError::InstallPolicyBlocked(decision.message));
+    }
+
+    if decision.action == InstallAction::Downgrade && !allow_downgrade {
+        return Err(YambuckError::InstallPolicyBlocked(
+            "Downgrade blocked. Confirm downgrade explicitly to continue.".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn all_records_for_app(app_id: &str) -> Vec<InstalledAppRecord> {
+    [InstallScope::User, InstallScope::System]
+        .into_iter()
+        .filter_map(|scope| read_index(scope).ok())
+        .flatten()
+        .filter(|record| record.app_id == app_id)
+        .collect()
+}
+
+fn compare_versions(left: &str, right: &str) -> std::cmp::Ordering {
+    match (Version::parse(left), Version::parse(right)) {
+        (Ok(parsed_left), Ok(parsed_right)) => parsed_left.cmp(&parsed_right),
+        _ => left.cmp(right),
+    }
 }
 
 pub fn create_install_preview(

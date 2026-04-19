@@ -53,6 +53,20 @@ export type InstallWorkflowSession = {
   workflow: InstallWorkflow;
 };
 
+export type InstallAction =
+  | "new_install"
+  | "update"
+  | "reinstall"
+  | "downgrade"
+  | "blocked_identity_mismatch";
+
+export type InstallDecision = {
+  action: InstallAction;
+  message: string;
+  existingVersion?: string;
+  incomingVersion: string;
+};
+
 export type InstallOptionDefinition = {
   id: string;
   label: string;

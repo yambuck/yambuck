@@ -31,7 +31,7 @@ Yambuck exists to make Linux app distribution and installation dead simple for n
 - Update flow is user-controlled: `Update and restart` or `Later`
 - Users are always informed of update progress and outcomes
 - Yambuck only manages Yambuck-installed apps; no cross-manager mutation
-- Existing Yambuck-managed app updates use clean replace (remove then reinstall)
+- Existing Yambuck-managed app updates use replace-in-place transaction flow with rollback safety
 - Success UI is only shown after verification passes
 - Failed installs always show dedicated failure UI with copyable logs and retry path
 - Default install flow remains highly standardized with minimal decisions
@@ -70,6 +70,15 @@ Manifest uses dual identity:
 - `appId` (required, reverse-DNS, stable): human-readable identity (e.g. `com.voquill.app`)
 - `appUuid` (required, immutable): global machine identity for future trust/reputation
 - `packageUuid` (required, immutable): unique package artifact/build identity
+
+Install decision policy (v1):
+
+- Decision key is `appId` + `appUuid` identity continuity
+- `new install`: no managed install found for `appId`
+- `update`: managed install found with matching `appUuid`, incoming version is higher
+- `reinstall`: matching identity, same version
+- `downgrade`: matching identity, lower version; requires explicit user confirmation
+- `blocked identity mismatch`: `appId` matches existing managed install but `appUuid` differs
 
 Field naming note:
 

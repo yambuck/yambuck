@@ -92,10 +92,13 @@ function App() {
     packageInfo,
     installOptions,
     managedExistingInstall,
+    installDecision,
     wipeOnReinstall,
     confirmWipeOnReinstall,
+    allowDowngrade,
     setReinstallWipeChoice,
     setConfirmWipeOnReinstall,
+    setDowngradeAllowed,
     installOptionValues,
     installOptionError,
     validatingInstallOptions,
@@ -208,10 +211,13 @@ function App() {
         onGoBackFromScopeStep={goBackFromScopeStep}
         installOptions={installOptions}
         managedExistingInstall={managedExistingInstall}
+        installDecision={installDecision}
         wipeOnReinstall={wipeOnReinstall}
         confirmWipeOnReinstall={confirmWipeOnReinstall}
+        allowDowngrade={allowDowngrade}
         onSetReinstallWipeChoice={setReinstallWipeChoice}
         onSetConfirmWipeOnReinstall={setConfirmWipeOnReinstall}
+        onSetDowngradeAllowed={setDowngradeAllowed}
         installOptionValues={installOptionValues}
         installOptionError={installOptionError}
         validatingInstallOptions={validatingInstallOptions}

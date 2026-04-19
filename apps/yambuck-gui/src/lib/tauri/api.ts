@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  InstallDecision,
   InstallOptionSubmission,
   InstallWorkflowSession,
   InstallPreview,
@@ -21,6 +22,9 @@ export const inspectPackageWorkflow = (packageFile: string) =>
 
 export const validateInstallOptions = (workflowId: string, submissions: InstallOptionSubmission[]) =>
   invoke<InstallOptionSubmission[]>("validate_install_options", { workflowId, submissions });
+
+export const getInstallDecision = (workflowId: string) =>
+  invoke<InstallDecision>("get_install_decision", { workflowId });
 
 export const discardInstallWorkflow = (workflowId: string) =>
   invoke("discard_install_workflow", { workflowId });
@@ -57,7 +61,8 @@ export const completeInstall = (
   scope: string,
   destinationPath: string,
   submissions: InstallOptionSubmission[],
-) => invoke<InstalledApp>("complete_install", { workflowId, scope, destinationPath, submissions });
+  allowDowngrade: boolean,
+) => invoke<InstalledApp>("complete_install", { workflowId, scope, destinationPath, submissions, allowDowngrade });
 
 export const applyUpdateAndRestart = (downloadUrl: string, expectedSha256: string) =>
   invoke("apply_update_and_restart", { downloadUrl, expectedSha256 });

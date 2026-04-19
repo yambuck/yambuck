@@ -194,9 +194,26 @@ This is required to make install decisions easy for non-technical users.
 
 ### Ownership and conflict policy (v1)
 
-- If an app with the same `appId` is already tracked by Yambuck, install proceeds as a clean replace flow.
-- Replace flow for v1 is remove-and-reinstall for cleanliness.
+- If an app with the same `appId` is already tracked by Yambuck, install decision is evaluated using both `appId` and `appUuid`.
+- `appId` + `appUuid` match:
+  - incoming version higher => `update`
+  - incoming version equal => `reinstall`
+  - incoming version lower => `downgrade` (requires explicit confirmation)
+- `appId` matches and `appUuid` differs => hard block (`identity mismatch`).
+- Update/reinstall execution uses transactional replace with rollback on failure.
 - If same `appId` appears to be installed outside Yambuck ownership, Yambuck blocks install and tells the user to uninstall with their original package manager first.
+- For managed reinstall flows, optional data wipe is allowed but must require explicit destructive confirmation before execution.
+
+Install decision table (v1):
+
+| Condition | Action | User-facing behavior |
+|---|---|---|
+| No Yambuck-managed record for `appId` | `new install` | Standard install flow |
+| Managed record exists, `appId` + `appUuid` match, incoming version `>` installed | `update` | Update messaging and replace flow |
+| Managed record exists, `appId` + `appUuid` match, incoming version `=` installed | `reinstall` | Reinstall messaging; optional wipe controls |
+| Managed record exists, `appId` + `appUuid` match, incoming version `<` installed | `downgrade` | Block by default until explicit downgrade confirmation |
+| Managed record exists, `appId` matches but `appUuid` differs | `blocked identity mismatch` | Hard block with identity mismatch message |
+| External install indicator exists and no managed record | `external conflict` | Hard block; direct user to uninstall via original manager first |
 
 ### Install index
 

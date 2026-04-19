@@ -5,6 +5,7 @@ import {
   completeInstall as completeInstallApi,
   createInstallPreview as createInstallPreviewApi,
   discardInstallWorkflow,
+  getInstallDecision,
   getStartupPackageArg,
   inspectPackageWorkflow,
   listInstalledApps,
@@ -15,6 +16,7 @@ import {
 import type {
   AppPage,
   ExternalPackageOpenPayload,
+  InstallDecision,
   InstallOptionSubmission,
   InstallOptionValue,
   InstallWorkflow,
@@ -61,8 +63,10 @@ export const useInstallerFlow = ({
   const [installOptionError, setInstallOptionError] = useState("");
   const [validatingInstallOptions, setValidatingInstallOptions] = useState(false);
   const [managedExistingInstall, setManagedExistingInstall] = useState(false);
+  const [installDecision, setInstallDecision] = useState<InstallDecision | null>(null);
   const [wipeOnReinstall, setWipeOnReinstall] = useState(false);
   const [confirmWipeOnReinstall, setConfirmWipeOnReinstall] = useState(false);
+  const [allowDowngrade, setAllowDowngrade] = useState(false);
 
   const getStepNext = useCallback(
     (currentStep: WizardStep, fallback: WizardStep): WizardStep => {
@@ -134,8 +138,10 @@ export const useInstallerFlow = ({
     setInstallOptionError("");
     setValidatingInstallOptions(false);
     setManagedExistingInstall(false);
+    setInstallDecision(null);
     setWipeOnReinstall(false);
     setConfirmWipeOnReinstall(false);
+    setAllowDowngrade(false);
   }, [workflowId]);
 
   const installOptions = installWorkflow?.installOptions ?? [];
@@ -192,8 +198,10 @@ export const useInstallerFlow = ({
       setPreflightBlockedMessage("");
       setInstallOptionError("");
       setManagedExistingInstall(false);
+      setInstallDecision(null);
       setWipeOnReinstall(false);
       setConfirmWipeOnReinstall(false);
+      setAllowDowngrade(false);
       setPage("installer");
     } catch {
       onToast("error", "Unable to open package. Choose a valid .yambuck file.");
@@ -285,9 +293,32 @@ export const useInstallerFlow = ({
 
       setPreflightBlockedMessage("");
       setManagedExistingInstall(false);
+      setInstallDecision(null);
 
-      if (result.status === "managed_existing") {
-        onToast("info", "Existing Yambuck-managed install detected. Proceeding with replace.");
+      if (!workflowId) {
+        onToast("error", "Install workflow session missing. Reopen the package and try again.");
+        return;
+      }
+
+      const decision = await getInstallDecision(workflowId);
+      setInstallDecision(decision);
+
+      if (decision.action === "blocked_identity_mismatch") {
+        setPreflightBlockedMessage(decision.message);
+        onToast("error", decision.message, 6200);
+        return;
+      }
+
+      if (decision.action === "update") {
+        setManagedExistingInstall(true);
+        onToast("info", decision.message);
+      } else if (decision.action === "reinstall") {
+        setManagedExistingInstall(true);
+        onToast("info", decision.message);
+      } else if (decision.action === "downgrade") {
+        setManagedExistingInstall(true);
+        onToast("warning", decision.message, 6200);
+      } else if (result.status === "managed_existing") {
         setManagedExistingInstall(true);
       }
 
@@ -370,6 +401,10 @@ export const useInstallerFlow = ({
     }
   };
 
+  const setDowngradeAllowed = (value: boolean) => {
+    setAllowDowngrade(value);
+  };
+
   const openLicenseViewer = (title: string, text: string) => {
     setLicenseViewer({ title, text });
   };
@@ -393,6 +428,7 @@ export const useInstallerFlow = ({
         installScope,
         installPreview.destinationPath,
         serializeInstallOptions(installOptionValues),
+        allowDowngrade,
       );
       onToast("success", `${selectedPackage.displayName} installed.`);
       await onRefreshInstalledApps();
@@ -416,6 +452,12 @@ export const useInstallerFlow = ({
     }
 
     setPreflightBlockedMessage("");
+
+    if (installDecision?.action === "downgrade" && !allowDowngrade) {
+      onToast("warning", "Downgrade requires explicit confirmation before install.");
+      setStep("scope");
+      return;
+    }
 
     if (managedExistingInstall && wipeOnReinstall) {
       if (!confirmWipeOnReinstall) {
@@ -546,10 +588,13 @@ export const useInstallerFlow = ({
     installWorkflow,
     installOptions,
     managedExistingInstall,
+    installDecision,
     wipeOnReinstall,
     confirmWipeOnReinstall,
+    allowDowngrade,
     setReinstallWipeChoice,
     setConfirmWipeOnReinstall,
+    setDowngradeAllowed,
     installOptionValues,
     installOptionError,
     validatingInstallOptions,

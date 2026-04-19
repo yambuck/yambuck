@@ -51,6 +51,25 @@ pub struct InstallWorkflow {
     pub install_options: Vec<InstallOptionDefinition>,
 }
 
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InstallAction {
+    NewInstall,
+    Update,
+    Reinstall,
+    Downgrade,
+    BlockedIdentityMismatch,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallDecision {
+    pub action: InstallAction,
+    pub message: String,
+    pub existing_version: Option<String>,
+    pub incoming_version: String,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum InstallWizardStep {
@@ -194,6 +213,7 @@ pub enum YambuckError {
     UnsupportedManifestVersion(String),
     ManifestVersionNotImplemented(String),
     InvalidInstallOptions(String),
+    InstallPolicyBlocked(String),
     InvalidAppId,
     AppNotInstalled,
     StorageUnavailable,
@@ -221,6 +241,7 @@ impl Display for YambuckError {
                 write!(formatter, "manifest major version recognized but not yet implemented: {version} (v2 parser stub is present, handling is pending)")
             }
             YambuckError::InvalidInstallOptions(message) => formatter.write_str(message),
+            YambuckError::InstallPolicyBlocked(message) => formatter.write_str(message),
             YambuckError::InvalidAppId => formatter.write_str("invalid app id"),
             YambuckError::AppNotInstalled => formatter.write_str("app is not installed"),
             YambuckError::StorageUnavailable => formatter.write_str("local storage unavailable"),

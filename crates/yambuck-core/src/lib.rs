@@ -50,8 +50,15 @@ pub fn install_and_register(
     package_info: &PackageInfo,
     scope: InstallScope,
     destination_path: &str,
+    allow_downgrade: bool,
 ) -> Result<InstalledApp, YambuckError> {
-    install_flow::install_and_register(package_info, scope, destination_path)
+    install_flow::install_and_register(package_info, scope, destination_path, allow_downgrade)
+}
+
+pub fn evaluate_install_decision(
+    package_info: &PackageInfo,
+) -> Result<InstallDecision, YambuckError> {
+    install_flow::evaluate_install_decision(package_info)
 }
 
 pub fn create_install_preview(

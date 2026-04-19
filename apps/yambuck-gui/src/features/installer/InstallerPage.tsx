@@ -3,6 +3,7 @@ import { MetaField } from "../../components/ui/MetaField";
 import type {
   InstallOptionDefinition,
   InstallOptionValue,
+  InstallDecision,
   InstallPreview,
   InstallScope,
   PackageInfo,
@@ -39,10 +40,13 @@ type InstallerPageProps = {
   onGoBackFromScopeStep: () => void;
   installOptions: InstallOptionDefinition[];
   managedExistingInstall: boolean;
+  installDecision: InstallDecision | null;
   wipeOnReinstall: boolean;
   confirmWipeOnReinstall: boolean;
+  allowDowngrade: boolean;
   onSetReinstallWipeChoice: (value: boolean) => void;
   onSetConfirmWipeOnReinstall: (value: boolean) => void;
+  onSetDowngradeAllowed: (value: boolean) => void;
   installOptionValues: Record<string, InstallOptionValue>;
   installOptionError: string;
   validatingInstallOptions: boolean;
@@ -84,10 +88,13 @@ export const InstallerPage = ({
   onGoBackFromScopeStep,
   installOptions,
   managedExistingInstall,
+  installDecision,
   wipeOnReinstall,
   confirmWipeOnReinstall,
+  allowDowngrade,
   onSetReinstallWipeChoice,
   onSetConfirmWipeOnReinstall,
+  onSetDowngradeAllowed,
   installOptionValues,
   installOptionError,
   validatingInstallOptions,
@@ -353,6 +360,27 @@ export const InstallerPage = ({
             <div class="meta-section-header">
               <h2>Reinstall options</h2>
             </div>
+            {installDecision ? (
+              <div class="trust-box warning">
+                <p class="trust-title">{installDecision.action === "update" ? "Update" : installDecision.action === "reinstall" ? "Reinstall" : installDecision.action === "downgrade" ? "Downgrade" : "Install"}</p>
+                <p>{installDecision.message}</p>
+                {installDecision.existingVersion ? (
+                  <p>
+                    Installed: <code>{installDecision.existingVersion}</code> {"->"} Package: <code>{installDecision.incomingVersion}</code>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {installDecision?.action === "downgrade" ? (
+              <label class="license-acceptance">
+                <input
+                  type="checkbox"
+                  checked={allowDowngrade}
+                  onChange={(event) => onSetDowngradeAllowed((event.target as HTMLInputElement).checked)}
+                />
+                <span>I understand this installs an older version and I want to continue.</span>
+              </label>
+            ) : null}
             <label class="license-acceptance">
               <input
                 type="checkbox"
@@ -378,9 +406,12 @@ export const InstallerPage = ({
           <button
             class="button primary"
             onClick={onStartInstall}
-            disabled={managedExistingInstall && wipeOnReinstall && !confirmWipeOnReinstall}
+            disabled={
+              (managedExistingInstall && wipeOnReinstall && !confirmWipeOnReinstall)
+              || (installDecision?.action === "downgrade" && !allowDowngrade)
+            }
           >
-            {managedExistingInstall ? "Reinstall" : "Install"}
+            {installDecision?.action === "update" ? "Update" : managedExistingInstall ? "Reinstall" : "Install"}
           </button>
         </div>
       </section>

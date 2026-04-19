@@ -1,7 +1,7 @@
 use crate::InstallWorkflowSession;
 use yambuck_core::{
-    InstallOptionSubmission, InstallPreview, InstalledApp, InstalledAppDetails, InstallerContext,
-    PackageInfo, PreflightCheckResult, UninstallResult,
+    InstallDecision, InstallOptionSubmission, InstallPreview, InstalledApp, InstalledAppDetails,
+    InstallerContext, PackageInfo, PreflightCheckResult, UninstallResult,
 };
 
 #[tauri::command]
@@ -25,6 +25,11 @@ pub fn validate_install_options(
     submissions: Vec<InstallOptionSubmission>,
 ) -> Result<Vec<InstallOptionSubmission>, String> {
     crate::validate_install_options_impl(workflow_id, submissions)
+}
+
+#[tauri::command]
+pub fn get_install_decision(workflow_id: &str) -> Result<InstallDecision, String> {
+    crate::get_install_decision_impl(workflow_id)
 }
 
 #[tauri::command]
@@ -66,8 +71,15 @@ pub fn complete_install(
     scope: &str,
     destination_path: &str,
     submissions: Vec<InstallOptionSubmission>,
+    allow_downgrade: bool,
 ) -> Result<InstalledApp, String> {
-    crate::complete_install_impl(workflow_id, scope, destination_path, submissions)
+    crate::complete_install_impl(
+        workflow_id,
+        scope,
+        destination_path,
+        submissions,
+        allow_downgrade,
+    )
 }
 
 #[tauri::command]

@@ -92,6 +92,17 @@ Core installer flow (v1):
 4. Choose install scope (`Just for me` or `All users`).
 5. Install with clear progress and success state.
 
+Install decision policy (v1):
+
+- Yambuck evaluates incoming packages against existing Yambuck-managed installs using both `appId` and `appUuid`.
+- If no managed install exists, action is `new install`.
+- If identity matches and incoming version is higher, action is `update`.
+- If identity matches and version is equal, action is `reinstall`.
+- If identity matches and incoming version is lower, action is `downgrade` and requires explicit user confirmation.
+- If `appId` matches but `appUuid` differs, install is blocked as an identity mismatch.
+
+See `docs/SPEC.md` for the full install decision table and user-facing behavior per case.
+
 ## V1 Decisions
 
 - Primary workflow: install Yambuck once, then double-click `.yambuck` files.
@@ -103,6 +114,7 @@ Core installer flow (v1):
 - Distribution is direct-download only: vendors/devs host their own files.
 - Bootstrap setup is a single command from the website, followed by GUI-first use.
 - Update UX is user-controlled: notify clearly, then `Update and restart` or `Later`.
+- Managed app package actions support explicit `Update`, `Reinstall`, and guarded `Downgrade` flows.
 - Package support direction includes multi-architecture payloads in a single `.yambuck` file, with installer-side host matching and clear unsupported-system messaging.
 - Package identity includes both:
   - `appId` (reverse-DNS, e.g. `com.voquill.app`)

@@ -5,8 +5,9 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 use yambuck_core::{
-    InstallOptionSubmission, InstallPreview, InstallWorkflow, InstalledApp, InstalledAppDetails,
-    InstallerContext, PackageInfo, PreflightCheckResult, UninstallResult, UpdateCheckResult,
+    InstallDecision, InstallOptionSubmission, InstallPreview, InstallWorkflow, InstalledApp,
+    InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult, UninstallResult,
+    UpdateCheckResult,
 };
 
 mod commands;
@@ -120,6 +121,12 @@ pub(crate) fn validate_install_options_impl(
         .map_err(|error| error.to_string())
 }
 
+pub(crate) fn get_install_decision_impl(workflow_id: &str) -> Result<InstallDecision, String> {
+    let workflow = get_workflow_from_session(workflow_id)?;
+    yambuck_core::evaluate_install_decision(&workflow.package_info)
+        .map_err(|error| error.to_string())
+}
+
 pub(crate) fn create_install_preview_impl(
     workflow_id: &str,
     scope: &str,
@@ -162,6 +169,7 @@ pub(crate) fn complete_install_impl(
     scope: &str,
     destination_path: &str,
     submissions: Vec<InstallOptionSubmission>,
+    allow_downgrade: bool,
 ) -> Result<InstalledApp, String> {
     let workflow = get_workflow_from_session(workflow_id)?;
     let install_scope =
@@ -169,9 +177,13 @@ pub(crate) fn complete_install_impl(
     yambuck_core::validate_install_options(&workflow.install_options, submissions)
         .map_err(|error| error.to_string())?;
     let package_info = workflow.package_info;
-    let installed_app =
-        yambuck_core::install_and_register(&package_info, install_scope, destination_path)
-            .map_err(|error| error.to_string())?;
+    let installed_app = yambuck_core::install_and_register(
+        &package_info,
+        install_scope,
+        destination_path,
+        allow_downgrade,
+    )
+    .map_err(|error| error.to_string())?;
     remove_workflow_session(workflow_id)?;
     Ok(installed_app)
 }
@@ -278,6 +290,7 @@ pub fn run() {
             commands::installer::inspect_package,
             commands::installer::inspect_package_workflow,
             commands::installer::validate_install_options,
+            commands::installer::get_install_decision,
             commands::installer::discard_install_workflow,
             commands::installer::create_install_preview,
             commands::update::check_for_updates,
