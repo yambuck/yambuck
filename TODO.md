@@ -157,7 +157,7 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Define manifest evolution policy: allowed minor additions, major-version breaking changes, and deprecation windows.
 - [x] Add fixture-based compatibility tests for multiple manifest versions (valid/invalid cases per version + upgrade safety checks).
 - [x] Explore code-defined schema representation (or generated schema artifact) per manifest version to keep spec and validation in sync. (See `docs/MANIFEST_SCHEMA_STRATEGY.md`.)
-- [ ] Add path safety protections (block traversal/symlink escape and writes outside approved roots).
+- [x] Add path safety protections (block traversal/symlink escape and writes outside approved roots).
 - [x] Limit privilege escalation to required steps only; log why elevation was required.
 - [ ] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
 - [ ] Keep default install flow minimal; place advanced/technical controls behind expandable "Advanced" sections.

@@ -7,7 +7,7 @@ use zip::ZipArchive;
 
 use crate::storage::{
     archive_package_file, current_canonical_timestamp, managed_app_destination_path,
-    maybe_remove_ownership_receipt, maybe_remove_package_archive, read_index,
+    managed_app_payload_root, maybe_remove_ownership_receipt, maybe_remove_package_archive, read_index,
     write_index, write_ownership_receipt, InstalledAppRecord,
 };
 use crate::{
@@ -141,6 +141,9 @@ fn extract_package_to_root(
         installed_any = true;
 
         let output_path = destination_root.join(&entry_path);
+        if path_contains_symlink(destination_root, &output_path)? {
+            return Err(YambuckError::InstallFailed);
+        }
 
         if file.is_dir() {
             fs::create_dir_all(&output_path).map_err(|_| YambuckError::InstallFailed)?;
@@ -167,6 +170,29 @@ fn extract_package_to_root(
     Ok(())
 }
 
+fn path_contains_symlink(base: &Path, path: &Path) -> Result<bool, YambuckError> {
+    let mut current = base.to_path_buf();
+    if let Ok(metadata) = fs::symlink_metadata(&current) {
+        if metadata.file_type().is_symlink() {
+            return Ok(true);
+        }
+    }
+
+    let relative = path
+        .strip_prefix(base)
+        .map_err(|_| YambuckError::InstallFailed)?;
+    for component in relative.components() {
+        current.push(component.as_os_str());
+        if let Ok(metadata) = fs::symlink_metadata(&current) {
+            if metadata.file_type().is_symlink() {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
 fn unique_install_suffix() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -183,6 +209,7 @@ pub fn install_and_register(
     allow_downgrade: bool,
 ) -> Result<InstalledApp, YambuckError> {
     enforce_install_policy(package_info, allow_downgrade)?;
+    validate_destination_path(scope, destination_path, &package_info.app_id)?;
 
     let mut transaction =
         prepare_install_transaction(&package_info.package_file, destination_path)?;
@@ -227,6 +254,45 @@ fn verify_post_install(destination_path: &str, package_info: &PackageInfo) -> Re
     let entrypoint_path = destination_root.join(entrypoint);
     if !entrypoint_path.exists() || !entrypoint_path.is_file() {
         return Err(YambuckError::InstallFailed);
+    }
+
+    Ok(())
+}
+
+fn validate_destination_path(
+    scope: InstallScope,
+    destination_path: &str,
+    app_id: &str,
+) -> Result<(), YambuckError> {
+    let destination = PathBuf::from(destination_path);
+    if !destination.is_absolute() {
+        return Err(YambuckError::InstallPolicyBlocked(
+            "Destination path must be absolute and under Yambuck-managed roots.".to_string(),
+        ));
+    }
+
+    if destination
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err(YambuckError::InstallPolicyBlocked(
+            "Destination path is invalid because it contains parent traversal segments.".to_string(),
+        ));
+    }
+
+    let expected_destination = managed_app_destination_path(scope, app_id)?;
+    if destination != expected_destination {
+        return Err(YambuckError::InstallPolicyBlocked(format!(
+            "Destination path is outside the managed install root for this app (expected: {}).",
+            expected_destination.display()
+        )));
+    }
+
+    let managed_root = managed_app_payload_root(scope)?;
+    if !destination.starts_with(&managed_root) {
+        return Err(YambuckError::InstallPolicyBlocked(
+            "Destination path is outside approved Yambuck install roots.".to_string(),
+        ));
     }
 
     Ok(())
