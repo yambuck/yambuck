@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 use crate::package_inspection;
 use crate::storage::{
-    find_installed_record, is_record_owned, maybe_remove_package_archive, read_index, write_index,
-    InstalledAppRecord,
+    find_installed_record, is_record_owned, managed_app_payload_root, maybe_remove_package_archive,
+    read_index, write_index, InstalledAppRecord,
 };
 use crate::{
     InstallScope, InstalledApp, InstalledAppDetails, PreflightCheckResult, UninstallResult,
@@ -103,7 +103,7 @@ pub fn uninstall_installed_app(
     }
 
     let mut removed_app_files = true;
-    if let Err(error) = maybe_remove_install_path(&record.destination_path) {
+    if let Err(error) = maybe_remove_install_path(&record.destination_path, scope) {
         removed_app_files = false;
         warnings.push(format!("Unable to remove app files: {error}"));
     }
@@ -233,13 +233,29 @@ fn detect_external_install_conflict(app_id: &str) -> bool {
     has_external_desktop_entry
 }
 
-fn maybe_remove_install_path(destination_path: &str) -> Result<(), YambuckError> {
-    if destination_path.contains("/yambuck/apps/") {
-        let path = Path::new(destination_path);
-        if path.exists() {
-            fs::remove_dir_all(path).map_err(|_| YambuckError::StorageUnavailable)?;
-        }
+fn maybe_remove_install_path(destination_path: &str, scope: InstallScope) -> Result<(), YambuckError> {
+    let managed_root = managed_app_payload_root(scope)?;
+    let path = Path::new(destination_path);
+
+    if !path.is_absolute() {
+        return Ok(());
     }
+
+    if path
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Ok(());
+    }
+
+    if !path.starts_with(&managed_root) {
+        return Ok(());
+    }
+
+    if path.exists() {
+        fs::remove_dir_all(path).map_err(|_| YambuckError::StorageUnavailable)?;
+    }
+
     Ok(())
 }
 

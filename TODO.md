@@ -130,8 +130,8 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Audit current install/uninstall paths for user + system scopes and document exact directories in use. (See `docs/INSTALL_UNINSTALL_PATHS.md`.)
 - [x] Implement dedicated Yambuck-managed install roots (including `/yambuck` subdirectory strategy per scope).
 - [x] Persist and rely on Yambuck ownership metadata so only Yambuck-installed apps are listed/managed by Yambuck.
-- [ ] Guard uninstall logic to never touch non-Yambuck installs, even when app names overlap.
-- [ ] Ensure Installed Apps list is source-of-truth for Yambuck-managed installs and entries change only through explicit Yambuck install/uninstall actions.
+- [x] Guard uninstall logic to never touch non-Yambuck installs, even when app names overlap.
+- [x] Ensure Installed Apps list is source-of-truth for Yambuck-managed installs and entries change only through explicit Yambuck install/uninstall actions.
 - [ ] Implement atomic install transactions with rollback so failures never leave partial installs.
 - [ ] Add post-install verification checks (payload files, launchers/entry points, registration) before showing success state.
 - [ ] Implement deterministic uninstall that removes all Yambuck-managed artifacts while never touching non-Yambuck installs.
