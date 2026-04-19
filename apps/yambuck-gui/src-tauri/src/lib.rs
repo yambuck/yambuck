@@ -205,6 +205,12 @@ pub(crate) fn complete_install_impl(
             installed_app.app_id
         ),
     );
+    if let Err(error) = support::desktop_integration::ensure_desktop_integration() {
+        let _ = support::logging::append_log(
+            "WARN",
+            &format!("Desktop integration refresh failed after install: {error}"),
+        );
+    }
     remove_workflow_session(workflow_id)?;
     Ok(installed_app)
 }
@@ -310,6 +316,15 @@ pub fn run() {
                 let _ = app.emit(OPEN_PACKAGE_EVENT, payload);
             }
         }))
+        .setup(|_app| {
+            if let Err(error) = support::desktop_integration::ensure_desktop_integration() {
+                let _ = support::logging::append_log(
+                    "WARN",
+                    &format!("Desktop integration setup failed: {error}"),
+                );
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::installer::get_installer_context,
             commands::installer::inspect_package,
