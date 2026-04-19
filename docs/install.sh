@@ -89,6 +89,47 @@ EOF
   # END GENERATED ICON SVG
 }
 
+write_branded_icon_symbolic_svg() {
+  cat <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <path fill="currentColor" d="M16 18h34l14 22L82 18h30L78 74v36H50V74L16 18z"/>
+</svg>
+EOF
+}
+
+detect_active_icon_theme() {
+  if ! optional_cmd gsettings; then
+    return 0
+  fi
+
+  local current
+  current="$(gsettings get org.cinnamon.desktop.interface icon-theme 2>/dev/null | tr -d "'\"")"
+  if [[ -n "$current" ]]; then
+    printf "%s" "$current"
+    return 0
+  fi
+
+  current="$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'\"")"
+  if [[ -n "$current" ]]; then
+    printf "%s" "$current"
+  fi
+}
+
+install_theme_overlay_icons() {
+  local theme_name="$1"
+  local mime_icon_name="$2"
+  local theme_root="${HOME}/.local/share/icons/${theme_name}"
+  local theme_mime_dir="${theme_root}/mimetypes"
+  local theme_mime_scalable_dir="${theme_mime_dir}/scalable"
+  local theme_mime_symbolic_dir="${theme_mime_dir}/symbolic"
+
+  log "Installing MIME icon overlay for active theme: ${theme_name}"
+  install -d "$theme_mime_scalable_dir" "$theme_mime_symbolic_dir"
+  write_branded_icon_svg > "${theme_mime_scalable_dir}/${mime_icon_name}.svg"
+  write_branded_icon_svg > "${theme_mime_dir}/${mime_icon_name}.svg"
+  write_branded_icon_symbolic_svg > "${theme_mime_symbolic_dir}/${mime_icon_name}-symbolic.svg"
+}
+
 install_system=false
 non_interactive=false
 skip_verify=false
@@ -243,18 +284,21 @@ desktop_file_name="com.yambuck.installer.desktop"
 mime_xml_name="application-x-yambuck-package.xml"
 desktop_icon_name="com.yambuck.installer"
 mime_icon_name="application-x-yambuck-package"
+active_icon_theme=""
 
 if [[ "$install_system" == true ]]; then
   desktop_dir="/usr/share/applications"
   mime_packages_dir="/usr/share/mime/packages"
   icon_apps_dir="/usr/share/icons/hicolor/scalable/apps"
-  icon_mime_dir="/usr/share/icons/hicolor/scalable/mimetypes"
+  icon_mime_scalable_dir="/usr/share/icons/hicolor/scalable/mimetypes"
+  icon_mime_symbolic_dir="/usr/share/icons/hicolor/symbolic/mimetypes"
   yambuck_exec="${install_dir}/${BIN_NAME}"
 
   log "Installing branded icons"
-  sudo install -d "$icon_apps_dir" "$icon_mime_dir"
+  sudo install -d "$icon_apps_dir" "$icon_mime_scalable_dir" "$icon_mime_symbolic_dir"
   write_branded_icon_svg | sudo tee "${icon_apps_dir}/${desktop_icon_name}.svg" >/dev/null
-  write_branded_icon_svg | sudo tee "${icon_mime_dir}/${mime_icon_name}.svg" >/dev/null
+  write_branded_icon_svg | sudo tee "${icon_mime_scalable_dir}/${mime_icon_name}.svg" >/dev/null
+  write_branded_icon_symbolic_svg | sudo tee "${icon_mime_symbolic_dir}/${mime_icon_name}-symbolic.svg" >/dev/null
 
   log "Installing desktop launcher"
   sudo install -d "$desktop_dir"
@@ -287,13 +331,24 @@ else
   desktop_dir="${HOME}/.local/share/applications"
   mime_packages_dir="${HOME}/.local/share/mime/packages"
   icon_apps_dir="${HOME}/.local/share/icons/hicolor/scalable/apps"
-  icon_mime_dir="${HOME}/.local/share/icons/hicolor/scalable/mimetypes"
+  icon_mime_scalable_dir="${HOME}/.local/share/icons/hicolor/scalable/mimetypes"
+  icon_mime_symbolic_dir="${HOME}/.local/share/icons/hicolor/symbolic/mimetypes"
   yambuck_exec="${install_dir}/${BIN_NAME}"
+  active_icon_theme="$(detect_active_icon_theme)"
+  if [[ -n "$active_icon_theme" ]]; then
+    log "Detected active icon theme: ${active_icon_theme}"
+  else
+    log "Could not detect active icon theme; using hicolor fallback only"
+  fi
 
   log "Installing branded icons"
-  install -d "$icon_apps_dir" "$icon_mime_dir"
+  install -d "$icon_apps_dir" "$icon_mime_scalable_dir" "$icon_mime_symbolic_dir"
   write_branded_icon_svg > "${icon_apps_dir}/${desktop_icon_name}.svg"
-  write_branded_icon_svg > "${icon_mime_dir}/${mime_icon_name}.svg"
+  write_branded_icon_svg > "${icon_mime_scalable_dir}/${mime_icon_name}.svg"
+  write_branded_icon_symbolic_svg > "${icon_mime_symbolic_dir}/${mime_icon_name}-symbolic.svg"
+  if [[ -n "$active_icon_theme" ]]; then
+    install_theme_overlay_icons "$active_icon_theme" "$mime_icon_name"
+  fi
 
   log "Installing desktop launcher"
   install -d "$desktop_dir"
@@ -330,6 +385,9 @@ if optional_cmd gtk-update-icon-cache; then
     sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
   else
     gtk-update-icon-cache -f -t "${HOME}/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+    if [[ -n "$active_icon_theme" ]]; then
+      gtk-update-icon-cache -f -t "${HOME}/.local/share/icons/${active_icon_theme}" >/dev/null 2>&1 || true
+    fi
   fi
 fi
 
@@ -352,8 +410,13 @@ if optional_cmd update-desktop-database; then
 fi
 
 if optional_cmd xdg-mime; then
-  log "Registering default handler for .yambuck files"
-  xdg-mime default "$desktop_file_name" application/x-yambuck-package >/dev/null 2>&1 || true
+  current_default="$(xdg-mime query default application/x-yambuck-package 2>/dev/null || true)"
+  if [[ -z "$current_default" ]]; then
+    log "Registering default handler for .yambuck files"
+    xdg-mime default "$desktop_file_name" application/x-yambuck-package >/dev/null 2>&1 || true
+  else
+    log "Leaving existing default .yambuck handler unchanged (${current_default})"
+  fi
 fi
 
 if [[ ":$PATH:" != *":${install_dir}:"* ]]; then
