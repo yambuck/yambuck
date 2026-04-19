@@ -3,7 +3,7 @@
 Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 
 ## Bugs / Known Issues
-- [ ] License acceptance checkbox UI is too small and not in keeping with the rest of the app styling.
+- [x] License acceptance checkbox UI is too small and not in keeping with the rest of the app styling.
   - Why this matters: weak visual consistency and lower clarity on an important consent action.
 
 - [ ] "Install for current user" works, but "install for all users" currently fails.
@@ -55,6 +55,20 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
   - Impact: reduced information density, harder scanning, weaker use of available screen real estate.
   - Need to evaluate reducing/removing inner cards and placing content directly on page backdrop where appropriate.
   - Goal: responsive layout that expands with window width and uses extra space for more columns/details.
+
+- [x] Unify primary card width and outer spacing across Installer, Installed Apps, and Settings.
+  - Current inconsistency: Installer card uses nearly full available width, while Installed Apps and Settings primary cards remain noticeably narrower.
+  - UX impact: inconsistent visual rhythm and avoidable wasted horizontal space on medium/large windows.
+  - Desired behavior: all top-level primary cards share one width rule and fill available content width consistently.
+  - Keep a consistent outer gutter/padding from the page shell so cards never touch the window edge.
+  - Scope note: this applies to primary page cards; nested sections can keep context-appropriate widths.
+
+- [x] Dropdown/select controls are visually inconsistent and low contrast in current UI.
+  - Current issue: some dropdowns render as pure white controls with low-contrast text, hurting readability.
+  - Current issue: select elements still look system-default and do not match Yambuck styling language.
+  - UX requirement: dropdown closed state, open menu, hover/focus, and selected item styles should align with app design tokens.
+  - Accessibility requirement: ensure strong text/background contrast and clear keyboard focus styling.
+  - Reuse requirement: avoid one-off dropdown styles; use one standardized component/pattern across screens.
 
 - [ ] Installed Apps list needs stronger usability features (icon size, search, sorting, filtering).
   - Increase per-app icon size slightly in the installed apps list for quicker recognition/scanning.
@@ -162,8 +176,31 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Limit privilege escalation to required steps only; log why elevation was required.
 - [x] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
 - [ ] Keep default install flow minimal; place advanced/technical controls behind expandable "Advanced" sections.
+  - Baseline UX rule: no package-specific complexity on the default path unless strictly required.
+  - Future package-option model: allow developer-defined install options, but group optional/non-essential controls under a collapsed "Advanced" section.
+  - Predictability rule: required options must remain clearly discoverable and never feel hidden behind obscure UI.
+  - Compatibility rule: adding new option types must not change the familiar install flow order for users who ignore Advanced.
 - [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, and retries.
-- [ ] Evaluate inline styling approach (similar to Voquill) to keep global `.css` footprint minimal while preserving consistency.
+- [ ] Standardize hover effects across all buttons and interactive controls for consistent visual feedback.
+- [ ] Fix title-bar window controls so maximize and close glyphs are visually centered within their circular buttons.
+- [x] Evaluate inline styling approach (similar to Voquill) to keep global `.css` footprint minimal while preserving consistency.
+  - Decision: use token-driven hybrid styling for Yambuck (design tokens + reusable UI primitives + CSS for pseudo states/responsive/layout), not full inline-only styling.
+- [x] Standardize shared layout tokens for page-shell horizontal padding and primary card max width.
+- [x] Refactor Installed Apps page shell/main card to use the same width behavior as Installer.
+- [x] Refactor Settings page shell/main card to use the same width behavior as Installer.
+- [x] Add responsive checks for card-width parity across Installer, Installed Apps, and Settings at common window breakpoints.
+- [x] Define shared dropdown/select design tokens (background, text, border, hover, focus, menu surface, selected state).
+- [x] Implement reusable dropdown/select component wrapper for app-wide use (replace ad-hoc/system-default selects).
+- [x] Migrate existing scope/filter dropdowns to the reusable component and verify visual parity across pages.
+- [x] Add accessibility checks for dropdown contrast and keyboard navigation/focus visibility.
+- [x] Add and adopt reusable UI primitives for controls (`Button`, `TextField`, `CheckboxField`, `Panel`) across installer, installed apps, settings, and modal flows.
+- [x] Standardize checkbox usage to a shared component and remove ad-hoc checkbox markup from feature pages.
+- [x] Replace remaining class-based action buttons in page/modals with shared `Button` primitive usage.
+- [x] Document style architecture decision and conventions (`docs/UI_STYLE_ARCHITECTURE.md`).
+- [x] Refactor key form controls to shared primitives and tokenized state styles (focus, hover, disabled) to reduce style drift.
+- [x] Break monolithic GUI stylesheet into feature-owned CSS files and keep `App.css` as an import-only composition entrypoint.
+- [x] Add CSS size guardrails (soft 800 / hard 1000 lines) with automated checks (`npm run check:styles`).
+- [x] Add raw color literal guardrails for CSS with baseline enforcement to prevent unreviewed non-token color growth.
 - [ ] Validate behavior across Linux desktop environments (Mint/Cinnamon, GNOME, KDE) for MIME/icon/launcher consistency.
 - [ ] Validate privilege/auth behavior differences across Wayland and X11 and document fallback rules.
 - [ ] Define dependency/conflict handling rules (missing deps, incompatible versions, duplicate app IDs/names).

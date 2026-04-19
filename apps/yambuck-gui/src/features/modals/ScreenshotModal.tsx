@@ -1,3 +1,6 @@
+import { Button } from "../../components/ui/Button";
+import { ModalShell } from "../../components/ui/ModalShell";
+
 type ScreenshotModalProps = {
   activeIndex: number;
   gallery: string[];
@@ -7,19 +10,23 @@ type ScreenshotModalProps = {
 };
 
 export const ScreenshotModal = ({ activeIndex, gallery, onClose, onPrevious, onNext }: ScreenshotModalProps) => (
-  <div class="screenshot-modal-overlay" data-no-drag="true" onClick={onClose}>
-    <section class="screenshot-modal-card" onClick={(event) => event.stopPropagation()}>
+  <ModalShell
+    onClose={onClose}
+    overlayClass="screenshot-modal-overlay"
+    cardClass="screenshot-modal-card"
+    closeTitle="Close screenshot viewer"
+  >
+    <section class="modal-section">
       <div class="screenshot-modal-toolbar">
         <span>{`Screenshot ${activeIndex + 1} of ${gallery.length}`}</span>
-        <button class="button ghost" onClick={onClose}>Close</button>
       </div>
       <img class="screenshot-modal-image" src={gallery[activeIndex]} alt={`Screenshot ${activeIndex + 1}`} />
       {gallery.length > 1 ? (
         <div class="screenshot-modal-controls">
-          <button class="button ghost" onClick={onPrevious}>Previous</button>
-          <button class="button ghost" onClick={onNext}>Next</button>
+          <Button onClick={onPrevious}>Previous</Button>
+          <Button onClick={onNext}>Next</Button>
         </div>
       ) : null}
     </section>
-  </div>
+  </ModalShell>
 );

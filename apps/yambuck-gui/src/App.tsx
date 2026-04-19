@@ -302,15 +302,6 @@ function App() {
             Installed Apps
           </button>
         </div>
-        <div class="topbar-title">
-          {page === "installer"
-            ? "Yambuck Installer"
-            : page === "installed"
-              ? "Installed Apps"
-              : page === "settings"
-                ? "Settings"
-                : "Mock Preview"}
-        </div>
         <WindowControls
           settingsActive={page === "settings"}
           isMaximized={isMaximized}
@@ -326,81 +317,83 @@ function App() {
 
       <ToastHost toasts={toasts} onDismiss={dismissToast} />
 
-      <section class="content-scroll" data-no-drag="true">
-        {page === "installer"
-          ? renderInstallStep()
-          : page === "installed"
-            ? renderInstalledApps()
-            : page === "settings"
-              ? renderSettingsPage()
-              : renderMockPreviewPage()}
-      </section>
+      <div class="workspace-stage" data-no-drag="true">
+        <section class="content-scroll">
+          {page === "installer"
+            ? renderInstallStep()
+            : page === "installed"
+              ? renderInstalledApps()
+              : page === "settings"
+                ? renderSettingsPage()
+                : renderMockPreviewPage()}
+        </section>
 
-      {isUpdateModalOpen && updateResult ? (
-        <UpdateModal
-          updateResult={updateResult}
-          applyingUpdate={applyingUpdate}
-          lastCheckedLabel={relativeLastChecked()}
-          onClose={closeUpdateModal}
-          onUpdateAndRestart={() => void handleUpdateAndRestart()}
-        />
-      ) : null}
+        <footer class="app-footer">
+          <div class="footer-meta">
+            <span class="footer-version">
+              {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
+            </span>
+            {hasUpdateAvailable ? (
+              <button class="footer-action update" onClick={openUpdateModal}>
+                Update available
+              </button>
+            ) : null}
+          </div>
+          <a class="footer-link" href="https://github.com/yambuck/yambuck" target="_blank" rel="noreferrer">
+            <IconBrandGithub size={16} />
+            GitHub
+          </a>
+        </footer>
 
-      {licenseViewer ? (
-        <LicenseViewerModal title={licenseViewer.title} text={licenseViewer.text} onClose={closeLicenseViewer} />
-      ) : null}
+        {isUpdateModalOpen && updateResult ? (
+          <UpdateModal
+            updateResult={updateResult}
+            applyingUpdate={applyingUpdate}
+            lastCheckedLabel={relativeLastChecked()}
+            onClose={closeUpdateModal}
+            onUpdateAndRestart={() => void handleUpdateAndRestart()}
+          />
+        ) : null}
 
-      {installedAppDetails ? (
-        <InstalledAppReviewModal
-          details={installedAppDetails}
-          onClose={closeInstalledAppDetails}
-          onOpenScreenshot={openScreenshotModal}
-          onOpenLicense={openLicenseViewer}
-        />
-      ) : null}
+        {licenseViewer ? (
+          <LicenseViewerModal title={licenseViewer.title} text={licenseViewer.text} onClose={closeLicenseViewer} />
+        ) : null}
 
-      {uninstallTarget ? (
-        <UninstallWizardModal
-          uninstallTarget={uninstallTarget}
-          uninstallStep={uninstallStep}
-          uninstallRemoveUserData={uninstallRemoveUserData}
-          loadingUninstallDetails={loadingUninstallDetails}
-          uninstallDetails={uninstallDetails}
-          uninstallResult={uninstallResult}
-          uninstallError={uninstallError}
-          onClose={closeUninstallWizard}
-          onSetStep={setUninstallStep}
-          onSetRemoveUserData={setUninstallRemoveUserData}
-          onRunUninstall={() => void runUninstall()}
-        />
-      ) : null}
+        {installedAppDetails ? (
+          <InstalledAppReviewModal
+            details={installedAppDetails}
+            onClose={closeInstalledAppDetails}
+            onOpenScreenshot={openScreenshotModal}
+            onOpenLicense={openLicenseViewer}
+          />
+        ) : null}
 
-      {activeScreenshotIndex !== null && screenshotGallery.length > 0 ? (
-        <ScreenshotModal
-          activeIndex={activeScreenshotIndex}
-          gallery={screenshotGallery}
-          onClose={closeScreenshotModal}
-          onPrevious={() => cycleScreenshot(-1)}
-          onNext={() => cycleScreenshot(1)}
-        />
-      ) : null}
+        {uninstallTarget ? (
+          <UninstallWizardModal
+            uninstallTarget={uninstallTarget}
+            uninstallStep={uninstallStep}
+            uninstallRemoveUserData={uninstallRemoveUserData}
+            loadingUninstallDetails={loadingUninstallDetails}
+            uninstallDetails={uninstallDetails}
+            uninstallResult={uninstallResult}
+            uninstallError={uninstallError}
+            onClose={closeUninstallWizard}
+            onSetStep={setUninstallStep}
+            onSetRemoveUserData={setUninstallRemoveUserData}
+            onRunUninstall={() => void runUninstall()}
+          />
+        ) : null}
 
-      <footer class="app-footer" data-no-drag="true">
-        <div class="footer-meta">
-          <span class="footer-version">
-            {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
-          </span>
-          {hasUpdateAvailable ? (
-            <button class="footer-action update" onClick={openUpdateModal}>
-              Update available
-            </button>
-          ) : null}
-        </div>
-        <a class="footer-link" href="https://github.com/yambuck/yambuck" target="_blank" rel="noreferrer">
-          <IconBrandGithub size={16} />
-          GitHub
-        </a>
-      </footer>
+        {activeScreenshotIndex !== null && screenshotGallery.length > 0 ? (
+          <ScreenshotModal
+            activeIndex={activeScreenshotIndex}
+            gallery={screenshotGallery}
+            onClose={closeScreenshotModal}
+            onPrevious={() => cycleScreenshot(-1)}
+            onNext={() => cycleScreenshot(1)}
+          />
+        ) : null}
+      </div>
     </main>
   );
 }

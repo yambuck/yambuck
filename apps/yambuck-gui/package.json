@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "check:style-colors": "node scripts/check-style-color-literals.mjs",
+    "check:styles": "node scripts/check-style-limits.mjs",
+    "build": "npm run check:styles && npm run check:style-colors && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
   },

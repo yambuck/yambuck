@@ -1,4 +1,6 @@
 import type { UpdateCheckResult } from "../../types/app";
+import { Button } from "../../components/ui/Button";
+import { ModalShell } from "../../components/ui/ModalShell";
 
 type UpdateModalProps = {
   updateResult: UpdateCheckResult;
@@ -15,8 +17,8 @@ export const UpdateModal = ({
   onClose,
   onUpdateAndRestart,
 }: UpdateModalProps) => (
-  <div class="modal-overlay" data-no-drag="true" onClick={onClose}>
-    <section class="modal-card" onClick={(event) => event.stopPropagation()}>
+  <ModalShell onClose={onClose} closeTitle="Close update dialog">
+    <section class="modal-section">
       <h2>{updateResult.updateAvailable ? "Update available" : "You're up to date"}</h2>
       <p class="subtitle">{`Current: v${updateResult.currentVersion}`}</p>
       <p class="subtitle">{`Latest: v${updateResult.latestVersion}`}</p>
@@ -32,15 +34,15 @@ export const UpdateModal = ({
             Release notes
           </a>
         ) : null}
-        <button class="button ghost" onClick={onClose}>
+        <Button onClick={onClose}>
           {updateResult.updateAvailable ? "Later" : "Close"}
-        </button>
+        </Button>
         {updateResult.updateAvailable ? (
-          <button class="button primary" onClick={onUpdateAndRestart} disabled={applyingUpdate}>
+          <Button variant="primary" onClick={onUpdateAndRestart} disabled={applyingUpdate}>
             {applyingUpdate ? "Applying..." : "Update and restart"}
-          </button>
+          </Button>
         ) : null}
       </div>
     </section>
-  </div>
+  </ModalShell>
 );

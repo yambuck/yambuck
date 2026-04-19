@@ -1,3 +1,5 @@
+import { ModalShell } from "../../components/ui/ModalShell";
+
 type LicenseViewerModalProps = {
   title: string;
   text: string;
@@ -5,13 +7,12 @@ type LicenseViewerModalProps = {
 };
 
 export const LicenseViewerModal = ({ title, text, onClose }: LicenseViewerModalProps) => (
-  <div class="modal-overlay" data-no-drag="true" onClick={onClose}>
-    <section class="modal-card license-modal-card" onClick={(event) => event.stopPropagation()}>
+  <ModalShell onClose={onClose} cardClass="license-modal-card" closeTitle="Close license">
+    <section class="modal-section">
       <div class="screenshot-modal-toolbar">
         <span>{title}</span>
-        <button class="button ghost" onClick={onClose}>Close</button>
       </div>
       <pre class="license-modal-text">{text}</pre>
     </section>
-  </div>
+  </ModalShell>
 );

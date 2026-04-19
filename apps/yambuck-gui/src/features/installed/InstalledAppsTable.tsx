@@ -1,4 +1,5 @@
 import type { InstalledApp } from "../../types/app";
+import { Button } from "../../components/ui/Button";
 import { formatCanonicalTimestampForDisplay } from "../../utils/time";
 
 type InstalledAppsTableProps = {
@@ -49,9 +50,9 @@ export const InstalledAppsTable = ({ apps, onOpenDetails, onLaunch, onUninstall 
             <td class="col-location"><code class="install-path-code">{app.destinationPath}</code></td>
             <td class="col-actions">
               <div class="installed-table-actions">
-                <button class="button ghost" onClick={() => onOpenDetails(app)}>Review</button>
-                <button class="button ghost" onClick={() => onLaunch(app)}>Launch</button>
-                <button class="button ghost" onClick={() => onUninstall(app)}>Uninstall</button>
+                <Button onClick={() => onOpenDetails(app)}>Review</Button>
+                <Button onClick={() => onLaunch(app)}>Launch</Button>
+                <Button onClick={() => onUninstall(app)}>Uninstall</Button>
               </div>
             </td>
           </tr>

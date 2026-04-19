@@ -1,4 +1,7 @@
 import type { InstalledApp, InstalledAppDetails, UninstallResult, UninstallStep } from "../../types/app";
+import { Button } from "../../components/ui/Button";
+import { CheckboxField } from "../../components/ui/CheckboxField";
+import { ModalShell } from "../../components/ui/ModalShell";
 
 type UninstallWizardModalProps = {
   uninstallTarget: InstalledApp;
@@ -27,16 +30,16 @@ export const UninstallWizardModal = ({
   onSetRemoveUserData,
   onRunUninstall,
 }: UninstallWizardModalProps) => (
-  <div class="modal-overlay" data-no-drag="true" onClick={onClose}>
-    <section class="modal-card" onClick={(event) => event.stopPropagation()}>
+  <ModalShell onClose={onClose} closeTitle="Close uninstall dialog">
+    <section class="modal-section">
       {uninstallStep === "confirm" ? (
         <>
           <h2>{`Uninstall ${uninstallTarget.displayName}?`}</h2>
           <p class="subtitle">This removes the app from Yambuck and deletes installed app files.</p>
           <p class="subtitle">{`Scope: ${uninstallTarget.installScope}`}</p>
           <div class="update-actions">
-            <button class="button ghost" onClick={onClose}>Cancel</button>
-            <button class="button primary" onClick={() => onSetStep("options")}>Continue</button>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button variant="primary" onClick={() => onSetStep("options")}>Continue</Button>
           </div>
         </>
       ) : null}
@@ -45,14 +48,13 @@ export const UninstallWizardModal = ({
         <>
           <h2>Uninstall options</h2>
           <p class="subtitle">App files will be removed. Choose whether to also remove app data paths.</p>
-          <label class="checkbox-row">
-            <input
-              type="checkbox"
-              checked={uninstallRemoveUserData}
-              onChange={(event) => onSetRemoveUserData((event.currentTarget as HTMLInputElement).checked)}
-            />
+          <CheckboxField
+            checked={uninstallRemoveUserData}
+            onChange={onSetRemoveUserData}
+            class="checkbox-row"
+          >
             Remove user data and settings paths from package manifest
-          </label>
+          </CheckboxField>
           {loadingUninstallDetails ? <p class="subtitle">Loading package metadata...</p> : null}
           {uninstallDetails?.packageInfo ? (
             <ul class="system-info-list">
@@ -62,8 +64,8 @@ export const UninstallWizardModal = ({
             </ul>
           ) : null}
           <div class="update-actions">
-            <button class="button ghost" onClick={() => onSetStep("confirm")}>Back</button>
-            <button class="button primary" onClick={onRunUninstall}>Uninstall</button>
+            <Button onClick={() => onSetStep("confirm")}>Back</Button>
+            <Button variant="primary" onClick={onRunUninstall}>Uninstall</Button>
           </div>
         </>
       ) : null}
@@ -90,10 +92,10 @@ export const UninstallWizardModal = ({
             </>
           ) : null}
           <div class="update-actions">
-            <button class="button primary" onClick={onClose}>Close</button>
+            <Button variant="primary" onClick={onClose}>Close</Button>
           </div>
         </>
       ) : null}
     </section>
-  </div>
+  </ModalShell>
 );

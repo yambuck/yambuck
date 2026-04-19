@@ -1,4 +1,4 @@
-import { IconSettings } from "@tabler/icons-preact";
+import { IconMinus, IconSettings, IconSquare, IconX } from "@tabler/icons-preact";
 
 type WindowControlsProps = {
   settingsActive: boolean;
@@ -28,7 +28,7 @@ export const WindowControls = ({
     </button>
     <div class="window-controls" data-no-drag="true">
       <button class="window-btn" onClick={onMinimize} title="Minimize" aria-label="Minimize window">
-        -
+        <IconMinus size={14} stroke={2.2} />
       </button>
       <button
         class="window-btn"
@@ -36,10 +36,10 @@ export const WindowControls = ({
         title={isMaximized ? "Restore" : "Maximize"}
         aria-label={isMaximized ? "Restore window" : "Maximize window"}
       >
-        {isMaximized ? "▢" : "□"}
+        <IconSquare size={12} stroke={2.2} />
       </button>
       <button class="window-btn close" onClick={onClose} title="Close" aria-label="Close window">
-        ×
+        <IconX size={14} stroke={2.2} />
       </button>
     </div>
   </div>

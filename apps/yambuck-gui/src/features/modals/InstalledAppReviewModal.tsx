@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
+import { Button } from "../../components/ui/Button";
 import { MetaField } from "../../components/ui/MetaField";
-import { CardCloseButton } from "../../CardCloseButton";
+import { ModalShell } from "../../components/ui/ModalShell";
 import type { InstalledAppDetails } from "../../types/app";
 import { displayOrFallback, truncateDescription } from "../../utils/text";
 import { formatCanonicalTimestampForDisplay } from "../../utils/time";
@@ -21,9 +22,8 @@ export const InstalledAppReviewModal = ({
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   return (
-    <div class="modal-overlay topbar-safe" data-no-drag="true" onClick={onClose}>
-      <section class="modal-card panel package-panel installed-review-modal" onClick={(event) => event.stopPropagation()}>
-        <CardCloseButton title="Close review" onClick={onClose} />
+    <ModalShell onClose={onClose} cardClass="panel package-panel installed-review-modal" closeTitle="Close review">
+      <section class="modal-section">
         <div class="screenshot-modal-toolbar">
           <span>{`Installed package review: ${details.displayName}`}</span>
         </div>
@@ -69,16 +69,15 @@ export const InstalledAppReviewModal = ({
             label="License"
             tooltip="The legal terms bundled in the archived package copy."
             value={(
-              <span class="meta-inline-actions">
-                <span>{displayOrFallback(details.packageInfo.license)}</span>
+              <span class="meta-inline-actions license-actions">
+                <span class="license-action-label">{displayOrFallback(details.packageInfo.license)}</span>
                 {details.packageInfo.licenseText ? (
-                  <button
-                    class="button ghost inline"
-                    type="button"
+                  <Button
+                    size="inline"
                     onClick={() => onOpenLicense(`${details.displayName} License`, details.packageInfo.licenseText!)}
                   >
                     View license
-                  </button>
+                  </Button>
                 ) : null}
               </span>
             )}
@@ -87,21 +86,30 @@ export const InstalledAppReviewModal = ({
         </dl>
 
         <section class="meta-section technical">
-          <div class="meta-section-header">
-            <h2>Technical details</h2>
+          <div class="meta-section-header technical-toggle-only">
             <button class="meta-toggle" type="button" onClick={() => setShowTechnicalDetails((value) => !value)}>
               {showTechnicalDetails ? "Hide technical details" : "Show technical details"}
             </button>
           </div>
           {showTechnicalDetails ? (
             <dl class="meta-grid">
-              <MetaField label="Install path" tooltip="Installed payload root managed by Yambuck." value={<code>{details.destinationPath}</code>} />
+              <MetaField
+                label="Install path"
+                tooltip="Installed payload root managed by Yambuck."
+                copyValue={details.destinationPath}
+                value={<code>{details.destinationPath}</code>}
+              />
               <MetaField label="Package" tooltip="Archived .yambuck file name stored by Yambuck." value={details.packageInfo.fileName} />
               <MetaField label="Manifest" tooltip="Manifest schema version from the archived package." value={details.packageInfo.manifestVersion} />
               <MetaField label="App ID" tooltip="Stable app identifier used by Yambuck." value={details.appId} />
               <MetaField label="App UUID" tooltip="Publisher-defined immutable app identity UUID." value={details.packageInfo.appUuid} />
               <MetaField label="Package UUID" tooltip="Immutable UUID for this archived package build." value={details.packageInfo.packageUuid} />
-              <MetaField label="Entrypoint" tooltip="Launch command path declared by the package manifest." value={<code>{details.packageInfo.entrypoint}</code>} />
+              <MetaField
+                label="Entrypoint"
+                tooltip="Launch command path declared by the package manifest."
+                copyValue={details.packageInfo.entrypoint}
+                value={<code>{details.packageInfo.entrypoint}</code>}
+              />
               <MetaField label="Config location" tooltip="Optional config location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.configPath)} />
               <MetaField label="Cache location" tooltip="Optional cache location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.cachePath)} />
               <MetaField label="Temp location" tooltip="Optional temp location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.tempPath)} />
@@ -119,10 +127,12 @@ export const InstalledAppReviewModal = ({
           <div class="meta-section-header">
             <h2>About this app</h2>
           </div>
-          <p>{details.packageInfo.longDescription}</p>
+          <div class="long-description-card">
+            <p>{details.packageInfo.longDescription}</p>
+          </div>
         </section>
       ) : null}
       </section>
-    </div>
+    </ModalShell>
   );
 };

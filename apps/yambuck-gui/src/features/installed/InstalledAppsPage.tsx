@@ -1,4 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
+import { Panel } from "../../components/ui/Panel";
 import { InstalledAppsTable } from "./InstalledAppsTable";
 import { InstalledAppsToolbar } from "./InstalledAppsToolbar";
 import type { InstalledApp } from "../../types/app";
@@ -57,7 +58,7 @@ export const InstalledAppsPage = ({
   }, [installedApps, scopeFilter, searchQuery, sortBy]);
 
   return (
-    <section class="panel installed-page-panel">
+    <Panel class="installed-page-panel">
       <h1>Installed apps</h1>
       <p class="subtitle">Manage applications installed by Yambuck.</p>
 
@@ -87,6 +88,6 @@ export const InstalledAppsPage = ({
           onUninstall={onUninstall}
         />
       ) : null}
-    </section>
+    </Panel>
   );
 };

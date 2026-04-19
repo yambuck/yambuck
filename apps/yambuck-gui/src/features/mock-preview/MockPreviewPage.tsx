@@ -1,5 +1,7 @@
 import { CardCloseButton } from "../../CardCloseButton";
+import { Button } from "../../components/ui/Button";
 import { MetaField } from "../../components/ui/MetaField";
+import { Panel } from "../../components/ui/Panel";
 import { truncateDescription } from "../../utils/text";
 
 const MOCK_ICON =
@@ -72,7 +74,32 @@ export const MockPreviewPage = ({
   const mockSupport = "https://github.com/voquill/voquill";
   const mockLicense = "MIT";
   const mockLicenseText =
-    "MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in the Software without restriction.\n\nTHE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.";
+    "Example License\n\n" +
+    "Section 1 - Permission\n" +
+    "Permission is granted to install and evaluate this example package for QA and UI behavior validation.\n\n" +
+    "Section 2 - Scope\n" +
+    "This package is for demonstration and testing only. It is not intended for production use and may include mock metadata or simulated behaviors.\n\n" +
+    "Section 3 - Redistribution\n" +
+    "Internal redistribution is allowed for testing, provided this license text remains intact.\n\n" +
+    "Section 4 - Support\n" +
+    "Support is best effort. Include platform details, logs, and exact reproduction steps when reporting issues.\n\n" +
+    "Section 5 - Warranty\n" +
+    "THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.\n\n" +
+    "Section 6 - Extended Content\n" +
+    "This section is intentionally verbose so the license modal can be tested with long-form scrolling content.\n\n" +
+    "Example clause paragraph A: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph B: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph C: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph D: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph E: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph F: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph G: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph H: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph I: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph J: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph K: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "Example clause paragraph L: This example license paragraph is intentionally long and repetitive to ensure vertical overflow and scrolling behavior can be validated in a realistic way.\n\n" +
+    "End of Example License.";
   const mockTrust = "unverified";
   const mockDescription =
     "Mock package view for rapid UI iteration. Use this screen to tweak spacing, screenshots, metadata layout, and card actions with HMR while validating how dense package metadata reads inside a compact panel before the installer flow continues. This sentence intentionally extends well beyond normal copy length to simulate a package summary that pushes the short-description limit and demonstrates truncation behavior for at-a-glance review during install.";
@@ -81,14 +108,14 @@ export const MockPreviewPage = ({
   const mockShots = [MOCK_SHOT_A, MOCK_SHOT_B, MOCK_SHOT_C, MOCK_SHOT_D, MOCK_SHOT_E, MOCK_SHOT_F];
 
   return (
-    <section class="panel package-panel">
+    <Panel class="package-panel">
       <div class="details-header">
         <div>
           <h1>{mockName}</h1>
           <p class="subtitle">Mock Preview (Debug)</p>
         </div>
         <div class="details-actions" data-no-drag="true">
-          <button class="button primary" onClick={() => onToastInfo("Mock install action.")}>Install</button>
+          <Button variant="primary" onClick={() => onToastInfo("Mock install action.")}>Install</Button>
         </div>
       </div>
 
@@ -124,26 +151,27 @@ export const MockPreviewPage = ({
           <MetaField
             label="Homepage"
             tooltip="The app's official website for product information."
+            copyValue={mockHomepage}
             value={<a class="meta-link" href={mockHomepage} target="_blank" rel="noreferrer">{mockHomepage}</a>}
           />
           <MetaField
             label="Support"
             tooltip="Where to get help, report bugs, or contact maintainers."
+            copyValue={mockSupport}
             value={<a class="meta-link" href={mockSupport} target="_blank" rel="noreferrer">{mockSupport}</a>}
           />
           <MetaField
             label="License"
             tooltip="The legal terms for using this app."
             value={(
-              <span class="meta-inline-actions">
-                <span>{mockLicense}</span>
-                <button
-                  class="button ghost inline"
-                  type="button"
-                  onClick={() => onOpenLicense(`${mockName} License`, mockLicenseText)}
+              <span class="meta-inline-actions license-actions">
+                <span class="license-action-label">{mockLicense}</span>
+                <Button
+                  size="inline"
+                  onClick={() => onOpenLicense("Example License", mockLicenseText)}
                 >
                   View license
-                </button>
+                </Button>
               </span>
             )}
           />
@@ -156,8 +184,7 @@ export const MockPreviewPage = ({
       </section>
 
       <section class="meta-section technical">
-        <div class="meta-section-header">
-          <h2>Technical details</h2>
+        <div class="meta-section-header technical-toggle-only">
           <button class="meta-toggle" type="button" onClick={onToggleTechnicalDetails}>
             {showMockTechnicalDetails ? "Hide technical details" : "Show technical details"}
           </button>
@@ -167,7 +194,12 @@ export const MockPreviewPage = ({
             <MetaField label="Package" tooltip="The package file name selected for this install." value="voquill-mock.yambuck" />
             <MetaField label="Manifest" tooltip="The manifest schema version this package was built with." value={mockManifestVersion} />
             <MetaField label="App ID" tooltip="A stable identifier Yambuck uses for updates and app tracking." value={mockAppId} />
-            <MetaField label="Entrypoint" tooltip="The internal command Yambuck uses to launch the installed app." value={<code>app/bin/voquill</code>} />
+            <MetaField
+              label="Entrypoint"
+              tooltip="The internal command Yambuck uses to launch the installed app."
+              copyValue="app/bin/voquill"
+              value={<code>app/bin/voquill</code>}
+            />
             <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={mockAppUuid} />
             <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={mockPackageUuid} />
           </dl>
@@ -178,13 +210,15 @@ export const MockPreviewPage = ({
         <div class="meta-section-header">
           <h2>About this app</h2>
         </div>
-        <p>{mockLongDescription}</p>
+        <div class="long-description-card">
+          <p>{mockLongDescription}</p>
+        </div>
       </section>
 
       <div class="actions start compact" data-no-drag="true">
-        <button class="button ghost" onClick={onBackToSettings}>Back to Debug</button>
-        <button class="button ghost" onClick={() => onToastInfo("Try editing styles with npm run dev + HMR.")}>UI hint</button>
+        <Button onClick={onBackToSettings}>Back to Debug</Button>
+        <Button onClick={() => onToastInfo("Try editing styles with npm run dev + HMR.")}>UI hint</Button>
       </div>
-    </section>
+    </Panel>
   );
 };

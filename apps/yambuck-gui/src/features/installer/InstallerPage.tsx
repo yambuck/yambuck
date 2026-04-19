@@ -1,5 +1,9 @@
 import { CardCloseButton } from "../../CardCloseButton";
+import { Button } from "../../components/ui/Button";
+import { CheckboxField } from "../../components/ui/CheckboxField";
 import { MetaField } from "../../components/ui/MetaField";
+import { TextField } from "../../components/ui/TextField";
+import { SelectField } from "../../components/ui/SelectField";
 import type {
   InstallOptionDefinition,
   InstallOptionValue,
@@ -130,7 +134,7 @@ export const InstallerPage = ({
 }: InstallerPageProps) => {
   if (step === "details") {
     return (
-      <section class="panel package-panel">
+      <section class="panel primary-panel package-panel">
         {packageInfo ? (
           <>
             <div class="details-header">
@@ -139,9 +143,9 @@ export const InstallerPage = ({
                 <p class="subtitle">Review package details and install when ready</p>
               </div>
               <div class="details-actions" data-no-drag="true">
-                <button class="button primary" onClick={onContinueFromDetails} disabled={checkingPreflight}>
+                <Button variant="primary" onClick={onContinueFromDetails} disabled={checkingPreflight}>
                   {checkingPreflight ? "Checking..." : "Install"}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -191,6 +195,7 @@ export const InstallerPage = ({
                   <MetaField
                     label="Homepage"
                     tooltip="The app's official website for product information."
+                    copyValue={packageInfo.homepageUrl}
                     value={
                       <a class="meta-link" href={packageInfo.homepageUrl} target="_blank" rel="noreferrer">
                         {packageInfo.homepageUrl}
@@ -202,6 +207,7 @@ export const InstallerPage = ({
                   <MetaField
                     label="Support"
                     tooltip="Where to get help, report bugs, or contact maintainers."
+                    copyValue={packageInfo.supportUrl}
                     value={
                       <a class="meta-link" href={packageInfo.supportUrl} target="_blank" rel="noreferrer">
                         {packageInfo.supportUrl}
@@ -214,16 +220,15 @@ export const InstallerPage = ({
                     label="License"
                     tooltip="The legal terms for using this app."
                     value={(
-                      <span class="meta-inline-actions">
-                        <span>{packageInfo.license}</span>
+                      <span class="meta-inline-actions license-actions">
+                        <span class="license-action-label">{packageInfo.license}</span>
                         {packageInfo.licenseText ? (
-                          <button
-                            class="button ghost inline"
-                            type="button"
+                          <Button
+                            size="inline"
                             onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
                           >
                             View license
-                          </button>
+                          </Button>
                         ) : null}
                       </span>
                     )}
@@ -234,13 +239,14 @@ export const InstallerPage = ({
                     label="License"
                     tooltip="The legal terms for using this app."
                     value={(
-                      <button
-                        class="button ghost inline"
-                        type="button"
-                        onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
-                      >
-                        View license
-                      </button>
+                      <span class="meta-inline-actions license-actions">
+                        <Button
+                          size="inline"
+                          onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
+                        >
+                          View license
+                        </Button>
+                      </span>
                     )}
                   />
                 ) : null}
@@ -253,8 +259,7 @@ export const InstallerPage = ({
             </section>
 
             <section class="meta-section technical">
-              <div class="meta-section-header">
-                <h2>Technical details</h2>
+              <div class="meta-section-header technical-toggle-only">
                 <button class="meta-toggle" type="button" onClick={onToggleTechnicalDetails}>
                   {showTechnicalDetails ? "Hide technical details" : "Show technical details"}
                 </button>
@@ -264,7 +269,12 @@ export const InstallerPage = ({
                   <MetaField label="Package" tooltip="The package file name selected for this install." value={packageInfo.fileName} />
                   <MetaField label="Manifest" tooltip="The manifest schema version this package was built with." value={packageInfo.manifestVersion} />
                   <MetaField label="App ID" tooltip="A stable identifier Yambuck uses for updates and app tracking." value={packageInfo.appId} />
-                  <MetaField label="Entrypoint" tooltip="The internal command Yambuck uses to launch the installed app." value={<code>{packageInfo.entrypoint}</code>} />
+                  <MetaField
+                    label="Entrypoint"
+                    tooltip="The internal command Yambuck uses to launch the installed app."
+                    copyValue={packageInfo.entrypoint}
+                    value={<code>{packageInfo.entrypoint}</code>}
+                  />
                   <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={packageInfo.appUuid} />
                   <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={packageInfo.packageUuid} />
                 </dl>
@@ -276,7 +286,9 @@ export const InstallerPage = ({
                 <div class="meta-section-header">
                   <h2>About this app</h2>
                 </div>
-                <p>{packageInfo.longDescription}</p>
+                <div class="long-description-card">
+                  <p>{packageInfo.longDescription}</p>
+                </div>
               </section>
             ) : null}
           </>
@@ -300,8 +312,8 @@ export const InstallerPage = ({
               </div>
             </section>
             <div class="actions">
-              <button class="button ghost" onClick={onClearSelectedPackage}>Close</button>
-              <button class="button primary" onClick={onCopyPackageOpenErrorDetails}>Copy details</button>
+              <Button onClick={onClearSelectedPackage}>Close</Button>
+              <Button variant="primary" onClick={onCopyPackageOpenErrorDetails}>Copy details</Button>
             </div>
           </>
         ) : (
@@ -309,9 +321,9 @@ export const InstallerPage = ({
             <h1>Choose package</h1>
             <p class="subtitle">Open a package file to start guided installation</p>
             <div class="actions start">
-              <button class="button primary" onClick={onChoosePackage}>
+              <Button variant="primary" onClick={onChoosePackage}>
                 Open .yambuck file
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -326,17 +338,17 @@ export const InstallerPage = ({
   if (step === "trust") {
     const isVerified = packageInfo.trustStatus === "verified";
     return (
-      <section class="panel">
+      <section class="panel primary-panel">
         <h1>Trust and verification</h1>
         <div class={`trust-box ${isVerified ? "verified" : "warning"}`}>
           <p class="trust-title">{isVerified ? "Verified publisher" : "Publisher not verified"}</p>
           <p>{isVerified ? "This package is signed by a trusted publisher key." : "Only install if you trust this source."}</p>
         </div>
         <div class="actions">
-          <button class="button ghost" onClick={onGoBackFromTrustStep}>Back</button>
-          <button class="button primary" onClick={onContinueFromTrustStep}>
+          <Button onClick={onGoBackFromTrustStep}>Back</Button>
+          <Button variant="primary" onClick={onContinueFromTrustStep}>
             {isVerified ? "Next" : "Install anyway"}
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -345,7 +357,7 @@ export const InstallerPage = ({
   if (step === "license") {
     const licenseText = packageInfo.licenseText?.trim() ?? "";
     return (
-      <section class="panel">
+      <section class="panel primary-panel">
         <h1>License agreement</h1>
         <p class="subtitle">Review and accept the package license before continuing.</p>
         <div class="trust-box warning">
@@ -354,27 +366,21 @@ export const InstallerPage = ({
         </div>
         <div class="actions start">
           {licenseText ? (
-            <button class="button ghost" onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, licenseText)}>
+            <Button onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, licenseText)}>
               View license
-            </button>
+            </Button>
           ) : (
             <p class="subtitle">License content is missing. This package cannot be installed.</p>
           )}
         </div>
-        <label class="license-acceptance">
-          <input
-            type="checkbox"
-            checked={licenseAccepted}
-            disabled={!licenseText}
-            onChange={(event) => onSetLicenseAccepted((event.target as HTMLInputElement).checked)}
-          />
-          <span>I have read and accept this package license.</span>
-        </label>
+        <CheckboxField checked={licenseAccepted} disabled={!licenseText} onChange={onSetLicenseAccepted} class="license-acceptance">
+          I have read and accept this package license.
+        </CheckboxField>
         <div class="actions">
-          <button class="button ghost" onClick={onGoBackFromLicenseStep}>Back</button>
-          <button class="button primary" onClick={onContinueFromLicenseStep} disabled={!licenseText || !licenseAccepted}>
+          <Button onClick={onGoBackFromLicenseStep}>Back</Button>
+          <Button variant="primary" onClick={onContinueFromLicenseStep} disabled={!licenseText || !licenseAccepted}>
             Continue
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -382,7 +388,7 @@ export const InstallerPage = ({
 
   if (step === "scope") {
     return (
-      <section class="panel">
+      <section class="panel primary-panel">
         <h1>{managedExistingInstall ? "Reinstall scope" : "Install scope"}</h1>
         <p class="subtitle">
           {managedExistingInstall
@@ -418,39 +424,24 @@ export const InstallerPage = ({
               </div>
             ) : null}
             {installDecision?.action === "downgrade" ? (
-              <label class="license-acceptance">
-                <input
-                  type="checkbox"
-                  checked={allowDowngrade}
-                  onChange={(event) => onSetDowngradeAllowed((event.target as HTMLInputElement).checked)}
-                />
-                <span>I understand this installs an older version and I want to continue.</span>
-              </label>
+              <CheckboxField checked={allowDowngrade} onChange={onSetDowngradeAllowed} class="license-acceptance">
+                I understand this installs an older version and I want to continue.
+              </CheckboxField>
             ) : null}
-            <label class="license-acceptance">
-              <input
-                type="checkbox"
-                checked={wipeOnReinstall}
-                onChange={(event) => onSetReinstallWipeChoice((event.target as HTMLInputElement).checked)}
-              />
-              <span>Remove existing app settings, cache, and temp data before reinstall.</span>
-            </label>
+            <CheckboxField checked={wipeOnReinstall} onChange={onSetReinstallWipeChoice} class="license-acceptance">
+              Remove existing app settings, cache, and temp data before reinstall.
+            </CheckboxField>
             {wipeOnReinstall ? (
-              <label class="license-acceptance">
-                <input
-                  type="checkbox"
-                  checked={confirmWipeOnReinstall}
-                  onChange={(event) => onSetConfirmWipeOnReinstall((event.target as HTMLInputElement).checked)}
-                />
-                <span>I understand this permanently deletes existing app data.</span>
-              </label>
+              <CheckboxField checked={confirmWipeOnReinstall} onChange={onSetConfirmWipeOnReinstall} class="license-acceptance">
+                I understand this permanently deletes existing app data.
+              </CheckboxField>
             ) : null}
           </section>
         ) : null}
         <div class="actions">
-          <button class="button ghost" onClick={onGoBackFromScopeStep}>Back</button>
-          <button
-            class="button primary"
+          <Button onClick={onGoBackFromScopeStep}>Back</Button>
+          <Button
+            variant="primary"
             onClick={onStartInstall}
             disabled={
               (managedExistingInstall && wipeOnReinstall && !confirmWipeOnReinstall)
@@ -458,7 +449,7 @@ export const InstallerPage = ({
             }
           >
             {installDecision?.action === "update" ? "Update" : managedExistingInstall ? "Reinstall" : "Install"}
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -466,7 +457,7 @@ export const InstallerPage = ({
 
   if (step === "options") {
     return (
-      <section class="panel">
+      <section class="panel primary-panel">
         <h1>Installer options</h1>
         <p class="subtitle">Choose any package-defined options before continuing.</p>
         {installOptions.length === 0 ? (
@@ -488,12 +479,12 @@ export const InstallerPage = ({
                   <dd>
                     {option.description ? <small>{option.description}</small> : null}
                     {option.inputType === "select" ? (
-                      <select
+                      <SelectField
                         value={selectedValue}
                         onChange={(event) =>
                           onSetInstallOptionValue(option.id, {
                             type: "select",
-                            value: (event.target as HTMLSelectElement).value,
+                            value: (event.currentTarget as HTMLSelectElement).value,
                           })
                         }
                       >
@@ -503,31 +494,29 @@ export const InstallerPage = ({
                             {choice.label}
                           </option>
                         ))}
-                      </select>
+                      </SelectField>
                     ) : null}
                     {option.inputType === "checkbox" ? (
-                      <label class="license-acceptance">
-                        <input
-                          type="checkbox"
-                          checked={checkboxValue}
-                          onChange={(event) =>
-                            onSetInstallOptionValue(option.id, {
-                              type: "checkbox",
-                              value: (event.target as HTMLInputElement).checked,
-                            })
-                          }
-                        />
-                        <span>Enabled</span>
-                      </label>
+                      <CheckboxField
+                        checked={checkboxValue}
+                        onChange={(value) =>
+                          onSetInstallOptionValue(option.id, {
+                            type: "checkbox",
+                            value,
+                          })
+                        }
+                        class="license-acceptance"
+                      >
+                        Enabled
+                      </CheckboxField>
                     ) : null}
                     {option.inputType === "text" ? (
-                      <input
-                        type="text"
+                      <TextField
                         value={textValue}
-                        onInput={(event) =>
+                        onInput={(value) =>
                           onSetInstallOptionValue(option.id, {
                             type: "text",
-                            value: (event.target as HTMLInputElement).value,
+                            value,
                           })
                         }
                         placeholder={option.required ? "Required" : "Optional"}
@@ -546,10 +535,10 @@ export const InstallerPage = ({
           </div>
         ) : null}
         <div class="actions">
-          <button class="button ghost" onClick={onGoBackFromOptionsStep}>Back</button>
-          <button class="button primary" onClick={onContinueFromOptionsStep} disabled={validatingInstallOptions}>
+          <Button onClick={onGoBackFromOptionsStep}>Back</Button>
+          <Button variant="primary" onClick={onContinueFromOptionsStep} disabled={validatingInstallOptions}>
             {validatingInstallOptions ? "Validating..." : "Continue"}
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -557,7 +546,7 @@ export const InstallerPage = ({
 
   if (step === "progress") {
     return (
-      <section class="panel">
+      <section class="panel primary-panel">
         <h1>Installing {packageInfo.displayName}</h1>
         <p class="subtitle">{statusText}</p>
         <p class="subtitle">{`State: ${installLifecycleState}`}</p>
@@ -566,7 +555,7 @@ export const InstallerPage = ({
         </div>
         <p class="progress-value">{progress}%</p>
         <div class="actions">
-          <button class="button ghost" disabled={isBusy}>Cancel</button>
+          <Button disabled={isBusy}>Cancel</Button>
         </div>
       </section>
     );
@@ -574,7 +563,7 @@ export const InstallerPage = ({
 
   if (step === "failed") {
     return (
-      <section class="panel package-panel">
+      <section class="panel primary-panel package-panel">
         <h1>Install failed</h1>
         <p class="subtitle">{installFailure?.summary ?? "Yambuck could not complete this install."}</p>
         <p class="subtitle">Root cause summary: {installFailure?.summary ?? "Unknown failure"}</p>
@@ -594,17 +583,17 @@ export const InstallerPage = ({
         ) : null}
 
         <div class="actions">
-          <button class="button ghost" onClick={() => onSetStep("scope")}>Retry</button>
-          <button class="button ghost" onClick={onCopyInstallFailureDetails} disabled={!installFailure}>Copy details</button>
-          <button class="button ghost" onClick={onOpenInstallLogsDirectory}>Open logs</button>
-          <button class="button primary" onClick={onClearSelectedPackage}>Close</button>
+          <Button onClick={() => onSetStep("scope")}>Retry</Button>
+          <Button onClick={onCopyInstallFailureDetails} disabled={!installFailure}>Copy details</Button>
+          <Button onClick={onOpenInstallLogsDirectory}>Open logs</Button>
+          <Button variant="primary" onClick={onClearSelectedPackage}>Close</Button>
         </div>
       </section>
     );
   }
 
   return (
-    <section class="panel package-panel">
+    <section class="panel primary-panel package-panel">
       <h1>Install complete</h1>
       <p class="subtitle">{packageInfo.displayName} is ready to launch.</p>
 
@@ -633,8 +622,7 @@ export const InstallerPage = ({
 
       {preview ? (
         <section class="meta-section technical">
-          <div class="meta-section-header">
-            <h2>Technical details</h2>
+          <div class="meta-section-header technical-toggle-only">
             <button class="meta-toggle" type="button" onClick={onToggleCompleteTechnicalDetails}>
               {showCompleteTechnicalDetails ? "Hide technical details" : "Show technical details"}
             </button>
@@ -645,11 +633,13 @@ export const InstallerPage = ({
               <MetaField
                 label="Launch path"
                 tooltip="The resolved executable path that Yambuck tries to run."
+                copyValue={`${preview.destinationPath}/${packageInfo.entrypoint}`}
                 value={<code>{`${preview.destinationPath}/${packageInfo.entrypoint}`}</code>}
               />
               <MetaField
                 label="Entrypoint"
                 tooltip="The launch command path declared by the package manifest."
+                copyValue={packageInfo.entrypoint}
                 value={<code>{packageInfo.entrypoint}</code>}
               />
               <MetaField label="Manifest" tooltip="Manifest schema version for this package." value={packageInfo.manifestVersion} />
@@ -665,8 +655,8 @@ export const InstallerPage = ({
       ) : null}
 
       <div class="actions">
-        <button class="button ghost" onClick={() => onSetStep("details")}>Install another</button>
-        <button class="button primary" onClick={onLaunchCurrentPackage}>Launch app</button>
+        <Button onClick={() => onSetStep("details")}>Install another</Button>
+        <Button variant="primary" onClick={onLaunchCurrentPackage}>Launch app</Button>
       </div>
     </section>
   );

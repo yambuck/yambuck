@@ -1,3 +1,7 @@
+import { Button } from "../../components/ui/Button";
+import { SelectField } from "../../components/ui/SelectField";
+import { TextField } from "../../components/ui/TextField";
+
 type InstalledAppsScopeFilter = "all" | "user" | "system";
 type InstalledAppsSort = "installed_desc" | "name_asc";
 
@@ -23,33 +27,33 @@ export const InstalledAppsToolbar = ({
   <div class="installed-toolbar" data-no-drag="true">
     <label class="installed-toolbar-field installed-toolbar-search">
       <span>Search</span>
-      <input
+      <TextField
         type="search"
         placeholder="Search app name"
         value={searchQuery}
-        onInput={(event) => onSearchQueryChange((event.currentTarget as HTMLInputElement).value)}
+        onInput={onSearchQueryChange}
       />
     </label>
 
     <label class="installed-toolbar-field">
       <span>Scope</span>
-      <select value={scopeFilter} onChange={(event) => onScopeFilterChange((event.currentTarget as HTMLSelectElement).value as InstalledAppsScopeFilter)}>
+      <SelectField value={scopeFilter} onChange={(event) => onScopeFilterChange((event.currentTarget as HTMLSelectElement).value as InstalledAppsScopeFilter)}>
         <option value="all">All scopes</option>
         <option value="user">User only</option>
         <option value="system">System only</option>
-      </select>
+      </SelectField>
     </label>
 
     <label class="installed-toolbar-field">
       <span>Sort</span>
-      <select value={sortBy} onChange={(event) => onSortByChange((event.currentTarget as HTMLSelectElement).value as InstalledAppsSort)}>
+      <SelectField value={sortBy} onChange={(event) => onSortByChange((event.currentTarget as HTMLSelectElement).value as InstalledAppsSort)}>
         <option value="installed_desc">Newest installed</option>
         <option value="name_asc">Name A-Z</option>
-      </select>
+      </SelectField>
     </label>
 
     <div class="installed-toolbar-actions">
-      <button class="button ghost" onClick={onRefresh}>Refresh list</button>
+      <Button onClick={onRefresh}>Refresh list</Button>
     </div>
   </div>
 );
