@@ -104,8 +104,10 @@ export type InstalledApp = {
   appId: string;
   displayName: string;
   version: string;
+  installStatus: "installed" | "missing_payload";
   installScope: InstallScope;
   installedAt: string;
+  destinationPath: string;
   iconDataUrl?: string;
 };
 

@@ -483,8 +483,10 @@ pub fn register_install(
         app_id: package_info.app_id.clone(),
         display_name: package_info.display_name.clone(),
         version: package_info.version.clone(),
+        install_status: "installed".to_string(),
         install_scope: scope,
         installed_at,
+        destination_path: destination_path.to_string(),
         icon_data_url: package_info.icon_data_url.clone(),
     })
 }

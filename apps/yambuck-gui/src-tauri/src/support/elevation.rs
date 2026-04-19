@@ -46,8 +46,10 @@ struct ElevatedInstalledApp {
     app_id: String,
     display_name: String,
     version: String,
+    install_status: String,
     install_scope: InstallScope,
     installed_at: String,
+    destination_path: String,
     icon_data_url: Option<String>,
 }
 
@@ -139,8 +141,10 @@ fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 
                 app_id: installed_app.app_id,
                 display_name: installed_app.display_name,
                 version: installed_app.version,
+                install_status: installed_app.install_status,
                 install_scope: installed_app.install_scope,
                 installed_at: installed_app.installed_at,
+                destination_path: installed_app.destination_path,
                 icon_data_url: installed_app.icon_data_url,
             }),
             error: None,
@@ -250,8 +254,10 @@ fn run_native_elevated_install(
                 app_id: item.app_id,
                 display_name: item.display_name,
                 version: item.version,
+                install_status: item.install_status,
                 install_scope: item.install_scope,
                 installed_at: item.installed_at,
+                destination_path: item.destination_path,
                 icon_data_url: item.icon_data_url,
             })
             .ok_or_else(|| "System install finished but returned no install record.".to_string());

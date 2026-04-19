@@ -140,8 +140,10 @@ pub struct InstalledApp {
     pub app_id: String,
     pub display_name: String,
     pub version: String,
+    pub install_status: String,
     pub install_scope: InstallScope,
     pub installed_at: String,
+    pub destination_path: String,
     pub icon_data_url: Option<String>,
 }
 

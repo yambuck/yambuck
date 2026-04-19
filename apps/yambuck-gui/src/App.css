@@ -994,9 +994,33 @@ dd {
   font-size: 0.8rem;
 }
 
+.installed-meta-chip.status-installed {
+  border-color: rgba(90, 201, 142, 0.45);
+  background: rgba(36, 86, 60, 0.62);
+  color: #cbf3da;
+}
+
+.installed-meta-chip.status-missing_payload {
+  border-color: rgba(234, 181, 76, 0.45);
+  background: rgba(97, 70, 24, 0.6);
+  color: #ffe9b8;
+}
+
+.install-path-code {
+  color: #b8d8ee;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 .installed-table td.col-installed {
   color: #b9d5ea;
   font-size: 0.85rem;
+}
+
+.installed-table td.col-location {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .installed-table-actions {
@@ -1040,6 +1064,11 @@ dd {
 
   .installed-table th.col-installed,
   .installed-table td.col-installed {
+    display: none;
+  }
+
+  .installed-table th.col-location,
+  .installed-table td.col-location {
     display: none;
   }
 }

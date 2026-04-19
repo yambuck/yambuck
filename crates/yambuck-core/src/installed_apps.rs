@@ -16,6 +16,11 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
     for scope in [InstallScope::User, InstallScope::System] {
         if let Ok(records) = read_index(scope) {
             apps.extend(records.into_iter().filter(is_record_owned).map(|record| {
+                let install_status = if Path::new(&record.destination_path).exists() {
+                    "installed"
+                } else {
+                    "missing_payload"
+                };
                 let icon_data_url = record
                     .package_archive_path
                     .as_ref()
@@ -26,8 +31,10 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
                     app_id: record.app_id,
                     display_name: record.display_name,
                     version: record.version,
+                    install_status: install_status.to_string(),
                     install_scope: record.install_scope,
                     installed_at: record.installed_at,
+                    destination_path: record.destination_path,
                     icon_data_url,
                 }
             }));

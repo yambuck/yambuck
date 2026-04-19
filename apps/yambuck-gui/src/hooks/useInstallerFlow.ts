@@ -746,8 +746,10 @@ export const useInstallerFlow = ({
       appId: packageInfo.appId,
       displayName: packageInfo.displayName,
       version: packageInfo.version,
+      installStatus: "installed",
       installScope: scope,
       installedAt: "",
+      destinationPath: preview?.destinationPath ?? "",
     });
   };
 

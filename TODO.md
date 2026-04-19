@@ -157,11 +157,13 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Define manifest evolution policy: allowed minor additions, major-version breaking changes, and deprecation windows.
 - [x] Add fixture-based compatibility tests for multiple manifest versions (valid/invalid cases per version + upgrade safety checks).
 - [x] Explore code-defined schema representation (or generated schema artifact) per manifest version to keep spec and validation in sync. (See `docs/MANIFEST_SCHEMA_STRATEGY.md`.)
+- [ ] Add lightweight command/script to export `v1` manifest schema artifact from code-defined structs.
 - [x] Add path safety protections (block traversal/symlink escape and writes outside approved roots).
 - [x] Limit privilege escalation to required steps only; log why elevation was required.
-- [ ] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
+- [x] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
 - [ ] Keep default install flow minimal; place advanced/technical controls behind expandable "Advanced" sections.
 - [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, and retries.
+- [ ] Evaluate inline styling approach (similar to Voquill) to keep global `.css` footprint minimal while preserving consistency.
 - [ ] Validate behavior across Linux desktop environments (Mint/Cinnamon, GNOME, KDE) for MIME/icon/launcher consistency.
 - [ ] Validate privilege/auth behavior differences across Wayland and X11 and document fallback rules.
 - [ ] Define dependency/conflict handling rules (missing deps, incompatible versions, duplicate app IDs/names).
