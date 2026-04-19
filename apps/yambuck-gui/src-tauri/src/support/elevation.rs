@@ -9,6 +9,21 @@ use yambuck_core::{InstallScope, InstalledApp, PackageInfo};
 
 const ELEVATED_INSTALL_MODE_ARG: &str = "--yambuck-elevated-install";
 
+#[derive(Clone, Debug)]
+struct ElevationRuntimeContext {
+    session_type: String,
+    desktop_environment: String,
+    flatpak_sandboxed: bool,
+    has_pkexec: bool,
+    has_flatpak_spawn: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ElevationStrategy {
+    PkexecDirect,
+    FlatpakHostPkexec,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ElevatedInstallRequest {
@@ -66,19 +81,17 @@ pub(crate) fn install_with_elevation_if_needed(
         .map_err(|error| error.to_string());
     }
 
-    let session_type = std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "unknown".to_string());
-    let desktop = std::env::var("XDG_CURRENT_DESKTOP")
-        .or_else(|_| std::env::var("DESKTOP_SESSION"))
-        .unwrap_or_else(|_| "unknown".to_string());
+    let context = ElevationRuntimeContext::collect();
 
     let _ = append_log(
         "INFO",
         &format!(
-            "System install requested; elevation required (session={session_type}, desktop={desktop})"
+            "System install requested; elevation required (session={}, desktop={}, flatpakSandboxed={})",
+            context.session_type, context.desktop_environment, context.flatpak_sandboxed
         ),
     );
 
-    run_pkexec_install(package_info, destination_path, allow_downgrade)
+    run_native_elevated_install(package_info, destination_path, allow_downgrade, &context)
 }
 
 fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 {
@@ -146,17 +159,23 @@ fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 
     0
 }
 
-fn run_pkexec_install(
+fn run_native_elevated_install(
     package_info: &PackageInfo,
     destination_path: &str,
     allow_downgrade: bool,
+    context: &ElevationRuntimeContext,
 ) -> Result<InstalledApp, String> {
-    if !has_pkexec() {
-        let _ = append_log("ERROR", "Elevation failed: pkexec is not available");
-        return Err(
-            "All-users install requires administrator permission, but pkexec is not available on this system. Install policykit or use 'Just for me'.".to_string(),
+    let strategy = select_strategy(context).ok_or_else(|| {
+        let _ = append_log(
+            "ERROR",
+            "Elevation failed: no supported native elevation strategy is available",
         );
-    }
+        if context.flatpak_sandboxed {
+            "All-users install requires administrator permission. No host elevation bridge was found in this Flatpak environment. Install policykit support or use 'Just for me'.".to_string()
+        } else {
+            "All-users install requires administrator permission, but no native policykit elevation path is available. Install policykit (pkexec) or use 'Just for me'.".to_string()
+        }
+    })?;
 
     let request = ElevatedInstallRequest {
         package_info: package_info.clone(),
@@ -183,14 +202,22 @@ fn run_pkexec_install(
     let current_exe = std::env::current_exe()
         .map_err(|error| format!("Could not resolve application executable path: {error}"))?;
 
-    let _ = append_log("INFO", "Requesting elevation via pkexec for system install");
-    let status = Command::new("pkexec")
-        .arg(&current_exe)
-        .arg(ELEVATED_INSTALL_MODE_ARG)
-        .arg(&request_path)
-        .arg(&response_path)
-        .status()
-        .map_err(|error| format!("Could not start elevation prompt: {error}"))?;
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Requesting elevation using strategy={} (session={}, desktop={})",
+            strategy.label(),
+            context.session_type,
+            context.desktop_environment,
+        ),
+    );
+    let status = run_elevation_command(
+        &strategy,
+        &current_exe,
+        &request_path,
+        &response_path,
+        context,
+    )?;
 
     let output = if response_path.exists() {
         Some(read_response(&response_path)?)
@@ -237,9 +264,17 @@ fn run_pkexec_install(
     } else if status.code() == Some(126) {
         "Administrator permissions were not granted. Install was cancelled.".to_string()
     } else if status.code() == Some(127) {
-        "System policy denied elevation or no authentication agent is available.".to_string()
+        format!(
+            "System policy denied elevation or no authentication agent is available (strategy={}, session={}).",
+            strategy.label(),
+            context.session_type,
+        )
     } else {
-        "System install failed after requesting administrator permissions.".to_string()
+        format!(
+            "System install failed after requesting administrator permissions (strategy={}, session={}).",
+            strategy.label(),
+            context.session_type,
+        )
     };
 
     let _ = append_log(
@@ -249,8 +284,55 @@ fn run_pkexec_install(
     Err(message)
 }
 
-fn has_pkexec() -> bool {
-    Command::new("pkexec").arg("--version").output().is_ok()
+fn run_elevation_command(
+    strategy: &ElevationStrategy,
+    current_exe: &PathBuf,
+    request_path: &PathBuf,
+    response_path: &PathBuf,
+    _context: &ElevationRuntimeContext,
+) -> Result<std::process::ExitStatus, String> {
+    let mut command = match strategy {
+        ElevationStrategy::PkexecDirect => {
+            let mut command = Command::new("pkexec");
+            command
+                .arg(current_exe)
+                .arg(ELEVATED_INSTALL_MODE_ARG)
+                .arg(request_path)
+                .arg(response_path);
+            command
+        }
+        ElevationStrategy::FlatpakHostPkexec => {
+            let mut command = Command::new("flatpak-spawn");
+            command
+                .arg("--host")
+                .arg("pkexec")
+                .arg(current_exe)
+                .arg(ELEVATED_INSTALL_MODE_ARG)
+                .arg(request_path)
+                .arg(response_path);
+            command
+        }
+    };
+
+    command
+        .status()
+        .map_err(|error| format!("Could not start elevation prompt: {error}"))
+}
+
+fn select_strategy(context: &ElevationRuntimeContext) -> Option<ElevationStrategy> {
+    if context.flatpak_sandboxed && context.has_flatpak_spawn && context.has_pkexec {
+        return Some(ElevationStrategy::FlatpakHostPkexec);
+    }
+
+    if context.has_pkexec {
+        return Some(ElevationStrategy::PkexecDirect);
+    }
+
+    None
+}
+
+fn has_command(command_name: &str, probe_arg: &str) -> bool {
+    Command::new(command_name).arg(probe_arg).output().is_ok()
 }
 
 fn read_response(path: &PathBuf) -> Result<ElevatedInstallResponse, String> {
@@ -281,4 +363,86 @@ fn unique_suffix() -> String {
         .unwrap_or_default()
         .as_nanos();
     format!("{nanos}")
+}
+
+impl ElevationStrategy {
+    fn label(&self) -> &'static str {
+        match self {
+            ElevationStrategy::PkexecDirect => "pkexec-direct",
+            ElevationStrategy::FlatpakHostPkexec => "flatpak-host-pkexec",
+        }
+    }
+}
+
+impl ElevationRuntimeContext {
+    fn collect() -> Self {
+        let session_type =
+            std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "unknown".to_string());
+        let desktop_environment = std::env::var("XDG_CURRENT_DESKTOP")
+            .or_else(|_| std::env::var("DESKTOP_SESSION"))
+            .unwrap_or_else(|_| "unknown".to_string());
+        let flatpak_sandboxed =
+            std::env::var("FLATPAK_ID").is_ok() || std::path::Path::new("/.flatpak-info").exists();
+
+        Self {
+            session_type,
+            desktop_environment,
+            flatpak_sandboxed,
+            has_pkexec: has_command("pkexec", "--version"),
+            has_flatpak_spawn: has_command("flatpak-spawn", "--help"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{select_strategy, ElevationRuntimeContext, ElevationStrategy};
+
+    fn context_for(
+        session_type: &str,
+        flatpak: bool,
+        has_pkexec: bool,
+        has_flatpak_spawn: bool,
+    ) -> ElevationRuntimeContext {
+        ElevationRuntimeContext {
+            session_type: session_type.to_string(),
+            desktop_environment: "test-desktop".to_string(),
+            flatpak_sandboxed: flatpak,
+            has_pkexec,
+            has_flatpak_spawn,
+        }
+    }
+
+    #[test]
+    fn chooses_pkexec_for_wayland_when_available() {
+        let context = context_for("wayland", false, true, false);
+        assert_eq!(
+            select_strategy(&context),
+            Some(ElevationStrategy::PkexecDirect)
+        );
+    }
+
+    #[test]
+    fn chooses_pkexec_for_x11_when_available() {
+        let context = context_for("x11", false, true, false);
+        assert_eq!(
+            select_strategy(&context),
+            Some(ElevationStrategy::PkexecDirect)
+        );
+    }
+
+    #[test]
+    fn chooses_flatpak_host_bridge_when_sandboxed() {
+        let context = context_for("wayland", true, true, true);
+        assert_eq!(
+            select_strategy(&context),
+            Some(ElevationStrategy::FlatpakHostPkexec)
+        );
+    }
+
+    #[test]
+    fn returns_none_when_no_native_elevation_available() {
+        let context = context_for("wayland", false, false, false);
+        assert_eq!(select_strategy(&context), None);
+    }
 }
