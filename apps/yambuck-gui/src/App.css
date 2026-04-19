@@ -856,76 +856,208 @@ dd {
   cursor: default;
 }
 
-.installed-list {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 0.9rem;
+.installed-page-panel {
+  width: min(1120px, 100%);
 }
 
-.installed-card {
+.installed-toolbar {
+  margin-top: 0.85rem;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
-  gap: 0.9rem;
-  align-items: center;
+  grid-template-columns: minmax(240px, 1.3fr) repeat(2, minmax(150px, 0.55fr)) auto;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.installed-toolbar-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.installed-toolbar-field span {
+  color: #98c4e5;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.installed-toolbar-field input,
+.installed-toolbar-field select {
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(137, 186, 221, 0.34);
+  background: rgba(9, 22, 36, 0.82);
+  color: #d8eeff;
+  padding: 0.45rem 0.62rem;
+  font-size: 0.88rem;
+}
+
+.installed-toolbar-field input::placeholder {
+  color: #8cb6d6;
+}
+
+.installed-toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.installed-table-wrap {
+  margin-top: 0.8rem;
   border-radius: 14px;
-  border: 1px solid rgba(147, 194, 225, 0.26);
-  background: rgba(15, 31, 49, 0.78);
-  padding: 0.85rem;
+  border: 1px solid rgba(147, 194, 225, 0.28);
+  background: rgba(15, 31, 49, 0.7);
+  overflow: auto;
 }
 
-.installed-card-main {
+.installed-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+}
+
+.installed-table th,
+.installed-table td {
+  border-bottom: 1px solid rgba(126, 173, 204, 0.2);
+  padding: 0.7rem 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.installed-table th {
+  font-size: 0.76rem;
+  color: #9ac5e7;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(10, 24, 39, 0.86);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.installed-table tbody tr:hover {
+  background: rgba(21, 45, 68, 0.6);
+}
+
+.installed-table-app {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.72rem;
   min-width: 0;
 }
 
-.installed-app-copy {
-  min-width: 0;
-}
-
-.installed-app-copy h2 {
-  overflow-wrap: anywhere;
-}
-
-.installed-app-copy p {
-  overflow-wrap: anywhere;
-}
-
-.installed-app-meta {
-  min-width: 0;
-}
-
-.installed-app-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+.installed-table-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   object-fit: contain;
   flex: 0 0 auto;
 }
 
-.installed-app-icon.placeholder {
+.installed-table-icon.placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px dashed rgba(141, 186, 220, 0.35);
   background: rgba(9, 20, 33, 0.85);
   color: #9bb8d0;
-  font-size: 0.56rem;
+  font-size: 0.58rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.installed-card p {
-  margin: 0.3rem 0 0;
-  color: #a9c5db;
+.installed-table-app-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.14rem;
 }
 
-.installed-actions {
-  display: flex;
+.installed-table-app-copy strong {
+  font-size: 0.98rem;
+  color: #deeffd;
+  overflow-wrap: anywhere;
+}
+
+.installed-table-app-id {
+  color: #a4c8e3;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.installed-meta-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(138, 182, 212, 0.36);
+  background: rgba(13, 29, 46, 0.76);
+  color: #cde7fb;
+  padding: 0.22rem 0.58rem;
+  font-size: 0.8rem;
+}
+
+.installed-table td.col-installed {
+  color: #b9d5ea;
+  font-size: 0.85rem;
+}
+
+.installed-table-actions {
+  display: flex;
+  justify-content: flex-end;
   flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+@media (max-width: 980px) {
+  .installed-toolbar {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(130px, 0.5fr));
+  }
+
+  .installed-toolbar-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .installed-table-app-id {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .installed-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .installed-toolbar-actions {
+    justify-content: stretch;
+  }
+
+  .installed-toolbar-actions .button {
+    width: 100%;
+  }
+
+  .installed-table {
+    min-width: 620px;
+  }
+
+  .installed-table th.col-installed,
+  .installed-table td.col-installed {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .installed-table {
+    min-width: 520px;
+  }
+
+  .installed-table th.col-scope,
+  .installed-table td.col-scope {
+    display: none;
+  }
+
+  .installed-table-icon {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 .settings-tabs {
@@ -1100,14 +1232,6 @@ dd {
 
   .button {
     width: 100%;
-  }
-
-  .installed-card {
-    grid-template-columns: 1fr;
-  }
-
-  .installed-actions {
-    justify-content: flex-start;
   }
 
   .app-footer {

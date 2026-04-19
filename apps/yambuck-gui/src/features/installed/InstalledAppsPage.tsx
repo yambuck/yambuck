@@ -1,3 +1,6 @@
+import { useMemo, useState } from "preact/hooks";
+import { InstalledAppsTable } from "./InstalledAppsTable";
+import { InstalledAppsToolbar } from "./InstalledAppsToolbar";
 import type { InstalledApp } from "../../types/app";
 
 type InstalledAppsPageProps = {
@@ -16,55 +19,74 @@ export const InstalledAppsPage = ({
   onOpenDetails,
   onLaunch,
   onUninstall,
-}: InstalledAppsPageProps) => (
-  <section class="panel">
-    <h1>Installed apps</h1>
-    <p class="subtitle">Manage applications installed by Yambuck.</p>
-    <div class="actions start">
-      <button class="button ghost" onClick={onRefresh}>
-        Refresh list
-      </button>
-    </div>
+}: InstalledAppsPageProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<"all" | "user" | "system">("all");
+  const [sortBy, setSortBy] = useState<"installed_desc" | "name_asc">("installed_desc");
 
-    {loadingInstalled ? <p class="subtitle">Loading installed apps...</p> : null}
+  const visibleApps = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
 
-    {!loadingInstalled && installedApps.length === 0 ? (
-      <p class="subtitle">No apps installed yet.</p>
-    ) : null}
+    const filtered = installedApps.filter((app) => {
+      if (scopeFilter !== "all" && app.installScope !== scopeFilter) {
+        return false;
+      }
 
-    {installedApps.length > 0 ? (
-      <div class="installed-list">
-        {installedApps.map((app) => (
-          <article class="installed-card" key={app.appId}>
-            <div class="installed-card-main">
-              {app.iconDataUrl ? (
-                <img class="installed-app-icon" src={app.iconDataUrl} alt={`${app.displayName} icon`} />
-              ) : (
-                <div class="installed-app-icon placeholder" aria-hidden="true">No icon</div>
-              )}
-              <div class="installed-app-copy">
-                <h2>{app.displayName}</h2>
-                <p>{app.appId}</p>
-              </div>
-            </div>
-            <div class="installed-app-meta">
-              <p>Version {app.version}</p>
-              <p>Scope: {app.installScope}</p>
-            </div>
-            <div class="installed-actions">
-              <button class="button ghost" onClick={() => onOpenDetails(app)}>
-                Review
-              </button>
-              <button class="button ghost" onClick={() => onLaunch(app)}>
-                Launch
-              </button>
-              <button class="button ghost" onClick={() => onUninstall(app)}>
-                Uninstall
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
-    ) : null}
-  </section>
-);
+      if (!query) {
+        return true;
+      }
+
+      return app.displayName.toLowerCase().includes(query);
+    });
+
+    const sorted = [...filtered];
+    if (sortBy === "name_asc") {
+      sorted.sort((left, right) => left.displayName.localeCompare(right.displayName));
+      return sorted;
+    }
+
+    sorted.sort((left, right) => {
+      const leftTime = Date.parse(left.installedAt);
+      const rightTime = Date.parse(right.installedAt);
+      if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
+        return right.displayName.localeCompare(left.displayName);
+      }
+      return rightTime - leftTime;
+    });
+    return sorted;
+  }, [installedApps, scopeFilter, searchQuery, sortBy]);
+
+  return (
+    <section class="panel installed-page-panel">
+      <h1>Installed apps</h1>
+      <p class="subtitle">Manage applications installed by Yambuck.</p>
+
+      <InstalledAppsToolbar
+        searchQuery={searchQuery}
+        scopeFilter={scopeFilter}
+        sortBy={sortBy}
+        onSearchQueryChange={setSearchQuery}
+        onScopeFilterChange={setScopeFilter}
+        onSortByChange={setSortBy}
+        onRefresh={onRefresh}
+      />
+
+      {loadingInstalled ? <p class="subtitle">Loading installed apps...</p> : null}
+
+      {!loadingInstalled && installedApps.length === 0 ? <p class="subtitle">No apps installed yet.</p> : null}
+
+      {!loadingInstalled && installedApps.length > 0 && visibleApps.length === 0 ? (
+        <p class="subtitle">No installed apps match your current search/filter.</p>
+      ) : null}
+
+      {visibleApps.length > 0 ? (
+        <InstalledAppsTable
+          apps={visibleApps}
+          onOpenDetails={onOpenDetails}
+          onLaunch={onLaunch}
+          onUninstall={onUninstall}
+        />
+      ) : null}
+    </section>
+  );
+};

@@ -119,14 +119,14 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Add expandable technical-information panel in review screen (aligned with `.yambuck` open screen UX).
 - [x] Populate technical panel with install path, config location, and broad manifest metadata useful for debugging/support.
 - [x] Audit major pages for nested-card usage and identify where cards add value vs visual clutter. (See `docs/UI_SHELL_STANDARD.md`.)
-- [ ] Refactor Installed Apps view to a width-fluid list/table container (remove fixed narrow card constraints).
-- [ ] Ensure layout scales from small window to fullscreen with progressive information density.
-- [ ] Keep visual consistency while avoiding card-inside-card patterns unless functionally necessary.
-- [ ] Increase installed-app icon size in list rows while keeping row spacing and alignment clean.
-- [ ] Add installed-app search input (name-based filtering with responsive updates).
-- [ ] Define or adopt a reusable data-table component for Installed Apps (sorting + filtering + search).
-- [ ] Implement table sorting (minimum: app name and date installed).
-- [ ] Implement scope filter control (user-installed vs system-wide).
+- [x] Refactor Installed Apps view to a width-fluid list/table container (remove fixed narrow card constraints).
+- [x] Ensure layout scales from small window to fullscreen with progressive information density.
+- [x] Keep visual consistency while avoiding card-inside-card patterns unless functionally necessary.
+- [x] Increase installed-app icon size in list rows while keeping row spacing and alignment clean.
+- [x] Add installed-app search input (name-based filtering with responsive updates).
+- [x] Define or adopt a reusable data-table component for Installed Apps (sorting + filtering + search).
+- [x] Implement table sorting (minimum: app name and date installed).
+- [x] Implement scope filter control (user-installed vs system-wide).
 - [ ] Audit current install/uninstall paths for user + system scopes and document exact directories in use.
 - [ ] Implement dedicated Yambuck-managed install roots (including `/yambuck` subdirectory strategy per scope).
 - [ ] Persist and rely on Yambuck ownership metadata so only Yambuck-installed apps are listed/managed by Yambuck.
