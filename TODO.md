@@ -132,10 +132,10 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Persist and rely on Yambuck ownership metadata so only Yambuck-installed apps are listed/managed by Yambuck.
 - [x] Guard uninstall logic to never touch non-Yambuck installs, even when app names overlap.
 - [x] Ensure Installed Apps list is source-of-truth for Yambuck-managed installs and entries change only through explicit Yambuck install/uninstall actions.
-- [ ] Implement atomic install transactions with rollback so failures never leave partial installs.
-- [ ] Add post-install verification checks (payload files, launchers/entry points, registration) before showing success state.
-- [ ] Implement deterministic uninstall that removes all Yambuck-managed artifacts while never touching non-Yambuck installs.
-- [ ] Persist per-install ownership receipts/manifests (files, paths, version, scope, timestamps) as source of truth.
+- [x] Implement atomic install transactions with rollback so failures never leave partial installs.
+- [x] Add post-install verification checks (payload files, launchers/entry points, registration) before showing success state.
+- [x] Implement deterministic uninstall that removes all Yambuck-managed artifacts while never touching non-Yambuck installs.
+- [x] Persist per-install ownership receipts/manifests (files, paths, version, scope, timestamps) as source of truth.
 - [ ] Define clear install state machine (queued, downloading, validating, installing, verifying, success, failed).
 - [ ] Improve failure UX with one-click recovery actions (`Retry`, `Copy logs`, `Open logs`) and short plain-language root-cause summary.
 - [ ] Add package integrity/authenticity validation for `.yambuck` payloads before install execution.

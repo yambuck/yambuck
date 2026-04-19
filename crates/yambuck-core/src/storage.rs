@@ -29,6 +29,11 @@ struct OwnershipReceipt {
     install_scope: InstallScope,
     version: String,
     installed_at: String,
+    entrypoint: String,
+    package_archive_path: Option<String>,
+    managed_paths: Vec<String>,
+    installed_files: Vec<String>,
+    recorded_at: String,
     destination_path: String,
 }
 
@@ -96,12 +101,22 @@ pub(crate) fn write_ownership_receipt(record: &InstalledAppRecord) -> Result<(),
         .ok_or(YambuckError::StorageUnavailable)?;
     fs::create_dir_all(parent).map_err(|_| YambuckError::StorageUnavailable)?;
 
+    let mut managed_paths = vec![record.destination_path.clone()];
+    if let Some(path) = record.package_archive_path.as_ref() {
+        managed_paths.push(path.clone());
+    }
+
     let receipt = OwnershipReceipt {
         app_id: record.app_id.clone(),
         app_uuid: record.app_uuid.clone(),
         install_scope: record.install_scope,
         version: record.version.clone(),
         installed_at: record.installed_at.clone(),
+        entrypoint: record.entrypoint.clone(),
+        package_archive_path: record.package_archive_path.clone(),
+        managed_paths,
+        installed_files: collect_installed_files(&record.destination_path)?,
+        recorded_at: current_canonical_timestamp(),
         destination_path: record.destination_path.clone(),
     };
     let content =
@@ -222,4 +237,38 @@ fn ownership_receipt_path(destination_path: &str) -> PathBuf {
     PathBuf::from(destination_path)
         .join(".yambuck")
         .join("ownership.json")
+}
+
+fn collect_installed_files(destination_path: &str) -> Result<Vec<String>, YambuckError> {
+    let root = PathBuf::from(destination_path);
+    if !root.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut files = Vec::new();
+    collect_relative_files(&root, &root, &mut files)?;
+    files.sort();
+    Ok(files)
+}
+
+fn collect_relative_files(
+    root: &Path,
+    current: &Path,
+    files: &mut Vec<String>,
+) -> Result<(), YambuckError> {
+    let entries = fs::read_dir(current).map_err(|_| YambuckError::StorageUnavailable)?;
+    for entry in entries {
+        let path = entry.map_err(|_| YambuckError::StorageUnavailable)?.path();
+        if path.is_dir() {
+            collect_relative_files(root, &path, files)?;
+            continue;
+        }
+        if path.is_file() {
+            let relative = path
+                .strip_prefix(root)
+                .map_err(|_| YambuckError::StorageUnavailable)?;
+            files.push(relative.to_string_lossy().to_string());
+        }
+    }
+    Ok(())
 }

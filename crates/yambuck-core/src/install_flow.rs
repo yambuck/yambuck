@@ -188,6 +188,11 @@ pub fn install_and_register(
         prepare_install_transaction(&package_info.package_file, destination_path)?;
     transaction.commit()?;
 
+    if let Err(error) = verify_post_install(destination_path, package_info) {
+        transaction.rollback();
+        return Err(error);
+    }
+
     let installed_app = match register_install(package_info, scope, destination_path) {
         Ok(value) => value,
         Err(error) => {
@@ -198,6 +203,33 @@ pub fn install_and_register(
 
     transaction.finalize_success()?;
     Ok(installed_app)
+}
+
+fn verify_post_install(destination_path: &str, package_info: &PackageInfo) -> Result<(), YambuckError> {
+    let destination_root = PathBuf::from(destination_path);
+    let app_root = destination_root.join("app");
+    if !app_root.exists() || !app_root.is_dir() {
+        return Err(YambuckError::InstallFailed);
+    }
+
+    let entrypoint = Path::new(&package_info.entrypoint);
+    if package_info.entrypoint.trim().is_empty() || entrypoint.is_absolute() {
+        return Err(YambuckError::InstallFailed);
+    }
+
+    if entrypoint
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err(YambuckError::InstallFailed);
+    }
+
+    let entrypoint_path = destination_root.join(entrypoint);
+    if !entrypoint_path.exists() || !entrypoint_path.is_file() {
+        return Err(YambuckError::InstallFailed);
+    }
+
+    Ok(())
 }
 
 pub fn evaluate_install_decision(
