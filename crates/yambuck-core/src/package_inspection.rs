@@ -14,6 +14,8 @@ const ICON_MIN_WIDTH: u32 = 128;
 const ICON_MIN_HEIGHT: u32 = 128;
 const SCREENSHOT_MIN_WIDTH: u32 = 256;
 const SCREENSHOT_MIN_HEIGHT: u32 = 256;
+const SCREENSHOT_MIN_ASPECT_RATIO: f32 = 0.4;
+const SCREENSHOT_MAX_ASPECT_RATIO: f32 = 2.5;
 const ICON_MIN_BYTES: usize = 512;
 const SCREENSHOT_MIN_BYTES: usize = 1024;
 
@@ -334,6 +336,18 @@ fn validate_image_asset(
             "`{field_name}` file `{asset_path}` is too small ({}x{}); minimum is {}x{}",
             width, height, min_width, min_height
         )));
+    }
+
+    if let AssetKind::Screenshot(index) = kind {
+        let aspect_ratio = width as f32 / height as f32;
+        if !(SCREENSHOT_MIN_ASPECT_RATIO..=SCREENSHOT_MAX_ASPECT_RATIO).contains(&aspect_ratio) {
+            return Err(YambuckError::InvalidManifestDetails(format!(
+                "`screenshots[{index}]` file `{asset_path}` uses an unsupported aspect ratio ({:.2}); supported range is {:.2} to {:.2}",
+                aspect_ratio,
+                SCREENSHOT_MIN_ASPECT_RATIO,
+                SCREENSHOT_MAX_ASPECT_RATIO
+            )));
+        }
     }
 
     Ok(())

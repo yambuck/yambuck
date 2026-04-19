@@ -148,7 +148,7 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Reject zero-byte and tiny placeholder image assets using minimum file-size thresholds for icon and screenshots.
 - [x] Enforce minimum media dimensions (`icon`: at least `128x128`; `screenshots`: at least `256x256`).
 - [x] Ensure installer screenshot rendering never stretches images and always preserves original aspect ratio in preview and modal.
-- [ ] Add screenshot aspect-ratio guardrails (reject extreme banner/tall-strip shapes that degrade preview UX).
+- [x] Add screenshot aspect-ratio guardrails (reject extreme banner/tall-strip shapes that degrade preview UX).
 - [x] Fail validation when required asset paths point to missing files, directories, or unreadable/corrupt image data.
 - [x] Return field-specific manifest/file errors (for example `iconPath`, `screenshots[0]`) with clear fix guidance for packagers.
 - [ ] Add fixture-based tests for strict media validation cases: blank files, renamed text files, corrupt images, too-small dimensions, unsupported extensions, and missing required assets.
@@ -165,9 +165,9 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [ ] Validate behavior across Linux desktop environments (Mint/Cinnamon, GNOME, KDE) for MIME/icon/launcher consistency.
 - [ ] Validate privilege/auth behavior differences across Wayland and X11 and document fallback rules.
 - [ ] Define dependency/conflict handling rules (missing deps, incompatible versions, duplicate app IDs/names).
-- [ ] Define upgrade/downgrade behavior rules across versions and install scopes.
+- [x] Define upgrade/downgrade behavior rules across versions and install scopes.
 - [ ] Add interruption resilience plan (power loss/crash during install) with resume-or-rollback guarantees.
 - [ ] Define multi-architecture manifest schema and validation rules (required arch map, payload paths, optional fallback guidance).
 - [ ] Add host compatibility preflight stage before install execution (arch/target support checks with clear block reasons).
-- [ ] Persist Installed Apps presentation metadata (icon, screenshots, descriptions) in Yambuck-managed state independent of source package file.
+- [x] Persist Installed Apps presentation metadata (icon, screenshots, descriptions) in Yambuck-managed state independent of source package file.
 - [ ] Ensure post-install cleanup keeps only selected host payload and removes unused architecture payloads.
