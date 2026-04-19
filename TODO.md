@@ -145,20 +145,20 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Restrict screenshot formats to `.png`, `.jpg`, `.jpeg`, or `.gif` only (hard-fail unsupported formats).
 - [x] Restrict icon formats to `.png`, `.jpg`, or `.jpeg` only (no `.webp` in v1 strict mode).
 - [x] Validate icon and screenshot files by actual file signature (magic bytes) and decode success, not filename extension.
-- [ ] Reject zero-byte and tiny placeholder image assets using minimum file-size thresholds for icon and screenshots.
-- [ ] Enforce minimum media dimensions (`icon`: at least `128x128`; `screenshots`: at least `256x256`).
-- [ ] Ensure installer screenshot rendering never stretches images and always preserves original aspect ratio in preview and modal.
+- [x] Reject zero-byte and tiny placeholder image assets using minimum file-size thresholds for icon and screenshots.
+- [x] Enforce minimum media dimensions (`icon`: at least `128x128`; `screenshots`: at least `256x256`).
+- [x] Ensure installer screenshot rendering never stretches images and always preserves original aspect ratio in preview and modal.
 - [ ] Add screenshot aspect-ratio guardrails (reject extreme banner/tall-strip shapes that degrade preview UX).
-- [ ] Fail validation when required asset paths point to missing files, directories, or unreadable/corrupt image data.
-- [ ] Return field-specific manifest/file errors (for example `iconPath`, `screenshots[0]`) with clear fix guidance for packagers.
+- [x] Fail validation when required asset paths point to missing files, directories, or unreadable/corrupt image data.
+- [x] Return field-specific manifest/file errors (for example `iconPath`, `screenshots[0]`) with clear fix guidance for packagers.
 - [ ] Add fixture-based tests for strict media validation cases: blank files, renamed text files, corrupt images, too-small dimensions, unsupported extensions, and missing required assets.
-- [ ] Add versioned manifest parsing pipeline with explicit handlers per major version (`v1`, future `v2`, etc.).
-- [ ] Preserve backward compatibility by routing older package manifests to their matching parser/validator instead of newest-only rules.
-- [ ] Define manifest evolution policy: allowed minor additions, major-version breaking changes, and deprecation windows.
+- [x] Add versioned manifest parsing pipeline with explicit handlers per major version (`v1`, future `v2`, etc.).
+- [x] Preserve backward compatibility by routing older package manifests to their matching parser/validator instead of newest-only rules.
+- [x] Define manifest evolution policy: allowed minor additions, major-version breaking changes, and deprecation windows.
 - [ ] Add fixture-based compatibility tests for multiple manifest versions (valid/invalid cases per version + upgrade safety checks).
 - [ ] Explore code-defined schema representation (or generated schema artifact) per manifest version to keep spec and validation in sync.
 - [ ] Add path safety protections (block traversal/symlink escape and writes outside approved roots).
-- [ ] Limit privilege escalation to required steps only; log why elevation was required.
+- [x] Limit privilege escalation to required steps only; log why elevation was required.
 - [ ] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
 - [ ] Keep default install flow minimal; place advanced/technical controls behind expandable "Advanced" sections.
 - [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, and retries.
