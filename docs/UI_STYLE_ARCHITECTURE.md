@@ -9,7 +9,8 @@ Yambuck uses a token-driven hybrid styling model:
 - Design tokens are defined in TypeScript (`apps/yambuck-gui/src/theme/tokens.ts`).
 - Tokens are injected as CSS variables at startup (`apps/yambuck-gui/src/theme/initTokens.ts`).
 - Reusable UI primitives provide consistent controls and states.
-- CSS remains responsible for pseudo states, responsive rules, and complex layout behavior.
+- Scoped component styles are migrating to `vanilla-extract` (`.css.ts`) for isolation.
+- Global CSS remains responsible for shell/reset/global layout behavior only.
 
 Yambuck does not use full inline-only styling as the default architecture.
 
@@ -24,6 +25,7 @@ Yambuck does not use full inline-only styling as the default architecture.
 
 - `apps/yambuck-gui/src/theme/tokens.ts`: source of truth for semantic tokens.
 - `apps/yambuck-gui/src/components/ui/*`: reusable control primitives.
+- `apps/yambuck-gui/src/components/ui/*.css.ts`: component-scoped styles (migration target).
 - `apps/yambuck-gui/src/App.css`: import-only stylesheet composition entrypoint.
 - `apps/yambuck-gui/src/styles/shell.css`: app shell, topbar, toasts, modal shell, global responsive rules.
 - `apps/yambuck-gui/src/styles/common.css`: shared panel/meta/button/progress/scope styles.
@@ -48,5 +50,7 @@ Yambuck does not use full inline-only styling as the default architecture.
 
 - Shared primitives now back installer, installed apps, settings, and modal actions.
 - Dropdown/select controls use a reusable component and shared design tokens.
+- `SelectField` is now migrated to scoped `vanilla-extract` styles as the pilot component.
 - Checkbox behavior is standardized via `CheckboxField`.
 - Primary page panels share width and spacing tokens.
+- Installer, Installed Apps, Settings, and modal surfaces now primarily use scoped style modules (`.css.ts`) with token-driven values.

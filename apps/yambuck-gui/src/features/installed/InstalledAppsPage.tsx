@@ -1,5 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { Panel } from "../../components/ui/Panel";
+import { subtitle } from "../shared/packageUi.css";
 import { InstalledAppsTable } from "./InstalledAppsTable";
 import { InstalledAppsToolbar } from "./InstalledAppsToolbar";
 import type { InstalledApp } from "../../types/app";
@@ -9,8 +10,6 @@ type InstalledAppsPageProps = {
   installedApps: InstalledApp[];
   onRefresh: () => void;
   onOpenDetails: (app: InstalledApp) => void;
-  onLaunch: (app: InstalledApp) => void;
-  onUninstall: (app: InstalledApp) => void;
 };
 
 export const InstalledAppsPage = ({
@@ -18,8 +17,6 @@ export const InstalledAppsPage = ({
   installedApps,
   onRefresh,
   onOpenDetails,
-  onLaunch,
-  onUninstall,
 }: InstalledAppsPageProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState<"all" | "user" | "system">("all");
@@ -58,9 +55,9 @@ export const InstalledAppsPage = ({
   }, [installedApps, scopeFilter, searchQuery, sortBy]);
 
   return (
-    <Panel class="installed-page-panel">
+    <Panel>
       <h1>Installed apps</h1>
-      <p class="subtitle">Manage applications installed by Yambuck.</p>
+      <p class={`subtitle ${subtitle}`}>Manage applications installed by Yambuck.</p>
 
       <InstalledAppsToolbar
         searchQuery={searchQuery}
@@ -72,20 +69,18 @@ export const InstalledAppsPage = ({
         onRefresh={onRefresh}
       />
 
-      {loadingInstalled ? <p class="subtitle">Loading installed apps...</p> : null}
+      {loadingInstalled ? <p class={`subtitle ${subtitle}`}>Loading installed apps...</p> : null}
 
-      {!loadingInstalled && installedApps.length === 0 ? <p class="subtitle">No apps installed yet.</p> : null}
+      {!loadingInstalled && installedApps.length === 0 ? <p class={`subtitle ${subtitle}`}>No apps installed yet.</p> : null}
 
       {!loadingInstalled && installedApps.length > 0 && visibleApps.length === 0 ? (
-        <p class="subtitle">No installed apps match your current search/filter.</p>
+        <p class={`subtitle ${subtitle}`}>No installed apps match your current search/filter.</p>
       ) : null}
 
       {visibleApps.length > 0 ? (
         <InstalledAppsTable
           apps={visibleApps}
           onOpenDetails={onOpenDetails}
-          onLaunch={onLaunch}
-          onUninstall={onUninstall}
         />
       ) : null}
     </Panel>

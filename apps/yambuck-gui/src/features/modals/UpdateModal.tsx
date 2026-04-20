@@ -1,6 +1,9 @@
 import type { UpdateCheckResult } from "../../types/app";
 import { Button } from "../../components/ui/Button";
+import { ghostLink } from "../../components/ui/button.css";
 import { ModalShell } from "../../components/ui/ModalShell";
+import { section, updateActions } from "./modalStyles.css";
+import { subtitle } from "../shared/packageUi.css";
 
 type UpdateModalProps = {
   updateResult: UpdateCheckResult;
@@ -18,19 +21,19 @@ export const UpdateModal = ({
   onUpdateAndRestart,
 }: UpdateModalProps) => (
   <ModalShell onClose={onClose} closeTitle="Close update dialog">
-    <section class="modal-section">
+    <section class={`modal-section ${section}`}>
       <h2>{updateResult.updateAvailable ? "Update available" : "You're up to date"}</h2>
-      <p class="subtitle">{`Current: v${updateResult.currentVersion}`}</p>
-      <p class="subtitle">{`Latest: v${updateResult.latestVersion}`}</p>
-      <p class="subtitle">{`Last checked: ${lastCheckedLabel}`}</p>
-      <p class="subtitle">
+      <p class={`subtitle ${subtitle}`}>{`Current: v${updateResult.currentVersion}`}</p>
+      <p class={`subtitle ${subtitle}`}>{`Latest: v${updateResult.latestVersion}`}</p>
+      <p class={`subtitle ${subtitle}`}>{`Last checked: ${lastCheckedLabel}`}</p>
+      <p class={`subtitle ${subtitle}`}>
         {updateResult.updateAvailable
           ? "A new Yambuck version is ready. You can review notes, then update and restart."
           : "No update is needed right now."}
       </p>
-      <div class="update-actions">
+      <div class={`update-actions ${updateActions}`}>
         {updateResult.updateAvailable && updateResult.notesUrl ? (
-          <a class="button ghost" href={updateResult.notesUrl} target="_blank" rel="noreferrer">
+          <a class={ghostLink} href={updateResult.notesUrl} target="_blank" rel="noreferrer">
             Release notes
           </a>
         ) : null}

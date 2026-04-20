@@ -13,15 +13,17 @@
   },
   "dependencies": {
     "@tabler/icons-preact": "^3.39.0",
-    "preact": "^10.25.1",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "@tauri-apps/plugin-opener": "^2",
+    "preact": "^10.25.1"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.9.3",
+    "@tauri-apps/cli": "^2",
+    "@vanilla-extract/css": "^1.20.1",
+    "@vanilla-extract/vite-plugin": "^5.2.2",
     "typescript": "~5.6.2",
-    "vite": "^6.0.3",
-    "@tauri-apps/cli": "^2"
+    "vite": "^6.0.3"
   }
 }

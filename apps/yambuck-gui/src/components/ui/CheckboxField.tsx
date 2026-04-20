@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { checkbox, label, root } from "./checkboxField.css";
 
 type CheckboxFieldProps = {
   checked: boolean;
@@ -15,13 +16,14 @@ export const CheckboxField = ({
   disabled = false,
   class: className,
 }: CheckboxFieldProps) => (
-  <label class={`checkbox-field${className ? ` ${className}` : ""}`}>
+  <label class={`checkbox-field ${root}${className ? ` ${className}` : ""}`}>
     <input
+      class={checkbox}
       type="checkbox"
       checked={checked}
       disabled={disabled}
       onChange={(event) => onChange((event.currentTarget as HTMLInputElement).checked)}
     />
-    <span>{children}</span>
+    <span class={label}>{children}</span>
   </label>
 );

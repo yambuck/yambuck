@@ -1,0 +1,131 @@
+import { globalStyle, style } from "@vanilla-extract/css";
+
+export const section = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.72rem",
+});
+
+export const toolbar = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "0.6rem",
+  flexWrap: "wrap",
+  color: "var(--colors-style-color076)",
+  fontSize: "0.86rem",
+});
+
+export const toolbarLabel = style({
+  minWidth: 0,
+  overflowWrap: "anywhere",
+});
+
+export const uninstallButton = style({
+  borderColor: "var(--colors-toast-error-border)",
+  background: "var(--colors-toast-error-bg)",
+  color: "var(--colors-toast-error-text)",
+  selectors: {
+    '&:not(:disabled):hover': {
+      background: "var(--colors-close-control-hover-background)",
+    },
+  },
+});
+
+export const updateActions = style({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  '@media': {
+    '(max-width: 720px)': {
+      width: "100%",
+      flexWrap: "wrap",
+    },
+  },
+});
+
+export const licenseCard = style({
+  height: "100%",
+});
+
+export const licenseText = style({
+  margin: "0.2rem 0 0",
+  minHeight: 0,
+  flex: 1,
+  overflow: "auto",
+  borderRadius: "10px",
+  border: "1px solid var(--colors-style-color091)",
+  background: "var(--colors-style-color092)",
+  padding: "0.85rem",
+  color: "var(--colors-style-color093)",
+  lineHeight: 1.4,
+  whiteSpace: "pre-wrap",
+  fontFamily: '"Fira Mono", "JetBrains Mono", monospace',
+  fontSize: "0.84rem",
+});
+
+export const screenshotOverlay = style({
+  zIndex: 24,
+  padding: "0.9rem",
+});
+
+export const screenshotCard = style({
+  width: "min(var(--layout-primary-panel-max-width), 100%)",
+  height: "100%",
+  borderRadius: "16px",
+  border: "1px solid var(--colors-style-color087)",
+  background: "linear-gradient(160deg, var(--colors-style-color088), var(--colors-style-color089))",
+  boxShadow: "0 25px 50px var(--colors-style-color090)",
+  padding: "0.75rem",
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.65rem",
+  '@media': {
+    '(max-width: 720px)': {
+      width: "100%",
+      height: "calc(100vh - 92px)",
+      padding: "0.6rem",
+    },
+  },
+});
+
+globalStyle(`${screenshotCard} .modal-shell-body`, {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+});
+
+globalStyle(`${screenshotCard} .modal-section`, {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+});
+
+export const screenshotImage = style({
+  flex: 1,
+  width: "100%",
+  minHeight: 0,
+  objectFit: "contain",
+  borderRadius: "10px",
+  background: "var(--colors-style-color095)",
+});
+
+export const screenshotControls = style({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "0.5rem",
+});
+
+export const installedReviewCard = style({
+  maxHeight: "100%",
+  overflow: "visible",
+});
+
+export const installedReviewOverview = style({
+  marginTop: "0.2rem",
+});
+
+export const installedReviewLongDescription = style({
+  marginBottom: "0.2rem",
+});

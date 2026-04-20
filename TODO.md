@@ -181,7 +181,7 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
   - Predictability rule: required options must remain clearly discoverable and never feel hidden behind obscure UI.
   - Compatibility rule: adding new option types must not change the familiar install flow order for users who ignore Advanced.
 - [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, and retries.
-- [ ] Standardize hover effects across all buttons and interactive controls for consistent visual feedback.
+- [x] Standardize hover effects across all buttons and interactive controls for consistent visual feedback.
 - [ ] Fix title-bar window controls so maximize and close glyphs are visually centered within their circular buttons.
 - [x] Evaluate inline styling approach (similar to Voquill) to keep global `.css` footprint minimal while preserving consistency.
   - Decision: use token-driven hybrid styling for Yambuck (design tokens + reusable UI primitives + CSS for pseudo states/responsive/layout), not full inline-only styling.
@@ -201,6 +201,21 @@ Fast-moving reminder list with enough detail to debug/fix without re-explaining.
 - [x] Break monolithic GUI stylesheet into feature-owned CSS files and keep `App.css` as an import-only composition entrypoint.
 - [x] Add CSS size guardrails (soft 800 / hard 1000 lines) with automated checks (`npm run check:styles`).
 - [x] Add raw color literal guardrails for CSS with baseline enforcement to prevent unreviewed non-token color growth.
+- [x] Remove redundant Installed Apps table columns that do not add decision value (status/install location moved to review details).
+- [x] Add copy-feedback toast for technical metadata copy actions in installed app review.
+- [x] Add debug-accessible mock Installed Apps list page that reuses production list/review components with fixture data.
+- [x] Add debug-accessible mock Install Flow page that reuses production installer component states with fixture data.
+- [x] Expand Debug settings shortcuts to open major mock pages directly (app details, installed list, install flow).
+- [x] Replace native select popup behavior with fully styled custom dropdown menu rendering to avoid system-default option panels.
+- [x] Improve Installed Apps table density by truncating long app names/IDs with ellipsis and compacting installed timestamp display.
+- [x] Keep Installed Apps action buttons on a single row to reduce vertical row growth under medium widths.
+- [x] Convert Installed Apps row actions to compact icon-only circular controls with accessible labels/tooltips for better density.
+- [x] Prevent Installed Apps version chip wrapping by applying single-line ellipsis overflow behavior for long version strings.
+- [x] Enable scoped styling migration tooling (`vanilla-extract`) and migrate `SelectField` to component-scoped styles as pilot.
+- [x] Migrate shared UI primitives to scoped styles (`Button`, `TextField`, `CheckboxField`, `Panel`, `ModalShell`) while preserving existing behavior.
+- [x] Migrate Installed Apps and Settings feature styles to component-local scoped style files and trim duplicated global CSS rules.
+- [x] Migrate Installer and modal presentation surfaces to scoped style modules and reduce legacy global style overlap.
+- [x] Move shared metadata/package presentation styles into scoped shared style module used across installer/review/mock pages.
 - [ ] Validate behavior across Linux desktop environments (Mint/Cinnamon, GNOME, KDE) for MIME/icon/launcher consistency.
 - [ ] Validate privilege/auth behavior differences across Wayland and X11 and document fallback rules.
 - [ ] Define dependency/conflict handling rules (missing deps, incompatible versions, duplicate app IDs/names).

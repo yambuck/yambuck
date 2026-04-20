@@ -1,4 +1,5 @@
 import { ModalShell } from "../../components/ui/ModalShell";
+import { licenseCard, licenseText, section, toolbar, toolbarLabel } from "./modalStyles.css";
 
 type LicenseViewerModalProps = {
   title: string;
@@ -7,12 +8,12 @@ type LicenseViewerModalProps = {
 };
 
 export const LicenseViewerModal = ({ title, text, onClose }: LicenseViewerModalProps) => (
-  <ModalShell onClose={onClose} cardClass="license-modal-card" closeTitle="Close license">
-    <section class="modal-section">
-      <div class="screenshot-modal-toolbar">
-        <span>{title}</span>
+  <ModalShell onClose={onClose} cardClass={`license-modal-card ${licenseCard}`} closeTitle="Close license">
+    <section class={`modal-section ${section}`}>
+      <div class={`screenshot-modal-toolbar ${toolbar}`}>
+        <span class={toolbarLabel}>{title}</span>
       </div>
-      <pre class="license-modal-text">{text}</pre>
+      <pre class={`license-modal-text ${licenseText}`}>{text}</pre>
     </section>
   </ModalShell>
 );

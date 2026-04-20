@@ -1,4 +1,5 @@
 import type { ComponentChildren, JSX } from "preact";
+import { base, fullWidthOnSmall, inline, variant as variantClass } from "./button.css";
 
 type ButtonVariant = "primary" | "ghost";
 type ButtonSize = "default" | "inline";
@@ -24,12 +25,11 @@ export const Button = ({
   class: className,
   title,
 }: ButtonProps) => {
-  const sizeClass = size === "inline" ? " inline" : "";
-  const extraClass = className ? ` ${className}` : "";
+  const classes = ["button", variant, size === "inline" ? "inline" : "", base, variantClass[variant], fullWidthOnSmall, size === "inline" ? inline : "", className].filter(Boolean).join(" ");
   return (
     <button
       type={type}
-      class={`button ${variant}${sizeClass}${extraClass}`}
+      class={classes}
       disabled={disabled}
       onClick={onClick}
       title={title}

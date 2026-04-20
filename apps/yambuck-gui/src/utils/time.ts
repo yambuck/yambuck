@@ -45,3 +45,21 @@ export const formatCanonicalTimestampForDisplay = (value: string): string => {
 
   return toReadableLocalTimeWithOffset(parsed);
 };
+
+export const formatCompactTimestampForTable = (value: string): string => {
+  const timestamp = value.trim();
+  if (!timestamp) {
+    return "Unknown";
+  }
+
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) {
+    return timestamp;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(parsed);
+};

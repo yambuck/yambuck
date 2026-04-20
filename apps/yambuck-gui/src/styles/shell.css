@@ -107,6 +107,7 @@ body {
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .window-btn svg {
@@ -151,6 +152,13 @@ body {
   justify-content: center;
   line-height: 1;
   cursor: pointer;
+  margin: 0.08rem 0;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.toggle-pill:hover {
+  border-color: var(--colors-select-border-hover);
+  background: var(--colors-control-hover-background);
 }
 
 .toggle-pill.active {
@@ -227,167 +235,6 @@ body {
   background: var(--colors-style-color083);
 }
 
-.update-title {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--colors-style-color084);
-}
-
-.update-subtitle {
-  margin: 0.2rem 0 0;
-  color: var(--colors-style-color085);
-  font-size: 0.84rem;
-}
-
-.update-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.modal-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 28;
-  background: var(--colors-style-color086);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.modal-card {
-  --panel-radius: 18px;
-  --panel-close-size: 34px;
-  --panel-max-width: var(--layout-primary-panel-max-width);
-  width: min(var(--panel-max-width), 100%);
-  border-radius: 18px;
-  border: 1px solid var(--colors-style-color087);
-  background: linear-gradient(160deg, var(--colors-style-color088), var(--colors-style-color089));
-  box-shadow: 0 25px 50px var(--colors-style-color090);
-  padding: 1rem;
-  position: relative;
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: visible;
-}
-
-.modal-shell-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.modal-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.72rem;
-}
-
-.license-modal-card {
-  height: 100%;
-}
-
-.installed-review-modal {
-  max-height: 100%;
-  overflow: auto;
-}
-
-.installed-review-overview {
-  margin-top: 0.2rem;
-}
-
-.installed-review-long-description {
-  margin-bottom: 0.2rem;
-}
-
-.license-modal-text {
-  margin: 0.2rem 0 0;
-  min-height: 0;
-  flex: 1;
-  overflow: auto;
-  border-radius: 10px;
-  border: 1px solid var(--colors-style-color091);
-  background: var(--colors-style-color092);
-  padding: 0.85rem;
-  color: var(--colors-style-color093);
-  line-height: 1.4;
-  white-space: pre-wrap;
-  font-family: "Fira Mono", "JetBrains Mono", monospace;
-  font-size: 0.84rem;
-}
-
-.screenshot-modal-overlay {
-  z-index: 24;
-  padding: 0.9rem;
-}
-
-.screenshot-modal-card {
-  width: min(var(--layout-primary-panel-max-width), 100%);
-  height: 100%;
-  border-radius: 16px;
-  border: 1px solid var(--colors-style-color087);
-  background: linear-gradient(160deg, var(--colors-style-color088), var(--colors-style-color089));
-  box-shadow: 0 25px 50px var(--colors-style-color090);
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.screenshot-modal-card .modal-shell-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
-.screenshot-modal-card .modal-section {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.screenshot-modal-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  color: var(--colors-style-color076);
-  font-size: 0.86rem;
-}
-
-.screenshot-modal-toolbar > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.screenshot-modal-actions {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-}
-
-.screenshot-modal-image {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  object-fit: contain;
-  border-radius: 10px;
-  background: var(--colors-style-color095);
-}
-
-.screenshot-modal-controls {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
 
 .app-footer {
   display: flex;
@@ -435,6 +282,7 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
 .footer-action.update {
@@ -446,6 +294,11 @@ body {
 .footer-action:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.footer-action:not(:disabled):hover {
+  border-color: var(--colors-select-border-hover);
+  background: var(--colors-control-hover-background);
 }
 
 @media (max-width: 720px) {
@@ -485,72 +338,9 @@ body {
     justify-content: flex-end;
   }
 
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .meta-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .meta-section-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .package-overview {
-    grid-template-columns: 1fr;
-  }
-
-  .details-header {
-    flex-direction: column;
-    align-items: flex-start;
-    padding-right: 0;
-  }
-
-  .details-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .card-close {
-    --panel-close-size: 34px;
-  }
-
-  .screenshot-strip {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-
-  .screenshot-strip img {
-    height: 220px;
-  }
-
-  .actions {
-    justify-content: stretch;
-  }
-
-  .button {
-    width: 100%;
-  }
-
   .app-footer {
     gap: 0.6rem;
     flex-wrap: wrap;
-  }
-
-  .update-actions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .modal-card {
-    padding: 0.85rem;
-  }
-
-  .screenshot-modal-card {
-    width: 100%;
-    height: calc(100vh - 92px);
-    padding: 0.6rem;
   }
 
   .footer-meta {

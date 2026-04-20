@@ -1,59 +1,57 @@
 import type { InstalledApp } from "../../types/app";
-import { Button } from "../../components/ui/Button";
-import { formatCanonicalTimestampForDisplay } from "../../utils/time";
+import { formatCanonicalTimestampForDisplay, formatCompactTimestampForTable } from "../../utils/time";
+import {
+  appCell,
+  appCopy,
+  appId,
+  appName,
+  chip,
+  colInstalled,
+  colScope,
+  colVersion,
+  icon,
+  iconPlaceholder,
+  table,
+  versionChip,
+  wrap,
+} from "./installedAppsTable.css";
 
 type InstalledAppsTableProps = {
   apps: InstalledApp[];
   onOpenDetails: (app: InstalledApp) => void;
-  onLaunch: (app: InstalledApp) => void;
-  onUninstall: (app: InstalledApp) => void;
 };
 
-export const InstalledAppsTable = ({ apps, onOpenDetails, onLaunch, onUninstall }: InstalledAppsTableProps) => (
-  <div class="installed-table-wrap">
-    <table class="installed-table">
+export const InstalledAppsTable = ({ apps, onOpenDetails }: InstalledAppsTableProps) => (
+  <div class={`${wrap} installed-table-wrap`}>
+    <table class={`${table} installed-table`}>
       <thead>
         <tr>
-          <th>Status</th>
           <th>Application</th>
-          <th>Version</th>
-          <th class="col-scope">Scope</th>
-          <th class="col-installed">Installed</th>
-          <th class="col-location">Install location</th>
-          <th class="col-actions">Actions</th>
+          <th class={`${colVersion} col-version`}>Version</th>
+          <th class={`${colScope} col-scope`}>Scope</th>
+          <th class={`${colInstalled} col-installed`}>Installed</th>
         </tr>
       </thead>
       <tbody>
         {apps.map((app) => (
-          <tr key={app.appId}>
+          <tr key={app.appId} onClick={() => onOpenDetails(app)}>
             <td>
-              <span class={`installed-meta-chip status-${app.installStatus}`}>
-                {app.installStatus === "installed" ? "Installed" : "Missing payload"}
-              </span>
-            </td>
-            <td>
-              <div class="installed-table-app">
+              <div class={`${appCell} installed-table-app`}>
                 {app.iconDataUrl ? (
-                  <img class="installed-table-icon" src={app.iconDataUrl} alt={`${app.displayName} icon`} />
+                  <img class={`${icon} installed-table-icon`} src={app.iconDataUrl} alt={`${app.displayName} icon`} />
                 ) : (
-                  <div class="installed-table-icon placeholder" aria-hidden="true">No icon</div>
+                  <div class={`${icon} ${iconPlaceholder} installed-table-icon placeholder`} aria-hidden="true">No icon</div>
                 )}
-                <div class="installed-table-app-copy">
-                  <strong>{app.displayName}</strong>
-                  <span class="installed-table-app-id">{app.appId}</span>
+                <div class={`${appCopy} installed-table-app-copy`}>
+                  <strong class={appName} title={app.displayName}>{app.displayName}</strong>
+                  <span class={`${appId} installed-table-app-id`} title={app.appId}>{app.appId}</span>
                 </div>
               </div>
             </td>
-            <td><span class="installed-meta-chip">{app.version}</span></td>
-            <td class="col-scope"><span class="installed-meta-chip">{app.installScope}</span></td>
-            <td class="col-installed">{formatCanonicalTimestampForDisplay(app.installedAt)}</td>
-            <td class="col-location"><code class="install-path-code">{app.destinationPath}</code></td>
-            <td class="col-actions">
-              <div class="installed-table-actions">
-                <Button onClick={() => onOpenDetails(app)}>Review</Button>
-                <Button onClick={() => onLaunch(app)}>Launch</Button>
-                <Button onClick={() => onUninstall(app)}>Uninstall</Button>
-              </div>
+            <td class={`${colVersion} col-version`}><span class={`${chip} ${versionChip} installed-meta-chip version-chip`} title={app.version}>{app.version}</span></td>
+            <td class={`${colScope} col-scope`}><span class={`${chip} installed-meta-chip`}>{app.installScope}</span></td>
+            <td class={`${colInstalled} col-installed`} title={formatCanonicalTimestampForDisplay(app.installedAt)}>
+              {formatCompactTimestampForTable(app.installedAt)}
             </td>
           </tr>
         ))}

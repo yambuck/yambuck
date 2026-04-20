@@ -1,7 +1,27 @@
 import { CardCloseButton } from "../../CardCloseButton";
 import { Button } from "../../components/ui/Button";
 import { MetaField } from "../../components/ui/MetaField";
+import { inlineActions, licenseActions, licenseLabel, link } from "../../components/ui/metaField.css";
 import { Panel } from "../../components/ui/Panel";
+import {
+  detailsActions,
+  detailsHeader,
+  longDescriptionCard,
+  longDescriptionSection,
+  metaGrid,
+  metaSection,
+  metaSectionHeader,
+  metaToggle,
+  packageDescription,
+  packageIcon,
+  packageOverview,
+  packagePanel,
+  screenshotStrip,
+  screenshotTile,
+  subtitle,
+  technicalSection,
+  technicalToggleOnly,
+} from "../shared/packageUi.css";
 import { truncateDescription } from "../../utils/text";
 
 const MOCK_ICON =
@@ -52,7 +72,8 @@ type MockPreviewPageProps = {
   onOpenScreenshot: (gallery: string[], index: number) => void;
   onOpenLicense: (title: string, text: string) => void;
   onBackToSettings: () => void;
-  onToastInfo: (message: string) => void;
+  onStartInstallFlow: () => void;
+  onMetaFieldCopied: (label: string) => void;
 };
 
 export const MockPreviewPage = ({
@@ -61,7 +82,8 @@ export const MockPreviewPage = ({
   onOpenScreenshot,
   onOpenLicense,
   onBackToSettings,
-  onToastInfo,
+  onStartInstallFlow,
+  onMetaFieldCopied,
 }: MockPreviewPageProps) => {
   const mockName = "Voquill (Mock Preview)";
   const mockVersion = "1.4.0";
@@ -108,31 +130,31 @@ export const MockPreviewPage = ({
   const mockShots = [MOCK_SHOT_A, MOCK_SHOT_B, MOCK_SHOT_C, MOCK_SHOT_D, MOCK_SHOT_E, MOCK_SHOT_F];
 
   return (
-    <Panel class="package-panel">
-      <div class="details-header">
+    <Panel class={`package-panel ${packagePanel}`}>
+      <div class={`details-header ${detailsHeader}`}>
         <div>
           <h1>{mockName}</h1>
-          <p class="subtitle">Mock Preview (Debug)</p>
+          <p class={`subtitle ${subtitle}`}>Mock Preview (Debug)</p>
         </div>
-        <div class="details-actions" data-no-drag="true">
-          <Button variant="primary" onClick={() => onToastInfo("Mock install action.")}>Install</Button>
+        <div class={`details-actions ${detailsActions}`} data-no-drag="true">
+          <Button variant="primary" onClick={onStartInstallFlow}>Install</Button>
         </div>
       </div>
 
       <CardCloseButton title="Back to debug" onClick={onBackToSettings} />
 
-      <div class="package-overview">
-        <img class="package-icon" src={MOCK_ICON} alt="Mock app icon" />
+      <div class={`package-overview ${packageOverview}`}>
+        <img class={`package-icon ${packageIcon}`} src={MOCK_ICON} alt="Mock app icon" />
         <div>
-          <p class="subtitle package-description">{truncateDescription(mockDescription)}</p>
+          <p class={`subtitle package-description ${subtitle} ${packageDescription}`}>{truncateDescription(mockDescription)}</p>
         </div>
       </div>
 
-      <div class="screenshot-strip" data-no-drag="true">
+      <div class={`screenshot-strip ${screenshotStrip}`} data-no-drag="true">
         {mockShots.map((source, index) => (
           <button
             key={`mock-shot-${index}`}
-            class="screenshot-tile"
+            class={`screenshot-tile ${screenshotTile}`}
             onClick={() => onOpenScreenshot(mockShots, index)}
             title={`Open screenshot ${index + 1}`}
           >
@@ -141,31 +163,34 @@ export const MockPreviewPage = ({
         ))}
       </div>
 
-      <section class="meta-section">
-        <div class="meta-section-header">
+      <section class={`meta-section ${metaSection}`}>
+        <div class={`meta-section-header ${metaSectionHeader}`}>
           <h2>App details</h2>
         </div>
-        <dl class="meta-grid">
-          <MetaField label="Publisher" tooltip="The team or company that published this app." value={mockPublisher} />
-          <MetaField label="Version" tooltip="The app version that will be installed." value={mockVersion} />
+        <dl class={`meta-grid ${metaGrid}`}>
+          <MetaField label="Publisher" tooltip="The team or company that published this app." value={mockPublisher} onCopySuccess={onMetaFieldCopied} />
+          <MetaField label="Version" tooltip="The app version that will be installed." value={mockVersion} onCopySuccess={onMetaFieldCopied} />
           <MetaField
             label="Homepage"
             tooltip="The app's official website for product information."
             copyValue={mockHomepage}
-            value={<a class="meta-link" href={mockHomepage} target="_blank" rel="noreferrer">{mockHomepage}</a>}
+            onCopySuccess={onMetaFieldCopied}
+            value={<a class={`meta-link ${link}`} href={mockHomepage} target="_blank" rel="noreferrer">{mockHomepage}</a>}
           />
           <MetaField
             label="Support"
             tooltip="Where to get help, report bugs, or contact maintainers."
             copyValue={mockSupport}
-            value={<a class="meta-link" href={mockSupport} target="_blank" rel="noreferrer">{mockSupport}</a>}
+            onCopySuccess={onMetaFieldCopied}
+            value={<a class={`meta-link ${link}`} href={mockSupport} target="_blank" rel="noreferrer">{mockSupport}</a>}
           />
           <MetaField
             label="License"
             tooltip="The legal terms for using this app."
+            onCopySuccess={onMetaFieldCopied}
             value={(
-              <span class="meta-inline-actions license-actions">
-                <span class="license-action-label">{mockLicense}</span>
+              <span class={`meta-inline-actions ${inlineActions} license-actions ${licenseActions}`}>
+                <span class={`license-action-label ${licenseLabel}`}>{mockLicense}</span>
                 <Button
                   size="inline"
                   onClick={() => onOpenLicense("Example License", mockLicenseText)}
@@ -179,46 +204,43 @@ export const MockPreviewPage = ({
             label="Trust"
             tooltip="Whether Yambuck could verify the package publisher signature."
             value={mockTrust}
+            onCopySuccess={onMetaFieldCopied}
           />
         </dl>
       </section>
 
-      <section class="meta-section technical">
-        <div class="meta-section-header technical-toggle-only">
-          <button class="meta-toggle" type="button" onClick={onToggleTechnicalDetails}>
+      <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
+        <div class={`meta-section-header technical-toggle-only ${metaSectionHeader} ${technicalToggleOnly}`}>
+          <button class={`meta-toggle ${metaToggle}`} type="button" onClick={onToggleTechnicalDetails}>
             {showMockTechnicalDetails ? "Hide technical details" : "Show technical details"}
           </button>
         </div>
         {showMockTechnicalDetails ? (
-          <dl class="meta-grid">
-            <MetaField label="Package" tooltip="The package file name selected for this install." value="voquill-mock.yambuck" />
-            <MetaField label="Manifest" tooltip="The manifest schema version this package was built with." value={mockManifestVersion} />
-            <MetaField label="App ID" tooltip="A stable identifier Yambuck uses for updates and app tracking." value={mockAppId} />
+          <dl class={`meta-grid ${metaGrid}`}>
+            <MetaField label="Package" tooltip="The package file name selected for this install." value="voquill-mock.yambuck" onCopySuccess={onMetaFieldCopied} />
+            <MetaField label="Manifest" tooltip="The manifest schema version this package was built with." value={mockManifestVersion} onCopySuccess={onMetaFieldCopied} />
+            <MetaField label="App ID" tooltip="A stable identifier Yambuck uses for updates and app tracking." value={mockAppId} onCopySuccess={onMetaFieldCopied} />
             <MetaField
               label="Entrypoint"
               tooltip="The internal command Yambuck uses to launch the installed app."
               copyValue="app/bin/voquill"
+              onCopySuccess={onMetaFieldCopied}
               value={<code>app/bin/voquill</code>}
             />
-            <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={mockAppUuid} />
-            <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={mockPackageUuid} />
+            <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={mockAppUuid} onCopySuccess={onMetaFieldCopied} />
+            <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={mockPackageUuid} onCopySuccess={onMetaFieldCopied} />
           </dl>
         ) : null}
       </section>
 
-      <section class="meta-section long-description">
-        <div class="meta-section-header">
+      <section class={`meta-section long-description ${metaSection} ${longDescriptionSection}`}>
+        <div class={`meta-section-header ${metaSectionHeader}`}>
           <h2>About this app</h2>
         </div>
-        <div class="long-description-card">
+        <div class={`long-description-card ${longDescriptionCard}`}>
           <p>{mockLongDescription}</p>
         </div>
       </section>
-
-      <div class="actions start compact" data-no-drag="true">
-        <Button onClick={onBackToSettings}>Back to Debug</Button>
-        <Button onClick={() => onToastInfo("Try editing styles with npm run dev + HMR.")}>UI hint</Button>
-      </div>
     </Panel>
   );
 };

@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { input } from "./textField.css";
 
 type TextFieldProps = {
   value: string;
@@ -17,7 +18,7 @@ export const TextField = ({
 }: TextFieldProps) => (
   <input
     type={type}
-    class={`text-field${className ? ` ${className}` : ""}`}
+    class={`text-field ${input}${className ? ` ${className}` : ""}`}
     placeholder={placeholder}
     value={value}
     onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>) => onInput((event.currentTarget as HTMLInputElement).value)}

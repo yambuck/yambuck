@@ -19,6 +19,7 @@ type UseInstalledAppsManagerOptions = {
 export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOptions) => {
   const [installedApps, setInstalledApps] = useState<InstalledApp[]>([]);
   const [loadingInstalled, setLoadingInstalled] = useState(false);
+  const [loadingInstalledAppDetails, setLoadingInstalledAppDetails] = useState(false);
   const [installedAppDetails, setInstalledAppDetails] = useState<InstalledAppDetails | null>(null);
   const [uninstallTarget, setUninstallTarget] = useState<InstalledApp | null>(null);
   const [uninstallStep, setUninstallStep] = useState<UninstallStep>("confirm");
@@ -40,16 +41,25 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
     }
   };
 
-  const openInstalledAppDetails = async (app: InstalledApp) => {
+  const openInstalledAppDetailsByAppId = async (appId: string, appLabel: string) => {
+    setLoadingInstalledAppDetails(true);
     try {
-      const details = await getInstalledAppDetailsApi(app.appId);
+      const details = await getInstalledAppDetailsApi(appId);
       setInstalledAppDetails(details);
+      return details;
     } catch {
-      onToast("error", `Could not load archived package details for ${app.displayName}.`);
+      setInstalledAppDetails(null);
+      onToast("error", `Could not load archived package details for ${appLabel}.`);
+      return null;
+    } finally {
+      setLoadingInstalledAppDetails(false);
     }
   };
 
+  const openInstalledAppDetails = async (app: InstalledApp) => openInstalledAppDetailsByAppId(app.appId, app.displayName);
+
   const closeInstalledAppDetails = () => {
+    setLoadingInstalledAppDetails(false);
     setInstalledAppDetails(null);
   };
 
@@ -132,9 +142,11 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
   return {
     installedApps,
     loadingInstalled,
+    loadingInstalledAppDetails,
     refreshInstalledApps,
     installedAppDetails,
     openInstalledAppDetails,
+    openInstalledAppDetailsByAppId,
     closeInstalledAppDetails,
     launchInstalledApp,
     uninstallTarget,

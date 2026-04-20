@@ -1,9 +1,22 @@
 import { Button } from "../../components/ui/Button";
 import { SelectField } from "../../components/ui/SelectField";
+import type { SelectFieldOption } from "../../components/ui/SelectField";
 import { TextField } from "../../components/ui/TextField";
+import { actions, field, fieldLabel, root } from "./installedAppsToolbar.css";
 
 type InstalledAppsScopeFilter = "all" | "user" | "system";
 type InstalledAppsSort = "installed_desc" | "name_asc";
+
+const scopeOptions: SelectFieldOption[] = [
+  { value: "all", label: "All scopes" },
+  { value: "user", label: "User only" },
+  { value: "system", label: "System only" },
+] as const;
+
+const sortOptions: SelectFieldOption[] = [
+  { value: "installed_desc", label: "Newest installed" },
+  { value: "name_asc", label: "Name A-Z" },
+] as const;
 
 type InstalledAppsToolbarProps = {
   searchQuery: string;
@@ -24,9 +37,9 @@ export const InstalledAppsToolbar = ({
   onSortByChange,
   onRefresh,
 }: InstalledAppsToolbarProps) => (
-  <div class="installed-toolbar" data-no-drag="true">
-    <label class="installed-toolbar-field installed-toolbar-search">
-      <span>Search</span>
+  <div class={`${root} installed-toolbar`} data-no-drag="true">
+    <label class={`${field} installed-toolbar-field installed-toolbar-search`}>
+      <span class={fieldLabel}>Search</span>
       <TextField
         type="search"
         placeholder="Search app name"
@@ -35,24 +48,25 @@ export const InstalledAppsToolbar = ({
       />
     </label>
 
-    <label class="installed-toolbar-field">
-      <span>Scope</span>
-      <SelectField value={scopeFilter} onChange={(event) => onScopeFilterChange((event.currentTarget as HTMLSelectElement).value as InstalledAppsScopeFilter)}>
-        <option value="all">All scopes</option>
-        <option value="user">User only</option>
-        <option value="system">System only</option>
-      </SelectField>
+    <label class={`${field} installed-toolbar-field`}>
+      <span class={fieldLabel}>Scope</span>
+      <SelectField
+        value={scopeFilter}
+        onValueChange={(nextScope) => onScopeFilterChange(nextScope as InstalledAppsScopeFilter)}
+        options={scopeOptions}
+      />
     </label>
 
-    <label class="installed-toolbar-field">
-      <span>Sort</span>
-      <SelectField value={sortBy} onChange={(event) => onSortByChange((event.currentTarget as HTMLSelectElement).value as InstalledAppsSort)}>
-        <option value="installed_desc">Newest installed</option>
-        <option value="name_asc">Name A-Z</option>
-      </SelectField>
+    <label class={`${field} installed-toolbar-field`}>
+      <span class={fieldLabel}>Sort</span>
+      <SelectField
+        value={sortBy}
+        onValueChange={(nextSort) => onSortByChange(nextSort as InstalledAppsSort)}
+        options={sortOptions}
+      />
     </label>
 
-    <div class="installed-toolbar-actions">
+    <div class={`${actions} installed-toolbar-actions`}>
       <Button onClick={onRefresh}>Refresh list</Button>
     </div>
   </div>

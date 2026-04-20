@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { panel } from "./panel.css";
 
 type PanelProps = {
   children: ComponentChildren;
@@ -6,7 +7,7 @@ type PanelProps = {
 };
 
 export const Panel = ({ children, class: className }: PanelProps) => (
-  <section class={`panel primary-panel${className ? ` ${className}` : ""}`}>
+  <section class={`${panel}${className ? ` ${className}` : ""}`}>
     {children}
   </section>
 );

@@ -1,7 +1,7 @@
 export type WizardStep = "details" | "trust" | "license" | "scope" | "options" | "progress" | "complete" | "failed";
 export type InstallScope = "user" | "system";
 export type UninstallStep = "confirm" | "options" | "running" | "result";
-export type AppPage = "installer" | "installed" | "settings" | "mockPreview";
+export type AppPage = "installer" | "installed" | "installedReview" | "settings" | "mockPreview" | "mockInstalled" | "mockInstalledReview" | "mockInstallFlow";
 export type SettingsTab = "general" | "debug";
 
 export type InstallerContext = {

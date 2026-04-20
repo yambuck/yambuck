@@ -2,6 +2,8 @@ import type { InstalledApp, InstalledAppDetails, UninstallResult, UninstallStep 
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { ModalShell } from "../../components/ui/ModalShell";
+import { section, updateActions } from "./modalStyles.css";
+import { subtitle } from "../shared/packageUi.css";
 
 type UninstallWizardModalProps = {
   uninstallTarget: InstalledApp;
@@ -31,13 +33,13 @@ export const UninstallWizardModal = ({
   onRunUninstall,
 }: UninstallWizardModalProps) => (
   <ModalShell onClose={onClose} closeTitle="Close uninstall dialog">
-    <section class="modal-section">
+    <section class={`modal-section ${section}`}>
       {uninstallStep === "confirm" ? (
         <>
           <h2>{`Uninstall ${uninstallTarget.displayName}?`}</h2>
-          <p class="subtitle">This removes the app from Yambuck and deletes installed app files.</p>
-          <p class="subtitle">{`Scope: ${uninstallTarget.installScope}`}</p>
-          <div class="update-actions">
+          <p class={`subtitle ${subtitle}`}>This removes the app from Yambuck and deletes installed app files.</p>
+          <p class={`subtitle ${subtitle}`}>{`Scope: ${uninstallTarget.installScope}`}</p>
+          <div class={`update-actions ${updateActions}`}>
             <Button onClick={onClose}>Cancel</Button>
             <Button variant="primary" onClick={() => onSetStep("options")}>Continue</Button>
           </div>
@@ -47,7 +49,7 @@ export const UninstallWizardModal = ({
       {uninstallStep === "options" ? (
         <>
           <h2>Uninstall options</h2>
-          <p class="subtitle">App files will be removed. Choose whether to also remove app data paths.</p>
+          <p class={`subtitle ${subtitle}`}>App files will be removed. Choose whether to also remove app data paths.</p>
           <CheckboxField
             checked={uninstallRemoveUserData}
             onChange={onSetRemoveUserData}
@@ -55,7 +57,7 @@ export const UninstallWizardModal = ({
           >
             Remove user data and settings paths from package manifest
           </CheckboxField>
-          {loadingUninstallDetails ? <p class="subtitle">Loading package metadata...</p> : null}
+          {loadingUninstallDetails ? <p class={`subtitle ${subtitle}`}>Loading package metadata...</p> : null}
           {uninstallDetails?.packageInfo ? (
             <ul class="system-info-list">
               {uninstallDetails.packageInfo.configPath ? <li>Config: <code>{uninstallDetails.packageInfo.configPath}</code></li> : null}
@@ -63,7 +65,7 @@ export const UninstallWizardModal = ({
               {uninstallDetails.packageInfo.tempPath ? <li>Temp: <code>{uninstallDetails.packageInfo.tempPath}</code></li> : null}
             </ul>
           ) : null}
-          <div class="update-actions">
+          <div class={`update-actions ${updateActions}`}>
             <Button onClick={() => onSetStep("confirm")}>Back</Button>
             <Button variant="primary" onClick={onRunUninstall}>Uninstall</Button>
           </div>
@@ -73,17 +75,17 @@ export const UninstallWizardModal = ({
       {uninstallStep === "running" ? (
         <>
           <h2>Uninstalling...</h2>
-          <p class="subtitle">Removing application files and updating installed app index.</p>
+          <p class={`subtitle ${subtitle}`}>Removing application files and updating installed app index.</p>
         </>
       ) : null}
 
       {uninstallStep === "result" ? (
         <>
           <h2>{uninstallError ? "Uninstall failed" : "Uninstall complete"}</h2>
-          {uninstallError ? <p class="subtitle">{uninstallError}</p> : null}
+          {uninstallError ? <p class={`subtitle ${subtitle}`}>{uninstallError}</p> : null}
           {uninstallResult?.warnings.length ? (
             <>
-              <p class="subtitle">Completed with warnings:</p>
+              <p class={`subtitle ${subtitle}`}>Completed with warnings:</p>
               <ul class="system-info-list">
                 {uninstallResult.warnings.map((warning) => (
                   <li key={warning}>{warning}</li>
@@ -91,7 +93,7 @@ export const UninstallWizardModal = ({
               </ul>
             </>
           ) : null}
-          <div class="update-actions">
+          <div class={`update-actions ${updateActions}`}>
             <Button variant="primary" onClick={onClose}>Close</Button>
           </div>
         </>
