@@ -11,25 +11,56 @@ import {
   colVersion,
   icon,
   iconPlaceholder,
+  sortButton,
+  sortIndicator,
   table,
   versionChip,
   wrap,
 } from "./installedAppsTable.css";
 
+type InstalledAppsSortField = "name" | "installedAt";
+type InstalledAppsSortDirection = "asc" | "desc";
+
 type InstalledAppsTableProps = {
   apps: InstalledApp[];
   onOpenDetails: (app: InstalledApp) => void;
+  sortField: InstalledAppsSortField;
+  sortDirection: InstalledAppsSortDirection;
+  onSortFieldChange: (field: InstalledAppsSortField) => void;
 };
 
-export const InstalledAppsTable = ({ apps, onOpenDetails }: InstalledAppsTableProps) => (
+export const InstalledAppsTable = ({
+  apps,
+  onOpenDetails,
+  sortField,
+  sortDirection,
+  onSortFieldChange,
+}: InstalledAppsTableProps) => (
   <div class={`${wrap} installed-table-wrap`}>
     <table class={`${table} installed-table`}>
       <thead>
         <tr>
-          <th>Application</th>
+          <th aria-sort={sortField === "name" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+            <button type="button" class={sortButton} onClick={() => onSortFieldChange("name")}>
+              Application
+              <span class={sortIndicator} aria-hidden="true">
+                {sortField === "name" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+              </span>
+            </button>
+          </th>
           <th class={`${colVersion} col-version`}>Version</th>
           <th class={`${colScope} col-scope`}>Scope</th>
-          <th class={`${colInstalled} col-installed`}>Installed</th>
+          <th
+            class={`${colInstalled} col-installed`}
+            aria-sort={sortField === "installedAt" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+          >
+            <button type="button" class={sortButton} onClick={() => onSortFieldChange("installedAt")}>
+              Installed
+              <span class={sortIndicator} aria-hidden="true">
+                {sortField === "installedAt" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+              </span>
+            </button>
+          </th>
         </tr>
       </thead>
       <tbody>

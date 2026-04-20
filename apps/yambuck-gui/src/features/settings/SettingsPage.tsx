@@ -11,9 +11,10 @@ import {
   settingsGrid,
   systemInfoCode,
   systemInfoList,
+  tabDescription,
   tabs,
 } from "./settingsPage.css";
-import { actions, actionsCompact, actionsStart, subtitle } from "../shared/packageUi.css";
+import { actions, actionsCompact, actionsStart } from "../shared/packageUi.css";
 
 type SettingsPageProps = {
   settingsTab: SettingsTab;
@@ -48,7 +49,6 @@ export const SettingsPage = ({
 }: SettingsPageProps) => (
   <Panel class={pagePanel}>
     <h1>Settings</h1>
-    <p class={`subtitle ${subtitle}`}>Configure Yambuck behavior and inspect diagnostics.</p>
 
     <div class={`${tabs} settings-tabs`} data-no-drag="true">
       <button
@@ -64,6 +64,12 @@ export const SettingsPage = ({
         Debug
       </button>
     </div>
+
+    <p class={tabDescription}>
+      {settingsTab === "general"
+        ? "Configure update checks and install behavior defaults."
+        : "Inspect runtime details, logs, and mock UI screens."}
+    </p>
 
     {settingsTab === "general" ? (
       <div class={`${settingsGrid} settings-grid`}>

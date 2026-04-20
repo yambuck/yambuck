@@ -8,22 +8,27 @@ export const tabs = style({
   margin: "0.95rem 0 0.9rem",
 });
 
+export const tabDescription = style({
+  margin: "0 0 0.8rem",
+  color: "var(--colors-style-color070)",
+});
+
 export const settingsGrid = style({
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "0.8rem",
-  '@media': {
-    '(max-width: 980px)': {
-      gridTemplateColumns: "1fr",
-    },
-  },
+  gridTemplateColumns: "1fr",
+  rowGap: "0.25rem",
+  borderTop: "1px solid var(--colors-style-color068)",
+  paddingTop: "0.9rem",
 });
 
 export const settingCard = style({
-  borderRadius: "14px",
-  border: "1px solid var(--colors-style-color068)",
-  background: "var(--colors-style-color069)",
-  padding: "0.95rem",
+  padding: "0.2rem 0 0.35rem",
+  selectors: {
+    '&:not(:first-child)': {
+      borderTop: "1px solid var(--colors-style-color068)",
+      paddingTop: "1rem",
+    },
+  },
 });
 
 export const settingCardDescription = style({
@@ -33,14 +38,19 @@ export const settingCardDescription = style({
 
 export const debugStack = style({
   display: "grid",
-  gap: "0.85rem",
+  gap: "0.25rem",
+  borderTop: "1px solid var(--colors-style-color068)",
+  paddingTop: "0.9rem",
 });
 
 export const debugSection = style({
-  borderRadius: "14px",
-  border: "1px solid var(--colors-style-color068)",
-  background: "var(--colors-style-color069)",
-  padding: "0.95rem",
+  padding: "0.35rem 0 0.65rem",
+  selectors: {
+    '&:not(:first-child)': {
+      borderTop: "1px solid var(--colors-style-color068)",
+      paddingTop: "1rem",
+    },
+  },
 });
 
 export const systemInfoList = style({

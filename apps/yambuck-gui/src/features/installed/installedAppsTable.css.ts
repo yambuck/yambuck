@@ -153,6 +153,37 @@ export const colInstalled = style({
   },
 });
 
+export const sortButton = style({
+  border: 0,
+  background: "transparent",
+  color: "inherit",
+  padding: 0,
+  margin: 0,
+  font: "inherit",
+  letterSpacing: "inherit",
+  textTransform: "inherit",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.32rem",
+  cursor: "pointer",
+  selectors: {
+    '&:focus-visible': {
+      outline: "none",
+      boxShadow: "0 0 0 3px var(--colors-select-focus-ring)",
+      borderRadius: "8px",
+    },
+  },
+});
+
+export const sortIndicator = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "0.9rem",
+  fontSize: "0.8rem",
+  color: "var(--colors-style-color055)",
+});
+
 globalStyle(`${table} th.${colVersion}, ${table} td.${colVersion}`, {
   textAlign: "center",
 });

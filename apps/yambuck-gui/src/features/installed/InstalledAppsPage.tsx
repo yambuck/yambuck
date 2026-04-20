@@ -5,6 +5,9 @@ import { InstalledAppsTable } from "./InstalledAppsTable";
 import { InstalledAppsToolbar } from "./InstalledAppsToolbar";
 import type { InstalledApp } from "../../types/app";
 
+type InstalledAppsSortField = "name" | "installedAt";
+type InstalledAppsSortDirection = "asc" | "desc";
+
 type InstalledAppsPageProps = {
   loadingInstalled: boolean;
   installedApps: InstalledApp[];
@@ -20,7 +23,17 @@ export const InstalledAppsPage = ({
 }: InstalledAppsPageProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState<"all" | "user" | "system">("all");
-  const [sortBy, setSortBy] = useState<"installed_desc" | "name_asc">("installed_desc");
+  const [sortField, setSortField] = useState<InstalledAppsSortField>("installedAt");
+  const [sortDirection, setSortDirection] = useState<InstalledAppsSortDirection>("desc");
+
+  const handleSortChange = (field: InstalledAppsSortField) => {
+    if (sortField === field) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortField(field);
+    setSortDirection(field === "name" ? "asc" : "desc");
+  };
 
   const visibleApps = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -34,12 +47,18 @@ export const InstalledAppsPage = ({
         return true;
       }
 
-      return app.displayName.toLowerCase().includes(query);
+      return app.displayName.toLowerCase().includes(query) || app.appId.toLowerCase().includes(query);
     });
 
     const sorted = [...filtered];
-    if (sortBy === "name_asc") {
-      sorted.sort((left, right) => left.displayName.localeCompare(right.displayName));
+    if (sortField === "name") {
+      sorted.sort((left, right) => {
+        const comparison = left.displayName.localeCompare(right.displayName);
+        if (comparison !== 0) {
+          return sortDirection === "asc" ? comparison : -comparison;
+        }
+        return left.appId.localeCompare(right.appId);
+      });
       return sorted;
     }
 
@@ -47,12 +66,12 @@ export const InstalledAppsPage = ({
       const leftTime = Date.parse(left.installedAt);
       const rightTime = Date.parse(right.installedAt);
       if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
-        return right.displayName.localeCompare(left.displayName);
+        return left.displayName.localeCompare(right.displayName);
       }
-      return rightTime - leftTime;
+      return sortDirection === "asc" ? leftTime - rightTime : rightTime - leftTime;
     });
     return sorted;
-  }, [installedApps, scopeFilter, searchQuery, sortBy]);
+  }, [installedApps, scopeFilter, searchQuery, sortField, sortDirection]);
 
   return (
     <Panel>
@@ -62,10 +81,8 @@ export const InstalledAppsPage = ({
       <InstalledAppsToolbar
         searchQuery={searchQuery}
         scopeFilter={scopeFilter}
-        sortBy={sortBy}
         onSearchQueryChange={setSearchQuery}
         onScopeFilterChange={setScopeFilter}
-        onSortByChange={setSortBy}
         onRefresh={onRefresh}
       />
 
@@ -81,6 +98,9 @@ export const InstalledAppsPage = ({
         <InstalledAppsTable
           apps={visibleApps}
           onOpenDetails={onOpenDetails}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSortFieldChange={handleSortChange}
         />
       ) : null}
     </Panel>
