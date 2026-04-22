@@ -121,9 +121,11 @@ pub(crate) fn validate_install_options_impl(
         .map_err(|error| error.to_string())
 }
 
-pub(crate) fn get_install_decision_impl(workflow_id: &str) -> Result<InstallDecision, String> {
+pub(crate) fn get_install_decision_impl(workflow_id: &str, scope: &str) -> Result<InstallDecision, String> {
     let workflow = get_workflow_from_session(workflow_id)?;
-    yambuck_core::evaluate_install_decision(&workflow.package_info)
+    let install_scope =
+        yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    yambuck_core::evaluate_install_decision(&workflow.package_info, install_scope)
         .map_err(|error| error.to_string())
 }
 

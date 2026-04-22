@@ -433,7 +433,7 @@ export const useInstallerFlow = ({
         return;
       }
 
-      const decision = await getInstallDecision(workflowId);
+      const decision = await getInstallDecision(workflowId, scope);
       setInstallDecision(decision);
 
       if (decision.action === "blocked_identity_mismatch") {
@@ -442,17 +442,15 @@ export const useInstallerFlow = ({
         return;
       }
 
-      if (decision.action === "update") {
-        setManagedExistingInstall(true);
-        onToast("info", decision.message);
-      } else if (decision.action === "reinstall") {
-        setManagedExistingInstall(true);
-        onToast("info", decision.message);
-      } else if (decision.action === "downgrade") {
-        setManagedExistingInstall(true);
+      const isScopedExisting =
+        decision.action === "update"
+        || decision.action === "reinstall"
+        || decision.action === "downgrade";
+      setManagedExistingInstall(isScopedExisting);
+      if (decision.action === "downgrade") {
         onToast("warning", decision.message, 6200);
-      } else if (result.status === "managed_existing") {
-        setManagedExistingInstall(true);
+      } else if (isScopedExisting) {
+        onToast("info", decision.message);
       }
 
       setStep("trust");
@@ -462,6 +460,29 @@ export const useInstallerFlow = ({
       setCheckingPreflight(false);
     }
   };
+
+  useEffect(() => {
+    const refreshDecisionForSelectedScope = async () => {
+      if (step !== "scope" || !workflowId) {
+        return;
+      }
+
+      try {
+        const decision = await getInstallDecision(workflowId, scope);
+        setInstallDecision(decision);
+        const isScopedExisting =
+          decision.action === "update"
+          || decision.action === "reinstall"
+          || decision.action === "downgrade";
+        setManagedExistingInstall(isScopedExisting);
+      } catch {
+        setInstallDecision(null);
+        setManagedExistingInstall(false);
+      }
+    };
+
+    void refreshDecisionForSelectedScope();
+  }, [step, workflowId, scope]);
 
   const continueFromTrustStep = () => {
     if (!packageInfo || !workflowId) {

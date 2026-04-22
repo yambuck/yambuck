@@ -64,6 +64,9 @@ export type InstallDecision = {
   action: InstallAction;
   message: string;
   existingVersion?: string;
+  existingScope?: InstallScope;
+  otherScopeExistingVersion?: string;
+  otherScope?: InstallScope;
   incomingVersion: string;
 };
 

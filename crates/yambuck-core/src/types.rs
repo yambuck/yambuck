@@ -67,6 +67,9 @@ pub struct InstallDecision {
     pub action: InstallAction,
     pub message: String,
     pub existing_version: Option<String>,
+    pub existing_scope: Option<InstallScope>,
+    pub other_scope_existing_version: Option<String>,
+    pub other_scope: Option<InstallScope>,
     pub incoming_version: String,
 }
 

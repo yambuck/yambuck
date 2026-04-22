@@ -208,7 +208,7 @@ pub fn install_and_register(
     destination_path: &str,
     allow_downgrade: bool,
 ) -> Result<InstalledApp, YambuckError> {
-    enforce_install_policy(package_info, allow_downgrade)?;
+    enforce_install_policy(package_info, scope, allow_downgrade)?;
     validate_destination_path(scope, destination_path, &package_info.app_id)?;
 
     let mut transaction =
@@ -300,6 +300,7 @@ fn validate_destination_path(
 
 pub fn evaluate_install_decision(
     package_info: &PackageInfo,
+    scope: InstallScope,
 ) -> Result<InstallDecision, YambuckError> {
     if package_info.app_id.trim().is_empty() || package_info.app_uuid.trim().is_empty() {
         return Err(YambuckError::InvalidAppId);
@@ -312,11 +313,14 @@ pub fn evaluate_install_decision(
             message: "No existing Yambuck-managed install found. This will be a new install."
                 .to_string(),
             existing_version: None,
+            existing_scope: None,
+            other_scope_existing_version: None,
+            other_scope: None,
             incoming_version: package_info.version.clone(),
         });
     }
 
-    let mut matching_uuid = existing_records
+    let matching_uuid = existing_records
         .iter()
         .filter(|record| record.app_uuid == package_info.app_uuid)
         .collect::<Vec<&InstalledAppRecord>>();
@@ -326,44 +330,71 @@ pub fn evaluate_install_decision(
             action: InstallAction::BlockedIdentityMismatch,
             message: "An installed app with this appId has a different appUuid. Install is blocked to protect identity integrity.".to_string(),
             existing_version: existing_records.first().map(|record| record.version.clone()),
+            existing_scope: existing_records.first().map(|record| record.install_scope),
+            other_scope_existing_version: None,
+            other_scope: None,
             incoming_version: package_info.version.clone(),
         });
     }
 
-    matching_uuid.sort_by(|left, right| compare_versions(&left.version, &right.version));
-    let selected = matching_uuid
-        .last()
-        .copied()
-        .ok_or(YambuckError::InstallFailed)?;
+    let selected_scope_record = highest_version_record_for_scope(&matching_uuid, scope);
+    let other_scope = opposite_scope(scope);
+    let other_scope_record = highest_version_record_for_scope(&matching_uuid, other_scope);
 
-    let action = match compare_versions(&package_info.version, &selected.version) {
-        std::cmp::Ordering::Greater => InstallAction::Update,
-        std::cmp::Ordering::Equal => InstallAction::Reinstall,
-        std::cmp::Ordering::Less => InstallAction::Downgrade,
-    };
+    if let Some(selected) = selected_scope_record {
+        let action = match compare_versions(&package_info.version, &selected.version) {
+            std::cmp::Ordering::Greater => InstallAction::Update,
+            std::cmp::Ordering::Equal => InstallAction::Reinstall,
+            std::cmp::Ordering::Less => InstallAction::Downgrade,
+        };
 
-    let message = match action {
-        InstallAction::Update => "A newer package version is available. Installing will update the existing app.".to_string(),
-        InstallAction::Reinstall => "This package matches the installed version. Installing will reinstall the app.".to_string(),
-        InstallAction::Downgrade => "This package is older than the installed version. Downgrade requires explicit confirmation.".to_string(),
-        InstallAction::NewInstall | InstallAction::BlockedIdentityMismatch => {
-            "Install decision evaluated.".to_string()
-        }
-    };
+        let message = match action {
+            InstallAction::Update => {
+                "A newer package version is available in the selected scope. Installing will update that install."
+                    .to_string()
+            }
+            InstallAction::Reinstall => {
+                "This package matches the installed version in the selected scope. Installing will reinstall that scope."
+                    .to_string()
+            }
+            InstallAction::Downgrade => {
+                "This package is older than the installed version in the selected scope. Downgrade requires explicit confirmation.".to_string()
+            }
+            InstallAction::NewInstall | InstallAction::BlockedIdentityMismatch => {
+                "Install decision evaluated.".to_string()
+            }
+        };
+
+        return Ok(InstallDecision {
+            action,
+            message,
+            existing_version: Some(selected.version.clone()),
+            existing_scope: Some(scope),
+            other_scope_existing_version: other_scope_record.map(|record| record.version.clone()),
+            other_scope: other_scope_record.map(|_| other_scope),
+            incoming_version: package_info.version.clone(),
+        });
+    }
 
     Ok(InstallDecision {
-        action,
-        message,
-        existing_version: Some(selected.version.clone()),
+        action: InstallAction::NewInstall,
+        message:
+            "No existing install was found in the selected scope. This will be a new install in that scope."
+                .to_string(),
+        existing_version: None,
+        existing_scope: None,
+        other_scope_existing_version: other_scope_record.map(|record| record.version.clone()),
+        other_scope: other_scope_record.map(|_| other_scope),
         incoming_version: package_info.version.clone(),
     })
 }
 
 fn enforce_install_policy(
     package_info: &PackageInfo,
+    scope: InstallScope,
     allow_downgrade: bool,
 ) -> Result<(), YambuckError> {
-    let decision = evaluate_install_decision(package_info)?;
+    let decision = evaluate_install_decision(package_info, scope)?;
 
     if decision.action == InstallAction::BlockedIdentityMismatch {
         return Err(YambuckError::InstallPolicyBlocked(decision.message));
@@ -376,6 +407,26 @@ fn enforce_install_policy(
     }
 
     Ok(())
+}
+
+fn highest_version_record_for_scope<'a>(
+    records: &'a [&'a InstalledAppRecord],
+    scope: InstallScope,
+) -> Option<&'a InstalledAppRecord> {
+    let mut scoped = records
+        .iter()
+        .copied()
+        .filter(|record| record.install_scope == scope)
+        .collect::<Vec<&InstalledAppRecord>>();
+    scoped.sort_by(|left, right| compare_versions(&left.version, &right.version));
+    scoped.last().copied()
+}
+
+fn opposite_scope(scope: InstallScope) -> InstallScope {
+    match scope {
+        InstallScope::User => InstallScope::System,
+        InstallScope::System => InstallScope::User,
+    }
 }
 
 fn all_records_for_app(app_id: &str) -> Vec<InstalledAppRecord> {

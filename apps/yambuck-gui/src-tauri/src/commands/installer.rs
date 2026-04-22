@@ -28,8 +28,8 @@ pub fn validate_install_options(
 }
 
 #[tauri::command]
-pub fn get_install_decision(workflow_id: &str) -> Result<InstallDecision, String> {
-    crate::get_install_decision_impl(workflow_id)
+pub fn get_install_decision(workflow_id: &str, scope: &str) -> Result<InstallDecision, String> {
+    crate::get_install_decision_impl(workflow_id, scope)
 }
 
 #[tauri::command]

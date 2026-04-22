@@ -23,8 +23,8 @@ export const inspectPackageWorkflow = (packageFile: string) =>
 export const validateInstallOptions = (workflowId: string, submissions: InstallOptionSubmission[]) =>
   invoke<InstallOptionSubmission[]>("validate_install_options", { workflowId, submissions });
 
-export const getInstallDecision = (workflowId: string) =>
-  invoke<InstallDecision>("get_install_decision", { workflowId });
+export const getInstallDecision = (workflowId: string, scope: string) =>
+  invoke<InstallDecision>("get_install_decision", { workflowId, scope });
 
 export const discardInstallWorkflow = (workflowId: string) =>
   invoke("discard_install_workflow", { workflowId });

@@ -410,6 +410,15 @@ export const InstallerPage = ({
             <small>May require admin permissions.</small>
           </label>
         </div>
+        {installDecision?.otherScope && installDecision.otherScopeExistingVersion ? (
+          <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
+            <p class={`trust-title ${trustTitle}`}>Also installed in another scope</p>
+            <p>
+              You already have version <code>{installDecision.otherScopeExistingVersion}</code> installed in {" "}
+              <strong>{formatInstallScopeLabel(installDecision.otherScope)}</strong>.
+            </p>
+          </div>
+        ) : null}
         {managedExistingInstall ? (
           <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
             <div class={`meta-section-header ${metaSectionHeader}`}>

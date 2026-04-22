@@ -57,8 +57,9 @@ pub fn install_and_register(
 
 pub fn evaluate_install_decision(
     package_info: &PackageInfo,
+    scope: InstallScope,
 ) -> Result<InstallDecision, YambuckError> {
-    install_flow::evaluate_install_decision(package_info)
+    install_flow::evaluate_install_decision(package_info, scope)
 }
 
 pub fn create_install_preview(
