@@ -24,6 +24,7 @@ import { getInstallerContext } from "./lib/tauri/api";
 import { mockInstalledApps, toMockInstalledAppDetails } from "./mocks/mockData";
 import type {
   AppPage,
+  InstallScope,
   InstalledApp,
   InstallerContext,
   SettingsTab,
@@ -34,14 +35,37 @@ import "./App.css";
 type RouteState = {
   page: AppPage;
   settingsTab: SettingsTab;
-  installedReviewAppId: string | null;
+  installedReviewTarget: string | null;
   mockInstalledReviewAppId: string | null;
+};
+
+const makeInstalledReviewTarget = (appId: string, installScope: InstallScope): string => `${appId}::${installScope}`;
+
+const parseInstalledReviewTarget = (
+  value: string | null,
+): { appId: string; installScope: InstallScope } | null => {
+  if (!value) {
+    return null;
+  }
+
+  const delimiter = value.lastIndexOf("::");
+  if (delimiter <= 0 || delimiter === value.length - 2) {
+    return null;
+  }
+
+  const appId = value.slice(0, delimiter);
+  const scopeCandidate = value.slice(delimiter + 2);
+  if (scopeCandidate !== "user" && scopeCandidate !== "system") {
+    return null;
+  }
+
+  return { appId, installScope: scopeCandidate };
 };
 
 const routeFromHash = (hash: string): RouteState => {
   const segments = hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   if (segments.length === 0 || segments[0] === "installer") {
-    return { page: "installer", settingsTab: "general", installedReviewAppId: null, mockInstalledReviewAppId: null };
+    return { page: "installer", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
   }
 
   if (segments[0] === "installed") {
@@ -49,18 +73,18 @@ const routeFromHash = (hash: string): RouteState => {
       return {
         page: "installedReview",
         settingsTab: "general",
-        installedReviewAppId: decodeURIComponent(segments.slice(2).join("/")),
+        installedReviewTarget: decodeURIComponent(segments.slice(2).join("/")),
         mockInstalledReviewAppId: null,
       };
     }
-    return { page: "installed", settingsTab: "general", installedReviewAppId: null, mockInstalledReviewAppId: null };
+    return { page: "installed", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
   }
 
   if (segments[0] === "settings") {
     return {
       page: "settings",
       settingsTab: segments[1] === "debug" ? "debug" : "general",
-      installedReviewAppId: null,
+      installedReviewTarget: null,
       mockInstalledReviewAppId: null,
     };
   }
@@ -71,22 +95,22 @@ const routeFromHash = (hash: string): RouteState => {
         return {
           page: "mockInstalledReview",
           settingsTab: "general",
-          installedReviewAppId: null,
+          installedReviewTarget: null,
           mockInstalledReviewAppId: decodeURIComponent(segments.slice(3).join("/")),
         };
       }
-      return { page: "mockInstalled", settingsTab: "general", installedReviewAppId: null, mockInstalledReviewAppId: null };
+      return { page: "mockInstalled", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
     }
     if (segments[1] === "install-flow") {
-      return { page: "mockInstallFlow", settingsTab: "general", installedReviewAppId: null, mockInstalledReviewAppId: null };
+      return { page: "mockInstallFlow", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
     }
-    return { page: "mockPreview", settingsTab: "general", installedReviewAppId: null, mockInstalledReviewAppId: null };
+    return { page: "mockPreview", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
   }
 
-  return { page: "installer", settingsTab: "general", installedReviewAppId: null, mockInstalledReviewAppId: null };
+  return { page: "installer", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
 };
 
-const hashFromRoute = ({ page, settingsTab, installedReviewAppId, mockInstalledReviewAppId }: RouteState): string => {
+const hashFromRoute = ({ page, settingsTab, installedReviewTarget, mockInstalledReviewAppId }: RouteState): string => {
   if (page === "installer") {
     return "#/installer";
   }
@@ -94,7 +118,7 @@ const hashFromRoute = ({ page, settingsTab, installedReviewAppId, mockInstalledR
     return "#/installed";
   }
   if (page === "installedReview") {
-    return installedReviewAppId ? `#/installed/review/${encodeURIComponent(installedReviewAppId)}` : "#/installed";
+    return installedReviewTarget ? `#/installed/review/${encodeURIComponent(installedReviewTarget)}` : "#/installed";
   }
   if (page === "settings") {
     return settingsTab === "debug" ? "#/settings/debug" : "#/settings";
@@ -116,7 +140,7 @@ const hashFromRoute = ({ page, settingsTab, installedReviewAppId, mockInstalledR
 function App() {
   const [page, setPage] = useState<AppPage>(() => routeFromHash(window.location.hash).page);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>(() => routeFromHash(window.location.hash).settingsTab);
-  const [installedReviewAppId, setInstalledReviewAppId] = useState<string | null>(() => routeFromHash(window.location.hash).installedReviewAppId);
+  const [installedReviewTarget, setInstalledReviewTarget] = useState<string | null>(() => routeFromHash(window.location.hash).installedReviewTarget);
   const [showInstalledReviewTechnicalDetails, setShowInstalledReviewTechnicalDetails] = useState(false);
   const [mockInstalledReviewAppId, setMockInstalledReviewAppId] = useState<string | null>(() => routeFromHash(window.location.hash).mockInstalledReviewAppId);
   const [showMockInstalledReviewTechnicalDetails, setShowMockInstalledReviewTechnicalDetails] = useState(false);
@@ -145,7 +169,8 @@ function App() {
     loadingInstalledAppDetails,
     refreshInstalledApps,
     installedAppDetails,
-    openInstalledAppDetailsByAppId,
+    openInstalledAppDetails,
+    openInstalledAppDetailsByIdentity,
     closeInstalledAppDetails,
     launchInstalledApp,
     uninstallTarget,
@@ -265,7 +290,7 @@ function App() {
       const route = routeFromHash(window.location.hash);
       setPage(route.page);
       setSettingsTab(route.settingsTab);
-      setInstalledReviewAppId(route.installedReviewAppId);
+      setInstalledReviewTarget(route.installedReviewTarget);
       setMockInstalledReviewAppId(route.mockInstalledReviewAppId);
       if (route.page !== "installedReview") {
         closeInstalledAppDetails();
@@ -284,27 +309,42 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const nextHash = hashFromRoute({ page, settingsTab, installedReviewAppId, mockInstalledReviewAppId });
+    const nextHash = hashFromRoute({ page, settingsTab, installedReviewTarget, mockInstalledReviewAppId });
     if (window.location.hash !== nextHash) {
       window.location.hash = nextHash;
     }
-  }, [page, settingsTab, installedReviewAppId, mockInstalledReviewAppId]);
+  }, [page, settingsTab, installedReviewTarget, mockInstalledReviewAppId]);
 
   useEffect(() => {
-    if (page !== "installedReview" || !installedReviewAppId) {
-      return;
-    }
-    if (installedAppDetails?.appId === installedReviewAppId) {
+    if (page !== "installedReview" || !installedReviewTarget) {
       return;
     }
 
-    void openInstalledAppDetailsByAppId(installedReviewAppId, installedReviewAppId).then((details) => {
+    const parsedTarget = parseInstalledReviewTarget(installedReviewTarget);
+    if (!parsedTarget) {
+      setInstalledReviewTarget(null);
+      setPage("installed");
+      return;
+    }
+
+    if (
+      installedAppDetails?.appId === parsedTarget.appId
+      && installedAppDetails.installScope === parsedTarget.installScope
+    ) {
+      return;
+    }
+
+    void openInstalledAppDetailsByIdentity(
+      parsedTarget.appId,
+      parsedTarget.installScope,
+      parsedTarget.appId,
+    ).then((details) => {
       if (!details) {
-        setInstalledReviewAppId(null);
+        setInstalledReviewTarget(null);
         setPage("installed");
       }
     });
-  }, [page, installedReviewAppId, installedAppDetails?.appId]);
+  }, [page, installedReviewTarget, installedAppDetails?.appId, installedAppDetails?.installScope]);
 
   useEffect(() => {
     if (page === "installed" || page === "installedReview") {
@@ -329,20 +369,21 @@ function App() {
   };
 
   const navigateToInstalledList = () => {
-    setInstalledReviewAppId(null);
+    setInstalledReviewTarget(null);
     setMockInstalledReviewAppId(null);
     closeInstalledAppDetails();
     setShowInstalledReviewTechnicalDetails(false);
     setPage("installed");
   };
 
-  const openInstalledReview = async (app: { appId: string; displayName: string }) => {
-    setInstalledReviewAppId(app.appId);
+  const openInstalledReview = async (app: InstalledApp) => {
+    const reviewTarget = makeInstalledReviewTarget(app.appId, app.installScope);
+    setInstalledReviewTarget(reviewTarget);
     setShowInstalledReviewTechnicalDetails(false);
     setPage("installedReview");
-    const details = await openInstalledAppDetailsByAppId(app.appId, app.displayName);
+    const details = await openInstalledAppDetails(app);
     if (!details) {
-      setInstalledReviewAppId(null);
+      setInstalledReviewTarget(null);
       setPage("installed");
     }
   };
@@ -428,7 +469,11 @@ function App() {
   );
 
   const renderInstalledReviewPage = () => {
-    if (!installedAppDetails || (installedReviewAppId && installedAppDetails.appId !== installedReviewAppId)) {
+    const parsedTarget = parseInstalledReviewTarget(installedReviewTarget);
+    const isMismatchedTarget = parsedTarget
+      ? installedAppDetails?.appId !== parsedTarget.appId || installedAppDetails.installScope !== parsedTarget.installScope
+      : true;
+    if (!installedAppDetails || isMismatchedTarget) {
       return (
         <Panel>
           <h1>Loading app review...</h1>
@@ -594,7 +639,7 @@ function App() {
             class={`toggle-pill ${page === "installer" ? "active" : ""}`}
             onClick={() => {
               closeInstalledAppDetails();
-              setInstalledReviewAppId(null);
+              setInstalledReviewTarget(null);
               setMockInstalledReviewAppId(null);
               setPage("installer");
             }}
@@ -611,11 +656,11 @@ function App() {
         <WindowControls
           settingsActive={page === "settings"}
           isMaximized={isMaximized}
-          onOpenSettings={() => {
-            closeInstalledAppDetails();
-            setInstalledReviewAppId(null);
-            setMockInstalledReviewAppId(null);
-            setPage("settings");
+            onOpenSettings={() => {
+              closeInstalledAppDetails();
+              setInstalledReviewTarget(null);
+              setMockInstalledReviewAppId(null);
+              setPage("settings");
             setSettingsTab("general");
           }}
           onMinimize={() => void handleMinimize()}

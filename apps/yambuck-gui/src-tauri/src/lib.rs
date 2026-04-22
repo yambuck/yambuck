@@ -149,8 +149,13 @@ pub(crate) fn list_installed_apps_impl() -> Vec<InstalledApp> {
     yambuck_core::list_installed_apps()
 }
 
-pub(crate) fn get_installed_app_details_impl(app_id: &str) -> Result<InstalledAppDetails, String> {
-    yambuck_core::get_installed_app_details(app_id).map_err(|error| error.to_string())
+pub(crate) fn get_installed_app_details_impl(
+    app_id: &str,
+    scope: &str,
+) -> Result<InstalledAppDetails, String> {
+    let install_scope =
+        yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    yambuck_core::get_installed_app_details(app_id, install_scope).map_err(|error| error.to_string())
 }
 
 pub(crate) fn uninstall_installed_app_impl(
@@ -232,8 +237,10 @@ pub fn maybe_run_elevated_install_mode(args: &[String]) -> Option<i32> {
     support::elevation::maybe_run_elevated_install_mode(args)
 }
 
-pub(crate) fn launch_installed_app_impl(app_id: &str) -> Result<(), String> {
-    yambuck_core::launch_installed_app(app_id).map_err(|error| error.to_string())
+pub(crate) fn launch_installed_app_impl(app_id: &str, scope: &str) -> Result<(), String> {
+    let install_scope =
+        yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
+    yambuck_core::launch_installed_app(app_id, install_scope).map_err(|error| error.to_string())
 }
 
 pub(crate) fn preflight_install_check_impl(app_id: &str) -> Result<PreflightCheckResult, String> {

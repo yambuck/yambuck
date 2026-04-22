@@ -648,7 +648,9 @@ export const useInstallerFlow = ({
 
       try {
         const installedApps = await listInstalledApps();
-        const existing = installedApps.find((installed) => installed.appId === selectedPackage.appId);
+        const existing = installedApps.find(
+          (installed) => installed.appId === selectedPackage.appId && installed.installScope === scope,
+        );
         if (existing) {
           await uninstallInstalledApp(existing.appId, existing.installScope, true);
           onToast("info", "Existing install and app data removed. Continuing reinstall.");

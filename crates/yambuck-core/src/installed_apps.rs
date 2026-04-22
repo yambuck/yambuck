@@ -44,12 +44,15 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
     apps
 }
 
-pub fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, YambuckError> {
+pub fn get_installed_app_details(
+    app_id: &str,
+    scope: InstallScope,
+) -> Result<InstalledAppDetails, YambuckError> {
     if app_id.trim().is_empty() {
         return Err(YambuckError::InvalidAppId);
     }
 
-    let record = find_installed_record(app_id).ok_or(YambuckError::AppNotInstalled)?;
+    let record = find_installed_record(app_id, scope).ok_or(YambuckError::AppNotInstalled)?;
     let archive_path = record
         .package_archive_path
         .clone()
@@ -138,12 +141,12 @@ pub fn uninstall_installed_app(
     })
 }
 
-pub fn launch_installed_app(app_id: &str) -> Result<(), YambuckError> {
+pub fn launch_installed_app(app_id: &str, scope: InstallScope) -> Result<(), YambuckError> {
     if app_id.trim().is_empty() {
         return Err(YambuckError::InvalidAppId);
     }
 
-    let record = find_installed_record(app_id).ok_or(YambuckError::AppNotInstalled)?;
+    let record = find_installed_record(app_id, scope).ok_or(YambuckError::AppNotInstalled)?;
     let executable_path = resolve_entrypoint_path(&record.destination_path, &record.entrypoint)?;
 
     if !executable_path.exists() {

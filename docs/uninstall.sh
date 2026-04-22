@@ -97,6 +97,7 @@ fi
 
 user_bin_path="${HOME}/.local/bin/yambuck"
 user_desktop_file="${HOME}/.local/share/applications/yambuck.desktop"
+user_legacy_desktop_file="${HOME}/.local/share/applications/com.yambuck.installer.desktop"
 user_mime_xml="${HOME}/.local/share/mime/packages/application-x-yambuck-package.xml"
 user_app_icon="${HOME}/.local/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"
 user_mime_icon="${HOME}/.local/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg"
@@ -105,6 +106,7 @@ user_app_payload_root="${HOME}/.local/share/yambuck/apps"
 
 system_bin_path="/usr/local/bin/yambuck"
 system_desktop_file="/usr/share/applications/yambuck.desktop"
+system_legacy_desktop_file="/usr/share/applications/com.yambuck.installer.desktop"
 system_mime_xml="/usr/share/mime/packages/application-x-yambuck-package.xml"
 system_app_icon="/usr/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"
 system_mime_icon="/usr/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg"
@@ -114,7 +116,7 @@ system_app_payload_root="/opt/yambuck/apps"
 is_allowed_file_target() {
   local path="$1"
   case "$path" in
-    "$user_bin_path"|"$user_desktop_file"|"$user_mime_xml"|"$user_app_icon"|"$user_mime_icon"|"$system_bin_path"|"$system_desktop_file"|"$system_mime_xml"|"$system_app_icon"|"$system_mime_icon")
+    "$user_bin_path"|"$user_desktop_file"|"$user_legacy_desktop_file"|"$user_mime_xml"|"$user_app_icon"|"$user_mime_icon"|"$system_bin_path"|"$system_desktop_file"|"$system_legacy_desktop_file"|"$system_mime_xml"|"$system_app_icon"|"$system_mime_icon")
       return 0
       ;;
     *)
@@ -166,7 +168,7 @@ remove_dir_if_exists() {
 }
 
 system_changes_required=false
-if [[ -e "$system_bin_path" || -e "$system_desktop_file" || -e "$system_mime_xml" || -e "$system_app_icon" || -e "$system_mime_icon" ]]; then
+if [[ -e "$system_bin_path" || -e "$system_desktop_file" || -e "$system_legacy_desktop_file" || -e "$system_mime_xml" || -e "$system_app_icon" || -e "$system_mime_icon" ]]; then
   system_changes_required=true
 fi
 if [[ "$remove_system_apps" == true && ( -d "$system_metadata_root" || -d "$system_app_payload_root" ) ]]; then
@@ -219,12 +221,14 @@ fi
 
 remove_file_if_exists "$user_bin_path" false
 remove_file_if_exists "$user_desktop_file" false
+remove_file_if_exists "$user_legacy_desktop_file" false
 remove_file_if_exists "$user_mime_xml" false
 remove_file_if_exists "$user_app_icon" false
 remove_file_if_exists "$user_mime_icon" false
 
 remove_file_if_exists "$system_bin_path" true
 remove_file_if_exists "$system_desktop_file" true
+remove_file_if_exists "$system_legacy_desktop_file" true
 remove_file_if_exists "$system_mime_xml" true
 remove_file_if_exists "$system_app_icon" true
 remove_file_if_exists "$system_mime_icon" true

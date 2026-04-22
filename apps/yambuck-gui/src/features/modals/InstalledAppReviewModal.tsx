@@ -4,6 +4,7 @@ import { MetaField } from "../../components/ui/MetaField";
 import { inlineActions, licenseActions, licenseLabel } from "../../components/ui/metaField.css";
 import { ModalShell } from "../../components/ui/ModalShell";
 import type { InstalledAppDetails } from "../../types/app";
+import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
 import { formatCanonicalTimestampForDisplay } from "../../utils/time";
 import { PackageDetailsSections } from "../shared/PackageDetailsSections";
@@ -66,7 +67,7 @@ export const InstalledAppReviewModal = ({
                 tooltip="Timestamp when Yambuck registered this installation (ISO 8601)."
                 value={formatCanonicalTimestampForDisplay(details.installedAt)}
               />
-              <MetaField label="Scope" tooltip="Install scope used for this app." value={details.installScope} />
+              <MetaField label="Scope" tooltip="Install scope used for this app." value={formatInstallScopeLabel(details.installScope)} />
               <MetaField
                 label="License"
                 tooltip="The legal terms bundled in the archived package copy."

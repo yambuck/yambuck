@@ -47,6 +47,7 @@ import type {
   PackageInfo,
   WizardStep,
 } from "../../types/app";
+import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
 
 type InstallerPageProps = {
@@ -609,7 +610,7 @@ export const InstallerPage = ({
         <dl class={`meta-grid compact ${metaGrid} ${metaGridCompact}`}>
           <div>
             <dt>Scope</dt>
-            <dd>{preview.installScope}</dd>
+            <dd>{formatInstallScopeLabel(preview.installScope)}</dd>
           </div>
           <div>
             <dt>Destination</dt>

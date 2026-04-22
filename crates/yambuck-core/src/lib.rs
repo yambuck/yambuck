@@ -82,8 +82,11 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
     installed_apps::list_installed_apps()
 }
 
-pub fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, YambuckError> {
-    installed_apps::get_installed_app_details(app_id)
+pub fn get_installed_app_details(
+    app_id: &str,
+    scope: InstallScope,
+) -> Result<InstalledAppDetails, YambuckError> {
+    installed_apps::get_installed_app_details(app_id, scope)
 }
 
 pub fn uninstall_installed_app(
@@ -94,8 +97,8 @@ pub fn uninstall_installed_app(
     installed_apps::uninstall_installed_app(app_id, scope, remove_user_data)
 }
 
-pub fn launch_installed_app(app_id: &str) -> Result<(), YambuckError> {
-    installed_apps::launch_installed_app(app_id)
+pub fn launch_installed_app(app_id: &str, scope: InstallScope) -> Result<(), YambuckError> {
+    installed_apps::launch_installed_app(app_id, scope)
 }
 
 pub fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, YambuckError> {

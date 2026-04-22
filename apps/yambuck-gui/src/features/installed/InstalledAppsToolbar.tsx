@@ -8,8 +8,8 @@ type InstalledAppsScopeFilter = "all" | "user" | "system";
 
 const scopeOptions: SelectFieldOption[] = [
   { value: "all", label: "All scopes" },
-  { value: "user", label: "User only" },
-  { value: "system", label: "System only" },
+  { value: "user", label: "My user" },
+  { value: "system", label: "System wide" },
 ] as const;
 
 type InstalledAppsToolbarProps = {

@@ -6,6 +6,7 @@ import {
   uninstallInstalledApp as uninstallInstalledAppApi,
 } from "../lib/tauri/api";
 import type {
+  InstallScope,
   InstalledApp,
   InstalledAppDetails,
   UninstallResult,
@@ -41,10 +42,29 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
     }
   };
 
-  const openInstalledAppDetailsByAppId = async (appId: string, appLabel: string) => {
+  const openInstalledAppDetails = async (app: InstalledApp) => {
     setLoadingInstalledAppDetails(true);
     try {
-      const details = await getInstalledAppDetailsApi(appId);
+      const details = await getInstalledAppDetailsApi(app.appId, app.installScope);
+      setInstalledAppDetails(details);
+      return details;
+    } catch {
+      setInstalledAppDetails(null);
+      onToast("error", `Could not load archived package details for ${app.displayName}.`);
+      return null;
+    } finally {
+      setLoadingInstalledAppDetails(false);
+    }
+  };
+
+  const openInstalledAppDetailsByIdentity = async (
+    appId: string,
+    installScope: InstallScope,
+    appLabel: string,
+  ) => {
+    setLoadingInstalledAppDetails(true);
+    try {
+      const details = await getInstalledAppDetailsApi(appId, installScope);
       setInstalledAppDetails(details);
       return details;
     } catch {
@@ -55,8 +75,6 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
       setLoadingInstalledAppDetails(false);
     }
   };
-
-  const openInstalledAppDetails = async (app: InstalledApp) => openInstalledAppDetailsByAppId(app.appId, app.displayName);
 
   const closeInstalledAppDetails = () => {
     setLoadingInstalledAppDetails(false);
@@ -72,7 +90,7 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
     setUninstallError("");
     setUninstallDetails(null);
 
-    void getInstalledAppDetailsApi(app.appId)
+    void getInstalledAppDetailsApi(app.appId, app.installScope)
       .then((details) => {
         setUninstallDetails(details);
       })
@@ -132,7 +150,7 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
 
   const launchInstalledApp = async (app: InstalledApp) => {
     try {
-      await launchInstalledAppApi(app.appId);
+      await launchInstalledAppApi(app.appId, app.installScope);
       onToast("success", `Launching ${app.displayName}.`);
     } catch {
       onToast("error", `Unable to launch ${app.displayName}.`);
@@ -146,7 +164,7 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
     refreshInstalledApps,
     installedAppDetails,
     openInstalledAppDetails,
-    openInstalledAppDetailsByAppId,
+    openInstalledAppDetailsByIdentity,
     closeInstalledAppDetails,
     launchInstalledApp,
     uninstallTarget,

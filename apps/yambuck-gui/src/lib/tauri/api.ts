@@ -44,13 +44,13 @@ export const openLogsDirectory = () => invoke("open_logs_directory");
 
 export const listInstalledApps = () => invoke<InstalledApp[]>("list_installed_apps");
 
-export const getInstalledAppDetails = (appId: string) =>
-  invoke<InstalledAppDetails>("get_installed_app_details", { appId });
+export const getInstalledAppDetails = (appId: string, scope: string) =>
+  invoke<InstalledAppDetails>("get_installed_app_details", { appId, scope });
 
 export const uninstallInstalledApp = (appId: string, scope: string, removeUserData: boolean) =>
   invoke<UninstallResult>("uninstall_installed_app", { appId, scope, removeUserData });
 
-export const launchInstalledApp = (appId: string) => invoke("launch_installed_app", { appId });
+export const launchInstalledApp = (appId: string, scope: string) => invoke("launch_installed_app", { appId, scope });
 
 export const preflightInstallCheck = (appId: string) =>
   invoke<PreflightCheckResult>("preflight_install_check", { appId });

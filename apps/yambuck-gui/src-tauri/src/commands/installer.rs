@@ -52,8 +52,8 @@ pub fn list_installed_apps() -> Vec<InstalledApp> {
 }
 
 #[tauri::command]
-pub fn get_installed_app_details(app_id: &str) -> Result<InstalledAppDetails, String> {
-    crate::get_installed_app_details_impl(app_id)
+pub fn get_installed_app_details(app_id: &str, scope: &str) -> Result<InstalledAppDetails, String> {
+    crate::get_installed_app_details_impl(app_id, scope)
 }
 
 #[tauri::command]
@@ -83,8 +83,8 @@ pub fn complete_install(
 }
 
 #[tauri::command]
-pub fn launch_installed_app(app_id: &str) -> Result<(), String> {
-    crate::launch_installed_app_impl(app_id)
+pub fn launch_installed_app(app_id: &str, scope: &str) -> Result<(), String> {
+    crate::launch_installed_app_impl(app_id, scope)
 }
 
 #[tauri::command]

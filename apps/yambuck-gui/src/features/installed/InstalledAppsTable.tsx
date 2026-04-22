@@ -1,4 +1,5 @@
 import type { InstalledApp } from "../../types/app";
+import { formatInstallScopeLabel } from "../../utils/scope";
 import { formatCanonicalTimestampForDisplay, formatCompactTimestampForTable } from "../../utils/time";
 import {
   appCell,
@@ -65,7 +66,7 @@ export const InstalledAppsTable = ({
       </thead>
       <tbody>
         {apps.map((app) => (
-          <tr key={app.appId} onClick={() => onOpenDetails(app)}>
+          <tr key={`${app.appId}:${app.installScope}`} onClick={() => onOpenDetails(app)}>
             <td>
               <div class={`${appCell} installed-table-app`}>
                 {app.iconDataUrl ? (
@@ -80,7 +81,7 @@ export const InstalledAppsTable = ({
               </div>
             </td>
             <td class={`${colVersion} col-version`}><span class={`${chip} ${versionChip} installed-meta-chip version-chip`} title={app.version}>{app.version}</span></td>
-            <td class={`${colScope} col-scope`}><span class={`${chip} installed-meta-chip`}>{app.installScope}</span></td>
+            <td class={`${colScope} col-scope`}><span class={`${chip} installed-meta-chip`}>{formatInstallScopeLabel(app.installScope)}</span></td>
             <td class={`${colInstalled} col-installed`} title={formatCanonicalTimestampForDisplay(app.installedAt)}>
               {formatCompactTimestampForTable(app.installedAt)}
             </td>

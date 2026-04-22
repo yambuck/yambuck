@@ -2,6 +2,7 @@ import type { InstalledApp, InstalledAppDetails, UninstallResult, UninstallStep 
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { ModalShell } from "../../components/ui/ModalShell";
+import { formatInstallScopeLabel } from "../../utils/scope";
 import { section, updateActions } from "./modalStyles.css";
 import { subtitle } from "../shared/packageUi.css";
 
@@ -38,7 +39,7 @@ export const UninstallWizardModal = ({
         <>
           <h2>{`Uninstall ${uninstallTarget.displayName}?`}</h2>
           <p class={`subtitle ${subtitle}`}>This removes the app from Yambuck and deletes installed app files.</p>
-          <p class={`subtitle ${subtitle}`}>{`Scope: ${uninstallTarget.installScope}`}</p>
+          <p class={`subtitle ${subtitle}`}>{`Scope: ${formatInstallScopeLabel(uninstallTarget.installScope)}`}</p>
           <div class={`update-actions ${updateActions}`}>
             <Button onClick={onClose}>Cancel</Button>
             <Button variant="primary" onClick={() => onSetStep("options")}>Continue</Button>
