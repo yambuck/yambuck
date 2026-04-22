@@ -178,7 +178,7 @@ Minimum pass criteria per distro:
 - install command succeeds (`curl .../install.sh | bash`)
 - in-app update applies and relaunches on new version
 - safe uninstall works without deleting managed apps
-- purge uninstall (`--purge-managed-apps --yes`) removes managed payloads/metadata
+- purge uninstall (`--remove-all-apps`) removes managed payloads/metadata
 
 ## Common Failure Modes
 

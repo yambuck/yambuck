@@ -89,7 +89,7 @@ App-level uninstall from GUI (managed app uninstall):
 - Removes archived package snapshot
 - Optional data-path removal for manifest-declared config/cache/temp
 
-Website uninstall script (`docs/uninstall.sh`) removes Yambuck itself and, optionally (`--purge-managed-apps`), managed app roots/metadata.
+Website uninstall script (`docs/uninstall.sh`) removes Yambuck itself and, optionally (`--remove-all-apps`), managed app roots/metadata.
 
 ## Compatibility Assessment
 

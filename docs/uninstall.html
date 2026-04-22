@@ -30,7 +30,7 @@
         <h1>Uninstall Yambuck</h1>
         <p class="hero-copy">
           Choose the safe default if you only want to remove Yambuck, or use full purge mode for
-          a complete clean-slate test reset.
+          a complete clean-slate reset.
         </p>
         <p class="command-note"><a href="./index.html">Back to install page</a></p>
       </header>
@@ -41,7 +41,8 @@
           <span class="status">Recommended</span>
         </div>
         <p>
-          Removes Yambuck itself and desktop integration. Leaves Yambuck-managed apps in place.
+          Removes Yambuck itself and desktop integration from user and system locations when present.
+          Leaves Yambuck-managed apps in place.
         </p>
         <div class="command-shell">
           <code id="safe-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash</code>
@@ -55,10 +56,11 @@
           <span class="status">Testing</span>
         </div>
         <p>
-          Removes Yambuck and all Yambuck-managed app payloads + metadata for a full clean slate.
+          Removes Yambuck and all Yambuck-managed app payloads + metadata across user and system
+          scope for a full clean slate.
         </p>
         <div class="command-shell">
-          <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes</code>
+          <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps</code>
           <button id="copy-purge-command" type="button">Copy</button>
         </div>
         <p class="command-note">

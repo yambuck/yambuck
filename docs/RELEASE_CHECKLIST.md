@@ -115,7 +115,7 @@ curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --yes
 For full clean-slate testing:
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
+curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps
 ```
 
 ## 7) First Test Exit Criteria
