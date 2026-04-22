@@ -47,7 +47,7 @@ assert_expected_file_target() {
   local path="$1"
   if [[ "$install_system" == true ]]; then
     case "$path" in
-      /usr/local/bin/yambuck|/usr/share/applications/com.yambuck.installer.desktop|/usr/share/mime/packages/application-x-yambuck-package.xml|/usr/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg|/usr/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg)
+      /usr/local/bin/yambuck|/usr/share/applications/yambuck.desktop|/usr/share/mime/packages/application-x-yambuck-package.xml|/usr/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg|/usr/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg)
         ;;
       *)
         fail "refusing unexpected file target: $path"
@@ -55,7 +55,7 @@ assert_expected_file_target() {
     esac
   else
     case "$path" in
-      "$HOME/.local/bin/yambuck"|"$HOME/.local/share/applications/com.yambuck.installer.desktop"|"$HOME/.local/share/mime/packages/application-x-yambuck-package.xml"|"$HOME/.local/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"|"$HOME/.local/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg")
+      "$HOME/.local/bin/yambuck"|"$HOME/.local/share/applications/yambuck.desktop"|"$HOME/.local/share/mime/packages/application-x-yambuck-package.xml"|"$HOME/.local/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"|"$HOME/.local/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg")
         ;;
       *)
         fail "refusing unexpected file target: $path"
@@ -142,7 +142,7 @@ fi
 
 if [[ "$install_system" == true ]]; then
   bin_path="/usr/local/bin/yambuck"
-  desktop_file="/usr/share/applications/com.yambuck.installer.desktop"
+  desktop_file="/usr/share/applications/yambuck.desktop"
   mime_xml="/usr/share/mime/packages/application-x-yambuck-package.xml"
   app_icon="/usr/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"
   mime_icon="/usr/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg"
@@ -153,7 +153,7 @@ if [[ "$install_system" == true ]]; then
   app_payload_root="/opt/yambuck/apps"
 else
   bin_path="${HOME}/.local/bin/yambuck"
-  desktop_file="${HOME}/.local/share/applications/com.yambuck.installer.desktop"
+  desktop_file="${HOME}/.local/share/applications/yambuck.desktop"
   mime_xml="${HOME}/.local/share/mime/packages/application-x-yambuck-package.xml"
   app_icon="${HOME}/.local/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"
   mime_icon="${HOME}/.local/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg"

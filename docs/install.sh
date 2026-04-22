@@ -280,7 +280,7 @@ fi
 installed_bin="${install_dir}/${BIN_NAME}"
 [[ -x "$installed_bin" ]] || fail "installed binary is missing or not executable at ${installed_bin}"
 
-desktop_file_name="com.yambuck.installer.desktop"
+desktop_file_name="yambuck.desktop"
 mime_xml_name="application-x-yambuck-package.xml"
 desktop_icon_name="com.yambuck.installer"
 mime_icon_name="application-x-yambuck-package"
@@ -310,6 +310,7 @@ Exec=${yambuck_exec} %F
 Terminal=false
 Type=Application
 Icon=${desktop_icon_name}
+StartupWMClass=yambuck
 Categories=Utility;PackageManager;
 MimeType=application/x-yambuck-package;
 StartupNotify=true
@@ -360,6 +361,7 @@ Exec=${yambuck_exec} %F
 Terminal=false
 Type=Application
 Icon=${desktop_icon_name}
+StartupWMClass=yambuck
 Categories=Utility;PackageManager;
 MimeType=application/x-yambuck-package;
 StartupNotify=true
