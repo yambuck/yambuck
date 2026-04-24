@@ -81,13 +81,25 @@
       <section class="product-preview" aria-labelledby="preview-title">
         <div class="install-card-header preview-header">
           <h2 id="preview-title">Preview</h2>
-          <a class="link-button" href="./screenshots/">View Screenshots</a>
         </div>
-        <img
-          class="preview-shot"
-          src="./screenshots/yambuck-screenshot-v0.2.0-preview.png"
-          alt="Yambuck installer preview screen"
-        />
+        <div class="preview-viewer">
+          <div class="preview-carousel">
+            <button type="button" class="preview-nav preview-nav-prev" id="preview-prev" aria-label="Previous preview image">&#10094;</button>
+            <div class="preview-image-wrap">
+              <img
+                id="preview-shot"
+                class="preview-shot"
+                src="./screenshots/yambuck-screenshot-v0.2.0-preview.png"
+                alt="Yambuck installer preview screen"
+              />
+            </div>
+            <button type="button" class="preview-nav preview-nav-next" id="preview-next" aria-label="Next preview image">&#10095;</button>
+          </div>
+          <p class="preview-badge" id="preview-caption">Installer preview</p>
+        </div>
+        <div class="preview-actions">
+          <a class="link-button" href="./screenshots/">More Screenshots</a>
+        </div>
       </section>
 
       <section class="developer-note">
@@ -117,6 +129,73 @@
     <script>
       const copyButton = document.getElementById("copy-command");
       const command = document.getElementById("install-command");
+      const previewImage = document.getElementById("preview-shot");
+      const previewCaption = document.getElementById("preview-caption");
+      const previewPrev = document.getElementById("preview-prev");
+      const previewNext = document.getElementById("preview-next");
+
+      const previewScreenshots = [
+        {
+          src: "./screenshots/yambuck-screenshot-v0.2.0-preview.png",
+          alt: "Yambuck installer preview screen",
+          caption: "Installer preview",
+        },
+        {
+          src: "./screenshots/yambuck-screenshot-v0.2.0-installer-3.png",
+          alt: "Yambuck trust and verification step",
+          caption: "Trust and verification",
+        },
+        {
+          src: "./screenshots/yambuck-screenshot-v0.2.0-installer-6.png",
+          alt: "Yambuck install scope step",
+          caption: "Install scope",
+        },
+        {
+          src: "./screenshots/yambuck-screenshot-v0.2.0-installer-7.png",
+          alt: "Yambuck install complete screen",
+          caption: "Install complete",
+        },
+        {
+          src: "./screenshots/yambuck-screenshot-v0.2.0-installed-apps.png",
+          alt: "Yambuck installed apps list",
+          caption: "Installed apps list",
+        },
+        {
+          src: "./screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png",
+          alt: "Yambuck installed app details overview",
+          caption: "Installed app details",
+        },
+      ];
+      let previewIndex = 0;
+
+      function renderPreview(index) {
+        if (!previewImage || !previewCaption || previewScreenshots.length === 0) {
+          return;
+        }
+
+        if (index < 0) {
+          previewIndex = previewScreenshots.length - 1;
+        } else if (index >= previewScreenshots.length) {
+          previewIndex = 0;
+        } else {
+          previewIndex = index;
+        }
+
+        const current = previewScreenshots[previewIndex];
+        previewImage.src = current.src;
+        previewImage.alt = current.alt;
+        previewCaption.textContent = current.caption;
+      }
+
+      previewPrev?.addEventListener("click", () => {
+        renderPreview(previewIndex - 1);
+      });
+
+      previewNext?.addEventListener("click", () => {
+        renderPreview(previewIndex + 1);
+      });
+
+      renderPreview(0);
 
       async function copyText(text) {
         if (navigator.clipboard && window.isSecureContext) {

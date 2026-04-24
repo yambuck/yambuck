@@ -69,23 +69,7 @@ Reference package for exploratory testing: `example-app-linux-x86_64.yambuck` fr
 
 ![Yambuck installer preview](docs/screenshots/yambuck-screenshot-v0.2.0-preview.png)
 
-Full end-to-end gallery (13 screenshots): `docs/screenshots/index.html`
-
-Flow covered in the gallery:
-
-1. Choose package
-2. Package selected in GNOME Files
-3. Package details
-4. Package details with technical metadata
-5. Trust and verification
-6. License agreement
-7. License text dialog
-8. Install scope
-9. Install complete
-10. Launched example app
-11. Installed apps list
-12. Installed app details
-13. Installed app technical details
+See the full screenshot gallery: `docs/screenshots/index.html`
 
 ## Where to Look Next
 

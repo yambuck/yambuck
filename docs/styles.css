@@ -64,21 +64,56 @@ code {
 }
 
 .brand-lockup {
+  --logo-size: 56px;
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   gap: 0.85rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.4rem;
   margin: 0 0 0.35rem;
+  border-radius: 999px;
   color: #94cfff;
+  text-decoration: none;
   text-transform: uppercase;
   letter-spacing: 0.11em;
   font-size: 0.8rem;
   line-height: 1;
   font-weight: 800;
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.brand-lockup::before {
+  content: "";
+  position: absolute;
+  width: calc(var(--logo-size) + 1rem);
+  height: calc(var(--logo-size) + 1rem);
+  left: calc(0.4rem + (var(--logo-size) / 2));
+  top: 50%;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 50%, rgba(173, 235, 255, 0.42) 0%, rgba(97, 215, 255, 0.26) 34%, rgba(17, 49, 72, 0.1) 68%, rgba(7, 18, 29, 0) 100%);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.94);
+  transition: opacity 220ms ease, transform 220ms ease;
+  z-index: -1;
+}
+
+.brand-lockup:hover,
+.brand-lockup:focus-visible {
+  color: #d4ecff;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.brand-lockup:hover::before,
+.brand-lockup:focus-visible::before {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .brand-lockup img {
-  width: 56px;
-  height: 56px;
+  width: var(--logo-size);
+  height: var(--logo-size);
   display: block;
 }
 
@@ -174,20 +209,112 @@ button {
   cursor: pointer;
 }
 
+button,
+.link-button {
+  position: relative;
+  isolation: isolate;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, color 180ms ease, filter 180ms ease, background-color 180ms ease;
+}
+
+button::before,
+.link-button::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 50%, rgba(182, 236, 255, 0.34) 0%, rgba(105, 214, 255, 0.2) 40%, rgba(13, 42, 63, 0.08) 72%, rgba(7, 18, 29, 0) 100%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+button:hover,
+button:focus-visible,
+.link-button:hover,
+.link-button:focus-visible {
+  border-color: rgba(182, 236, 255, 0.82);
+  box-shadow: 0 12px 26px rgba(6, 22, 34, 0.45), 0 0 0 1px rgba(178, 234, 255, 0.34);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+button:hover::before,
+button:focus-visible::before,
+.link-button:hover::before,
+.link-button:focus-visible::before {
+  opacity: 1;
+}
+
 .command-note {
   margin: 0.65rem 0 0;
   color: var(--muted);
   font-size: 0.86rem;
 }
 
+.preview-carousel {
+  margin-top: 0;
+  position: relative;
+  padding: 0 2.8rem;
+}
+
+.preview-image-wrap {
+  position: relative;
+}
+
+.preview-badge {
+  border: 1px solid rgba(146, 190, 220, 0.48);
+  background: rgba(6, 18, 30, 0.9);
+  color: #d7eaf7;
+  border-radius: 999px;
+  padding: 0.3rem 0.72rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0.7rem auto 0;
+  width: fit-content;
+  text-align: center;
+}
+
 .preview-shot {
-  margin-top: 0.85rem;
+  margin-top: 0;
   width: 100%;
   display: block;
   border-radius: 14px;
   border: 1px solid rgba(146, 190, 220, 0.35);
   background: rgba(5, 17, 27, 0.8);
   box-shadow: var(--card-shadow);
+}
+
+.preview-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  z-index: 2;
+}
+
+.preview-nav:hover,
+.preview-nav:focus-visible {
+  transform: translateY(-50%);
+}
+
+.preview-nav-prev {
+  left: 0.15rem;
+}
+
+.preview-nav-next {
+  right: 0.15rem;
+}
+
+.preview-actions {
+  margin-top: 0.7rem;
+  display: flex;
+  justify-content: center;
 }
 
 a {
@@ -208,10 +335,6 @@ a {
   font-weight: 700;
 }
 
-.link-button:hover {
-  filter: brightness(1.05);
-}
-
 .link-button code {
   color: inherit;
 }
@@ -223,6 +346,7 @@ a {
 }
 
 .link-button.secondary:hover {
+  border-color: rgba(182, 236, 255, 0.62);
   background: rgba(14, 34, 52, 0.95);
 }
 
@@ -309,6 +433,14 @@ h3 {
 
 .preview-header {
   margin-bottom: 0.75rem;
+}
+
+.preview-viewer {
+  border: 1px solid rgba(130, 170, 200, 0.28);
+  background: rgba(3, 8, 14, 0.9);
+  border-radius: 18px;
+  padding: 0.85rem 0.65rem;
+  box-shadow: 0 24px 54px rgba(1, 4, 9, 0.7), inset 0 0 0 1px rgba(90, 130, 170, 0.1);
 }
 
 .donate-actions {
@@ -460,15 +592,39 @@ h3 {
     word-break: break-all;
   }
 
+  .preview-nav {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .preview-carousel {
+    padding: 0 2.35rem;
+  }
+
+  .preview-badge {
+    font-size: 0.72rem;
+    padding: 0.24rem 0.58rem;
+    margin-top: 0.55rem;
+  }
+
+  .preview-nav-prev {
+    left: 0.05rem;
+  }
+
+  .preview-nav-next {
+    right: 0.05rem;
+  }
+
   .brand-lockup {
+    --logo-size: 44px;
     gap: 0.65rem;
     font-size: 0.74rem;
     letter-spacing: 0.1em;
   }
 
   .brand-lockup img {
-    width: 44px;
-    height: 44px;
+    width: var(--logo-size);
+    height: var(--logo-size);
   }
 }
 
