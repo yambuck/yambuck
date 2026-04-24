@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
-import { clearLogs as clearLogsApi, getRecentLogs, getSystemInfo, logUiEvent } from "../lib/tauri/api";
+import { clearLogs as clearLogsApi, getRecentLogs, getSystemInfo } from "../lib/tauri/api";
+import { logUiAction, logUiError } from "../lib/ui-log";
 import { copyPlainText } from "../utils/clipboard";
 import type { SystemInfo } from "../types/app";
 
@@ -14,11 +15,14 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
 
   const loadDebugData = async () => {
     setLoadingDebug(true);
+    logUiAction("debug-load-start");
     try {
       const [info, logs] = await Promise.all([getSystemInfo(), getRecentLogs(300)]);
       setSystemInfo(info);
       setLogText(logs);
+      logUiAction("debug-load-success");
     } catch {
+      logUiError("debug-load-failed");
       onToast("error", "Unable to load debug data.");
     } finally {
       setLoadingDebug(false);
@@ -34,8 +38,9 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
     try {
       await copyPlainText(value);
       onToast("success", successMessage);
-      await logUiEvent("INFO", successMessage);
+      logUiAction("debug-copy", { message: successMessage });
     } catch {
+      logUiError("debug-copy-failed", { message: successMessage });
       onToast("error", "Copy failed.");
     }
   };
@@ -69,8 +74,10 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
     try {
       await clearLogsApi();
       setLogText("");
+      logUiAction("debug-clear-logs");
       onToast("info", "Logs cleared.");
     } catch {
+      logUiError("debug-clear-logs-failed");
       onToast("error", "Unable to clear logs.");
     }
   };

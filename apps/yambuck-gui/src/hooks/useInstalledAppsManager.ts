@@ -5,6 +5,7 @@ import {
   listInstalledApps as listInstalledAppsApi,
   uninstallInstalledApp as uninstallInstalledAppApi,
 } from "../lib/tauri/api";
+import { logUiAction, logUiError } from "../lib/ui-log";
 import type {
   InstallScope,
   InstalledApp,
@@ -32,10 +33,13 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
 
   const refreshInstalledApps = async () => {
     setLoadingInstalled(true);
+    logUiAction("installed-refresh-start");
     try {
       const apps = await listInstalledAppsApi();
       setInstalledApps(apps);
+      logUiAction("installed-refresh-success", { count: apps.length });
     } catch {
+      logUiError("installed-refresh-failed");
       onToast("error", "Unable to load installed apps list.");
     } finally {
       setLoadingInstalled(false);
@@ -44,12 +48,24 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
 
   const openInstalledAppDetails = async (app: InstalledApp) => {
     setLoadingInstalledAppDetails(true);
+    logUiAction("installed-review-open-start", {
+      appId: app.appId,
+      scope: app.installScope,
+    });
     try {
       const details = await getInstalledAppDetailsApi(app.appId, app.installScope);
       setInstalledAppDetails(details);
+      logUiAction("installed-review-open-success", {
+        appId: app.appId,
+        scope: app.installScope,
+      });
       return details;
     } catch {
       setInstalledAppDetails(null);
+      logUiError("installed-review-open-failed", {
+        appId: app.appId,
+        scope: app.installScope,
+      });
       onToast("error", `Could not load archived package details for ${app.displayName}.`);
       return null;
     } finally {
@@ -63,12 +79,15 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
     appLabel: string,
   ) => {
     setLoadingInstalledAppDetails(true);
+    logUiAction("installed-review-open-start", { appId, scope: installScope });
     try {
       const details = await getInstalledAppDetailsApi(appId, installScope);
       setInstalledAppDetails(details);
+      logUiAction("installed-review-open-success", { appId, scope: installScope });
       return details;
     } catch {
       setInstalledAppDetails(null);
+      logUiError("installed-review-open-failed", { appId, scope: installScope });
       onToast("error", `Could not load archived package details for ${appLabel}.`);
       return null;
     } finally {
@@ -82,6 +101,10 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
   };
 
   const openUninstallWizard = (app: InstalledApp) => {
+    logUiAction("uninstall-wizard-open", {
+      appId: app.appId,
+      scope: app.installScope,
+    });
     setUninstallTarget(app);
     setUninstallStep("confirm");
     setUninstallRemoveUserData(false);
@@ -106,6 +129,11 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
     if (uninstallStep === "running") {
       return;
     }
+    logUiAction("uninstall-wizard-close", {
+      appId: uninstallTarget?.appId ?? "none",
+      scope: uninstallTarget?.installScope ?? "none",
+      step: uninstallStep,
+    });
     setUninstallTarget(null);
     setUninstallResult(null);
     setUninstallError("");
@@ -119,6 +147,11 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
 
     setUninstallStep("running");
     setUninstallError("");
+    logUiAction("uninstall-attempt-start", {
+      appId: uninstallTarget.appId,
+      scope: uninstallTarget.installScope,
+      removeUserData: uninstallRemoveUserData,
+    });
 
     try {
       const result = await uninstallInstalledAppApi(
@@ -129,6 +162,13 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
 
       setUninstallResult(result);
       setUninstallStep("result");
+      logUiAction("uninstall-attempt-success", {
+        appId: uninstallTarget.appId,
+        scope: uninstallTarget.installScope,
+        warnings: result.warnings.length,
+        removedAppFiles: result.removedAppFiles,
+        removedUserData: result.removedUserData,
+      });
       if (result.warnings.length > 0) {
         onToast("warning", `${uninstallTarget.displayName} removed with warnings.`);
       } else {
@@ -144,15 +184,24 @@ export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOpti
             : `Failed to uninstall ${uninstallTarget.displayName}.`;
       setUninstallError(message);
       setUninstallStep("result");
+      logUiError("uninstall-attempt-failed", {
+        appId: uninstallTarget.appId,
+        scope: uninstallTarget.installScope,
+        removeUserData: uninstallRemoveUserData,
+        reason: message,
+      });
       onToast("error", `Failed to uninstall ${uninstallTarget.displayName}.`);
     }
   };
 
   const launchInstalledApp = async (app: InstalledApp) => {
+    logUiAction("installed-launch-start", { appId: app.appId, scope: app.installScope });
     try {
       await launchInstalledAppApi(app.appId, app.installScope);
+      logUiAction("installed-launch-success", { appId: app.appId, scope: app.installScope });
       onToast("success", `Launching ${app.displayName}.`);
     } catch {
+      logUiError("installed-launch-failed", { appId: app.appId, scope: app.installScope });
       onToast("error", `Unable to launch ${app.displayName}.`);
     }
   };

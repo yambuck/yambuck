@@ -21,6 +21,7 @@ import { useToastManager } from "./hooks/useToastManager";
 import { useUpdateManager } from "./hooks/useUpdateManager";
 import { useWindowControls } from "./hooks/useWindowControls";
 import { getInstallerContext } from "./lib/tauri/api";
+import { logUiAction } from "./lib/ui-log";
 import { mockInstalledApps, toMockInstalledAppDetails } from "./mocks/mockData";
 import type {
   AppPage,
@@ -316,6 +317,15 @@ function App() {
   }, [page, settingsTab, installedReviewTarget, mockInstalledReviewAppId]);
 
   useEffect(() => {
+    logUiAction("route-change", {
+      page,
+      settingsTab,
+      installedReviewTarget: installedReviewTarget ?? "none",
+      mockInstalledReviewAppId: mockInstalledReviewAppId ?? "none",
+    });
+  }, [page, settingsTab, installedReviewTarget, mockInstalledReviewAppId]);
+
+  useEffect(() => {
     if (page !== "installedReview" || !installedReviewTarget) {
       return;
     }
@@ -365,10 +375,12 @@ function App() {
   useEscapeKey(page === "installer" && step === "complete" && packageInfo !== null, closeInstallComplete);
 
   const handleMetaFieldCopied = (label: string) => {
+    logUiAction("meta-field-copied", { label });
     pushToast("success", `${label} copied to clipboard.`);
   };
 
   const navigateToInstalledList = () => {
+    logUiAction("navigate-installed-list");
     setInstalledReviewTarget(null);
     setMockInstalledReviewAppId(null);
     closeInstalledAppDetails();
@@ -377,6 +389,10 @@ function App() {
   };
 
   const openInstalledReview = async (app: InstalledApp) => {
+    logUiAction("navigate-installed-review", {
+      appId: app.appId,
+      scope: app.installScope,
+    });
     const reviewTarget = makeInstalledReviewTarget(app.appId, app.installScope);
     setInstalledReviewTarget(reviewTarget);
     setShowInstalledReviewTechnicalDetails(false);
@@ -389,12 +405,14 @@ function App() {
   };
 
   const navigateToMockInstalledList = () => {
+    logUiAction("navigate-mock-installed-list");
     setMockInstalledReviewAppId(null);
     setShowMockInstalledReviewTechnicalDetails(false);
     setPage("mockInstalled");
   };
 
   const openMockInstalledReview = (app: InstalledApp) => {
+    logUiAction("navigate-mock-installed-review", { appId: app.appId });
     setMockInstalledReviewAppId(app.appId);
     setShowMockInstalledReviewTechnicalDetails(false);
     setPage("mockInstalledReview");
@@ -638,6 +656,7 @@ function App() {
           <button
             class={`toggle-pill ${page === "installer" ? "active" : ""}`}
             onClick={() => {
+              logUiAction("navigate-installer-tab");
               closeInstalledAppDetails();
               setInstalledReviewTarget(null);
               setMockInstalledReviewAppId(null);
@@ -656,12 +675,13 @@ function App() {
         <WindowControls
           settingsActive={page === "settings"}
           isMaximized={isMaximized}
-            onOpenSettings={() => {
+          onOpenSettings={() => {
+            logUiAction("navigate-settings");
               closeInstalledAppDetails();
               setInstalledReviewTarget(null);
               setMockInstalledReviewAppId(null);
               setPage("settings");
-            setSettingsTab("general");
+              setSettingsTab("general");
           }}
           onMinimize={() => void handleMinimize()}
           onToggleMaximize={() => void handleToggleMaximize()}
@@ -682,7 +702,13 @@ function App() {
               {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
             </span>
             {hasUpdateAvailable ? (
-              <button class="footer-action update" onClick={openUpdateModal}>
+              <button
+                class="footer-action update"
+                onClick={() => {
+                  logUiAction("open-update-modal");
+                  openUpdateModal();
+                }}
+              >
                 Update available
               </button>
             ) : null}

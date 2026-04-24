@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { logUiAction } from "../../lib/ui-log";
 import {
   control,
   label,
@@ -24,6 +25,8 @@ type SelectFieldProps = {
   id?: string;
   name?: string;
   class?: string;
+  logLabel?: string;
+  disableChangeLog?: boolean;
 };
 
 export const SelectField = ({
@@ -34,6 +37,8 @@ export const SelectField = ({
   id,
   name,
   class: className,
+  logLabel,
+  disableChangeLog = false,
 }: SelectFieldProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -70,6 +75,12 @@ export const SelectField = ({
     const option = options[index];
     if (!option || option.disabled) {
       return;
+    }
+    if (!disableChangeLog) {
+      logUiAction("select-change", {
+        label: logLabel ?? name ?? id ?? "select-field",
+        value: option.value,
+      });
     }
     onValueChange(option.value);
     closeMenu();

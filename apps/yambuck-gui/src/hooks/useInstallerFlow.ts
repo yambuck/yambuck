@@ -15,6 +15,7 @@ import {
   uninstallInstalledApp,
   validateInstallOptions,
 } from "../lib/tauri/api";
+import { logUiAction, logUiError } from "../lib/ui-log";
 import { copyPlainText } from "../utils/clipboard";
 import { toIso8601WithOffset, toReadableLocalTimeWithOffset } from "../utils/time";
 import type {
@@ -177,6 +178,9 @@ export const useInstallerFlow = ({
   }, []);
 
   const clearSelectedPackage = useCallback(() => {
+    logUiAction("installer-clear-selected-package", {
+      workflowId: workflowId ?? "none",
+    });
     const activeWorkflowId = workflowId;
     if (activeWorkflowId) {
       void discardInstallWorkflow(activeWorkflowId);
@@ -209,6 +213,7 @@ export const useInstallerFlow = ({
   const installOptions = installWorkflow?.installOptions ?? [];
 
   const closeInstallComplete = useCallback(() => {
+    logUiAction("installer-close-complete");
     clearSelectedPackage();
     setPage("installed");
   }, [clearSelectedPackage, setPage]);
@@ -241,6 +246,7 @@ export const useInstallerFlow = ({
   };
 
   const loadPackageFromPath = async (packageFile: string) => {
+    logUiAction("installer-open-package-start", { packageFile });
     try {
       if (workflowId) {
         await discardInstallWorkflow(workflowId);
@@ -267,6 +273,10 @@ export const useInstallerFlow = ({
       setPackageOpenError(null);
       setInstallFailure(null);
       setPage("installer");
+      logUiAction("installer-open-package-success", {
+        appId: inspected.workflow.packageInfo.appId,
+        workflowId: inspected.workflowId,
+      });
     } catch (error) {
       const message = normalizeOpenPackageError(error);
       const capturedAt = new Date();
@@ -291,6 +301,10 @@ export const useInstallerFlow = ({
         capturedAtDisplay: toReadableLocalTimeWithOffset(capturedAt),
       });
       setPage("installer");
+      logUiError("installer-open-package-failed", {
+        packageFile,
+        reason: message,
+      });
       onToast("error", "We couldn't open this package.");
     }
   };
@@ -355,11 +369,13 @@ export const useInstallerFlow = ({
         selected = value;
       }
     } catch {
+      logUiError("installer-choose-package-dialog-failed");
       onToast("error", "Unable to open file picker. Check app permissions and try again.");
       return;
     }
 
     if (!selected) {
+      logUiAction("installer-choose-package-cancelled");
       return;
     }
 
@@ -375,6 +391,7 @@ export const useInstallerFlow = ({
         }
         await loadPackageFromPath(startupPath);
       } catch {
+        logUiError("installer-open-startup-package-failed");
         onToast("error", "Could not open startup package argument.");
       }
     };
@@ -392,6 +409,7 @@ export const useInstallerFlow = ({
       }
 
       if (isInstallFlowLocked()) {
+        logUiAction("installer-external-open-blocked", { reason: "install-flow-locked" });
         onToast("warning", "Finish or cancel the current install before opening another package.");
         return;
       }
@@ -410,15 +428,21 @@ export const useInstallerFlow = ({
 
   const handleContinueFromDetails = async () => {
     if (!packageInfo) {
+      logUiAction("installer-continue-from-details-blocked", { reason: "no-package" });
       onToast("warning", "Choose a .yambuck package first.");
       return;
     }
 
+    logUiAction("installer-preflight-start", { appId: packageInfo.appId, scope });
     setCheckingPreflight(true);
     try {
       const result = await preflightInstallCheck(packageInfo.appId);
 
       if (result.status === "external_conflict") {
+        logUiError("installer-preflight-blocked", {
+          appId: packageInfo.appId,
+          status: result.status,
+        });
         setPreflightBlockedMessage(result.message);
         onToast("error", result.message, 5200);
         return;
@@ -429,6 +453,10 @@ export const useInstallerFlow = ({
       setInstallDecision(null);
 
       if (!workflowId) {
+        logUiError("installer-preflight-failed", {
+          appId: packageInfo.appId,
+          reason: "missing-workflow-session",
+        });
         onToast("error", "Install workflow session missing. Reopen the package and try again.");
         return;
       }
@@ -437,6 +465,10 @@ export const useInstallerFlow = ({
       setInstallDecision(decision);
 
       if (decision.action === "blocked_identity_mismatch") {
+        logUiError("installer-decision-blocked", {
+          appId: packageInfo.appId,
+          action: decision.action,
+        });
         setPreflightBlockedMessage(decision.message);
         onToast("error", decision.message, 6200);
         return;
@@ -454,7 +486,16 @@ export const useInstallerFlow = ({
       }
 
       setStep("trust");
+      logUiAction("installer-preflight-success", {
+        appId: packageInfo.appId,
+        action: decision.action,
+        status: result.status,
+      });
     } catch {
+      logUiError("installer-preflight-failed", {
+        appId: packageInfo.appId,
+        reason: "exception",
+      });
       onToast("error", "Could not run install safety checks.");
     } finally {
       setCheckingPreflight(false);
@@ -488,10 +529,12 @@ export const useInstallerFlow = ({
     if (!packageInfo || !workflowId) {
       return;
     }
+    logUiAction("installer-continue-trust", { appId: packageInfo.appId, scope });
     setStep(getStepNext("trust", "scope"));
   };
 
   const continueFromLicenseStep = () => {
+    logUiAction("installer-continue-license", { accepted: licenseAccepted });
     setStep(getStepNext("license", "scope"));
   };
 
@@ -512,10 +555,14 @@ export const useInstallerFlow = ({
         normalizedValues[submission.id] = submission.value;
       }
       setInstallOptionValues(normalizedValues);
+      logUiAction("installer-options-valid", {
+        optionCount: Object.keys(normalizedValues).length,
+      });
       setStep(getStepNext("options", "scope"));
     } catch {
       const message = "Installer options are invalid. Review values and try again.";
       setInstallOptionError(message);
+      logUiError("installer-options-invalid");
       onToast("error", message);
     } finally {
       setValidatingInstallOptions(false);
@@ -523,18 +570,22 @@ export const useInstallerFlow = ({
   };
 
   const goBackFromTrustStep = () => {
+    logUiAction("installer-back-trust");
     setStep(getStepPrevious("trust", "details"));
   };
 
   const goBackFromLicenseStep = () => {
+    logUiAction("installer-back-license");
     setStep(getStepPrevious("license", "trust"));
   };
 
   const goBackFromOptionsStep = () => {
+    logUiAction("installer-back-options");
     setStep(getStepPrevious("options", "license"));
   };
 
   const goBackFromScopeStep = () => {
+    logUiAction("installer-back-scope");
     setStep(getStepPrevious("scope", "trust"));
   };
 
@@ -549,6 +600,7 @@ export const useInstallerFlow = ({
   };
 
   const setReinstallWipeChoice = (value: boolean) => {
+    logUiAction("installer-set-reinstall-wipe", { value });
     setWipeOnReinstall(value);
     if (!value) {
       setConfirmWipeOnReinstall(false);
@@ -556,14 +608,17 @@ export const useInstallerFlow = ({
   };
 
   const setDowngradeAllowed = (value: boolean) => {
+    logUiAction("installer-set-downgrade-allowed", { value });
     setAllowDowngrade(value);
   };
 
   const openLicenseViewer = (title: string, text: string) => {
+    logUiAction("installer-open-license-viewer", { title });
     setLicenseViewer({ title, text });
   };
 
   const closeLicenseViewer = () => {
+    logUiAction("installer-close-license-viewer");
     setLicenseViewer(null);
   };
 
@@ -605,6 +660,11 @@ export const useInstallerFlow = ({
     setStatusText("Install failed");
     setProgress(100);
     setStep("failed");
+    logUiError("install-attempt-failed", {
+      appId: selectedPackage.appId,
+      scope: installScope,
+      reason: summary,
+    });
     onToast("error", "Install failed. Review details and try again.", 5200);
   };
 
@@ -625,6 +685,10 @@ export const useInstallerFlow = ({
         serializeInstallOptions(installOptionValues),
         allowDowngrade,
       );
+      logUiAction("install-attempt-success", {
+        appId: selectedPackage.appId,
+        scope: installScope,
+      });
       onToast("success", `${selectedPackage.displayName} installed.`);
       try {
         await onRefreshInstalledApps();
@@ -640,6 +704,7 @@ export const useInstallerFlow = ({
 
   const startInstall = async () => {
     if (!packageInfo || !workflowId) {
+      logUiAction("install-attempt-blocked", { reason: "no-package-or-workflow" });
       onToast("warning", "Choose a .yambuck package before installing.");
       return;
     }
@@ -647,6 +712,10 @@ export const useInstallerFlow = ({
     const selectedPackage = packageInfo;
 
     if (selectedPackage.requiresLicenseAcceptance && !licenseAccepted) {
+      logUiAction("install-attempt-blocked", {
+        appId: selectedPackage.appId,
+        reason: "license-not-accepted",
+      });
       onToast("warning", "You must accept the license before installing.");
       setStep("license");
       return;
@@ -655,6 +724,10 @@ export const useInstallerFlow = ({
     setPreflightBlockedMessage("");
 
     if (installDecision?.action === "downgrade" && !allowDowngrade) {
+      logUiAction("install-attempt-blocked", {
+        appId: selectedPackage.appId,
+        reason: "downgrade-not-confirmed",
+      });
       onToast("warning", "Downgrade requires explicit confirmation before install.");
       setStep("scope");
       return;
@@ -662,6 +735,10 @@ export const useInstallerFlow = ({
 
     if (managedExistingInstall && wipeOnReinstall) {
       if (!confirmWipeOnReinstall) {
+        logUiAction("install-attempt-blocked", {
+          appId: selectedPackage.appId,
+          reason: "wipe-not-confirmed",
+        });
         onToast("warning", "Confirm data wipe before reinstalling.");
         setStep("scope");
         return;
@@ -673,10 +750,22 @@ export const useInstallerFlow = ({
           (installed) => installed.appId === selectedPackage.appId && installed.installScope === scope,
         );
         if (existing) {
+          logUiAction("install-reinstall-uninstall-start", {
+            appId: existing.appId,
+            scope: existing.installScope,
+          });
           await uninstallInstalledApp(existing.appId, existing.installScope, true);
+          logUiAction("install-reinstall-uninstall-success", {
+            appId: existing.appId,
+            scope: existing.installScope,
+          });
           onToast("info", "Existing install and app data removed. Continuing reinstall.");
         }
       } catch {
+        logUiError("install-reinstall-uninstall-failed", {
+          appId: selectedPackage.appId,
+          scope,
+        });
         onToast("error", "Could not remove existing install before reinstall.");
         return;
       }
@@ -691,6 +780,10 @@ export const useInstallerFlow = ({
       } catch {
         const message = "Installer options are invalid. Review values and try again.";
         setInstallOptionError(message);
+        logUiError("install-attempt-blocked", {
+          appId: selectedPackage.appId,
+          reason: "invalid-options",
+        });
         onToast("error", message);
         setStep("options");
         return;
@@ -701,13 +794,29 @@ export const useInstallerFlow = ({
       const preflight = await preflightInstallCheck(selectedPackage.appId);
       if (preflight.status === "external_conflict") {
         setPreflightBlockedMessage(preflight.message);
+        logUiError("install-attempt-blocked", {
+          appId: selectedPackage.appId,
+          reason: preflight.status,
+        });
         onToast("error", preflight.message, 5200);
         return;
       }
     } catch {
+      logUiError("install-attempt-blocked", {
+        appId: selectedPackage.appId,
+        reason: "preflight-check-failed",
+      });
       onToast("error", "Could not verify install ownership safety.");
       return;
     }
+
+    logUiAction("install-attempt-start", {
+      appId: selectedPackage.appId,
+      scope,
+      allowDowngrade,
+      managedExistingInstall,
+      wipeOnReinstall,
+    });
 
     setIsBusy(true);
     setInstallLifecycleState("queued");
@@ -733,6 +842,10 @@ export const useInstallerFlow = ({
       setProgress(30);
       setStatusText("Validating package integrity");
     } catch {
+      logUiError("install-preview-failed", {
+        appId: selectedPackage.appId,
+        scope,
+      });
       onToast("error", "Failed to generate install preview.");
       setIsBusy(false);
       setStep("scope");
@@ -752,6 +865,11 @@ export const useInstallerFlow = ({
       return;
     }
 
+    logUiAction("install-attempt-complete", {
+      appId: selectedPackage.appId,
+      scope,
+    });
+
     setInstallLifecycleState("success");
     setStatusText("Install complete");
     setProgress(100);
@@ -761,9 +879,12 @@ export const useInstallerFlow = ({
 
   const launchCurrentPackage = async () => {
     if (!packageInfo) {
+      logUiAction("installer-launch-current-blocked", { reason: "no-package" });
       onToast("warning", "No package selected to launch.");
       return;
     }
+
+    logUiAction("installer-launch-current", { appId: packageInfo.appId, scope });
 
     await onLaunchInstalledApp({
       appId: packageInfo.appId,
@@ -779,7 +900,9 @@ export const useInstallerFlow = ({
   const openInstallLogsDirectory = async () => {
     try {
       await openLogsDirectory();
+      logUiAction("installer-open-logs-directory");
     } catch {
+      logUiError("installer-open-logs-directory-failed");
       onToast("error", "Could not open logs directory.");
     }
   };

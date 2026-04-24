@@ -44,6 +44,7 @@ export const InstalledAppsToolbar = ({
         value={scopeFilter}
         onValueChange={(nextScope) => onScopeFilterChange(nextScope as InstalledAppsScopeFilter)}
         options={scopeOptions}
+        logLabel="installed-scope-filter"
       />
     </label>
 

@@ -171,13 +171,45 @@ pub(crate) fn uninstall_installed_app_impl(
 ) -> Result<UninstallResult, String> {
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    match install_scope {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "Starting uninstall for appId={app_id} scope={scope} removeUserData={remove_user_data}"
+        ),
+    );
+    let uninstall_result = match install_scope {
         yambuck_core::InstallScope::User => {
             yambuck_core::uninstall_installed_app(app_id, install_scope, remove_user_data)
                 .map_err(|error| error.to_string())
         }
         yambuck_core::InstallScope::System => {
             support::elevation::uninstall_with_elevation_if_needed(app_id, remove_user_data)
+        }
+    };
+
+    match uninstall_result {
+        Ok(result) => {
+            let _ = support::logging::append_log(
+                "INFO",
+                &format!(
+                    "Uninstall completed for appId={} scope={} warnings={} removedAppFiles={} removedUserData={}",
+                    result.app_id,
+                    scope,
+                    result.warnings.len(),
+                    result.removed_app_files,
+                    result.removed_user_data
+                ),
+            );
+            Ok(result)
+        }
+        Err(error) => {
+            let _ = support::logging::append_log(
+                "ERROR",
+                &format!(
+                    "Uninstall failed for appId={app_id} scope={scope} removeUserData={remove_user_data}: {error}"
+                ),
+            );
+            Err(error)
         }
     }
 }
@@ -215,19 +247,32 @@ pub(crate) fn complete_install_impl(
         );
     }
 
-    let installed_app = match install_scope {
+    let install_result = match install_scope {
         yambuck_core::InstallScope::User => yambuck_core::install_and_register(
             &package_info,
             install_scope,
             destination_path,
             allow_downgrade,
         )
-        .map_err(|error| error.to_string())?,
+        .map_err(|error| error.to_string()),
         yambuck_core::InstallScope::System => support::elevation::install_with_elevation_if_needed(
             &package_info,
             destination_path,
             allow_downgrade,
-        )?,
+        ),
+    };
+    let installed_app = match install_result {
+        Ok(installed_app) => installed_app,
+        Err(error) => {
+            let _ = support::logging::append_log(
+                "ERROR",
+                &format!(
+                    "Install failed for appId={} scope={scope} destination={destination_path}: {error}",
+                    package_info.app_id
+                ),
+            );
+            return Err(error);
+        }
     };
     let _ = support::logging::append_log(
         "INFO",

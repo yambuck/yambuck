@@ -1,6 +1,7 @@
 import type { SettingsTab, SystemInfo } from "../../types/app";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
+import { logUiAction } from "../../lib/ui-log";
 import {
   debugSection,
   debugStack,
@@ -53,13 +54,19 @@ export const SettingsPage = ({
     <div class={`${tabs} settings-tabs`} data-no-drag="true">
       <button
         class={`toggle-pill ${settingsTab === "general" ? "active" : ""}`}
-        onClick={() => onChangeSettingsTab("general")}
+        onClick={() => {
+          logUiAction("settings-tab-change", { tab: "general" });
+          onChangeSettingsTab("general");
+        }}
       >
         General
       </button>
       <button
         class={`toggle-pill ${settingsTab === "debug" ? "active" : ""}`}
-        onClick={() => onChangeSettingsTab("debug")}
+        onClick={() => {
+          logUiAction("settings-tab-change", { tab: "debug" });
+          onChangeSettingsTab("debug");
+        }}
       >
         Debug
       </button>

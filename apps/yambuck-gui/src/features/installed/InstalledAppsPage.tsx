@@ -1,5 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { Panel } from "../../components/ui/Panel";
+import { logUiAction } from "../../lib/ui-log";
 import { subtitle } from "../shared/packageUi.css";
 import { InstalledAppsTable } from "./InstalledAppsTable";
 import { InstalledAppsToolbar } from "./InstalledAppsToolbar";
@@ -27,6 +28,11 @@ export const InstalledAppsPage = ({
   const [sortDirection, setSortDirection] = useState<InstalledAppsSortDirection>("desc");
 
   const handleSortChange = (field: InstalledAppsSortField) => {
+    logUiAction("installed-sort-change", {
+      field,
+      currentField: sortField,
+      currentDirection: sortDirection,
+    });
     if (sortField === field) {
       setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
       return;
@@ -81,8 +87,14 @@ export const InstalledAppsPage = ({
       <InstalledAppsToolbar
         searchQuery={searchQuery}
         scopeFilter={scopeFilter}
-        onSearchQueryChange={setSearchQuery}
-        onScopeFilterChange={setScopeFilter}
+        onSearchQueryChange={(value) => {
+          logUiAction("installed-search-change", { length: value.trim().length });
+          setSearchQuery(value);
+        }}
+        onScopeFilterChange={(value) => {
+          logUiAction("installed-scope-filter-change", { scope: value });
+          setScopeFilter(value);
+        }}
         onRefresh={onRefresh}
       />
 
@@ -97,7 +109,10 @@ export const InstalledAppsPage = ({
       {visibleApps.length > 0 ? (
         <InstalledAppsTable
           apps={visibleApps}
-          onOpenDetails={onOpenDetails}
+          onOpenDetails={(app) => {
+            logUiAction("installed-open-review", { appId: app.appId, scope: app.installScope });
+            onOpenDetails(app);
+          }}
           sortField={sortField}
           sortDirection={sortDirection}
           onSortFieldChange={handleSortChange}

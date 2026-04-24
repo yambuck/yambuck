@@ -1,5 +1,6 @@
 import { IconX } from "@tabler/icons-preact";
 import { useId } from "preact/hooks";
+import { logUiAction } from "./lib/ui-log";
 import { closeButton, closeButtonIcon, closeButtonTooltip } from "./cardCloseButton.css";
 
 type CardCloseButtonProps = {
@@ -14,7 +15,10 @@ export const CardCloseButton = ({ title, onClick }: CardCloseButtonProps) => {
     <button
       class={`card-close ${closeButton}`}
       data-no-drag="true"
-      onClick={onClick}
+      onClick={() => {
+        logUiAction("card-close", { title });
+        onClick();
+      }}
       aria-label={title}
       aria-describedby={tooltipId}
     >
