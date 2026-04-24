@@ -90,6 +90,9 @@ export const screenshotStrip = style({
 });
 
 export const screenshotTile = style({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   border: "1px solid var(--colors-style-color004)",
   borderRadius: "10px",
   background: "var(--colors-style-color005)",
@@ -99,7 +102,9 @@ export const screenshotTile = style({
 
 globalStyle(`${screenshotStrip} img`, {
   width: "100%",
-  height: "180px",
+  height: "auto",
+  maxHeight: "220px",
+  aspectRatio: "auto",
   objectFit: "contain",
   borderRadius: "10px",
 });
@@ -107,7 +112,7 @@ globalStyle(`${screenshotStrip} img`, {
 globalStyle(`${screenshotStrip} img`, {
   '@media': {
     '(max-width: 720px)': {
-      height: "220px",
+      maxHeight: "260px",
     },
   },
 });
