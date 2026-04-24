@@ -18,28 +18,16 @@ state.
 
 Important: purge only targets Yambuck-managed installs/metadata. It does not remove software installed by other package managers or manual methods.
 
-```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps
-```
-
-## Optional Scope-Specific Purge
-
-Remove only system-scope Yambuck-managed apps:
+If system-managed paths are present, the script requests admin permission when needed.
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-system-apps
-```
-
-Remove only user-scope Yambuck-managed apps:
-
-```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-user-apps
+curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 ```
 
 ## Script Options
 
-- `--remove-all-apps`: also remove all Yambuck-managed app payloads and metadata (user + system)
-- `--remove-system-apps`: also remove system-scope Yambuck-managed app payloads and metadata only
-- `--remove-user-apps`: also remove user-scope Yambuck-managed app payloads and metadata only
+- `--purge-managed-apps`: also remove all Yambuck-managed app payloads and metadata (user + system)
 - `--yes`: run non-interactively
 - `--help`: show script usage
+
+Legacy flags (`--remove-all-apps`, `--remove-system-apps`, `--remove-user-apps`) are still accepted as aliases for `--purge-managed-apps`.

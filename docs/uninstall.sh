@@ -6,22 +6,20 @@ usage() {
 Yambuck uninstall script
 
 Usage:
-  uninstall.sh [--remove-all-apps | --remove-system-apps | --remove-user-apps] [--yes]
+  uninstall.sh [--purge-managed-apps] [--yes]
 
 Default behavior:
   Removes Yambuck itself (user + system installs when present) and desktop integration.
   Leaves Yambuck-managed apps in place.
 
 Options:
-  --remove-all-apps    Also remove all Yambuck-managed app payloads + metadata (user + system)
-  --remove-system-apps Also remove system-scope Yambuck-managed app payloads + metadata only
-  --remove-user-apps   Also remove user-scope Yambuck-managed app payloads + metadata only
+  --purge-managed-apps Also remove all Yambuck-managed app payloads + metadata (user + system)
   --yes                Skip confirmation prompts
   -h, --help           Show this help message
 
 Examples:
   curl -fsSL https://yambuck.com/uninstall.sh | bash
-  curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps
+  curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 EOF
 }
 
@@ -53,20 +51,16 @@ require_safe_path() {
 }
 
 non_interactive=false
-remove_all_apps=false
-remove_system_apps=false
-remove_user_apps=false
+purge_managed_apps=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --remove-all-apps)
-      remove_all_apps=true
+    --purge-managed-apps)
+      purge_managed_apps=true
       ;;
-    --remove-system-apps)
-      remove_system_apps=true
-      ;;
-    --remove-user-apps)
-      remove_user_apps=true
+    --remove-all-apps|--remove-system-apps|--remove-user-apps)
+      log "Note: $1 is deprecated; using --purge-managed-apps behavior."
+      purge_managed_apps=true
       ;;
     --yes)
       non_interactive=true
@@ -84,15 +78,6 @@ done
 
 if [[ ! -t 0 ]]; then
   non_interactive=true
-fi
-
-if [[ "$remove_all_apps" == true && ("$remove_system_apps" == true || "$remove_user_apps" == true) ]]; then
-  fail "--remove-all-apps cannot be combined with --remove-system-apps or --remove-user-apps"
-fi
-
-if [[ "$remove_all_apps" == true ]]; then
-  remove_system_apps=true
-  remove_user_apps=true
 fi
 
 user_bin_path="${HOME}/.local/bin/yambuck"
@@ -171,7 +156,7 @@ system_changes_required=false
 if [[ -e "$system_bin_path" || -e "$system_desktop_file" || -e "$system_legacy_desktop_file" || -e "$system_mime_xml" || -e "$system_app_icon" || -e "$system_mime_icon" ]]; then
   system_changes_required=true
 fi
-if [[ "$remove_system_apps" == true && ( -d "$system_metadata_root" || -d "$system_app_payload_root" ) ]]; then
+if [[ "$purge_managed_apps" == true && ( -d "$system_metadata_root" || -d "$system_app_payload_root" ) ]]; then
   system_changes_required=true
 fi
 
@@ -181,14 +166,8 @@ fi
 
 log "Preparing uninstall"
 log "Will remove Yambuck launcher/binary from user + system locations when present"
-if [[ "$remove_system_apps" == true || "$remove_user_apps" == true ]]; then
-  if [[ "$remove_system_apps" == true && "$remove_user_apps" == true ]]; then
-    log "App purge mode: remove all Yambuck-managed apps (user + system)"
-  elif [[ "$remove_system_apps" == true ]]; then
-    log "App purge mode: remove system-scope Yambuck-managed apps"
-  else
-    log "App purge mode: remove user-scope Yambuck-managed apps"
-  fi
+if [[ "$purge_managed_apps" == true ]]; then
+  log "App purge mode: remove all Yambuck-managed apps (user + system)"
 else
   log "App purge mode: keep Yambuck-managed apps"
 fi
@@ -233,12 +212,9 @@ remove_file_if_exists "$system_mime_xml" true
 remove_file_if_exists "$system_app_icon" true
 remove_file_if_exists "$system_mime_icon" true
 
-if [[ "$remove_user_apps" == true ]]; then
+if [[ "$purge_managed_apps" == true ]]; then
   remove_dir_if_exists "$user_metadata_root" false
   remove_dir_if_exists "$user_app_payload_root" false
-fi
-
-if [[ "$remove_system_apps" == true ]]; then
   remove_dir_if_exists "$system_metadata_root" true
   remove_dir_if_exists "$system_app_payload_root" true
 fi
@@ -276,9 +252,15 @@ if optional_cmd gtk-update-icon-cache; then
   fi
 fi
 
+if [[ "$purge_managed_apps" == false && ( -d "$system_metadata_root" || -d "$system_app_payload_root" ) ]]; then
+  log "System-managed app data still exists."
+  log "Run full purge to remove everything:"
+  log "curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes"
+fi
+
 log "Uninstall complete"
-if [[ "$remove_system_apps" == true || "$remove_user_apps" == true ]]; then
-  log "Yambuck and selected Yambuck-managed app payloads/metadata were removed."
+if [[ "$purge_managed_apps" == true ]]; then
+  log "Yambuck and all Yambuck-managed app payloads/metadata were removed."
 else
   log "Yambuck was removed. Yambuck-managed apps were left intact."
 fi

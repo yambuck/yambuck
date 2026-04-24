@@ -23,6 +23,7 @@ Completed items should be removed from this file.
 - [ ] Define interruption resilience policy (power loss/crash during install) with resume-or-rollback guarantees.
 - [ ] Fix title-bar window controls so maximize and close glyphs are visually centered in circular buttons.
 - [ ] Add lightweight release-gate checklist for spec/code alignment before release (package conformance, reliability checks, desktop validation sign-off).
+- [ ] Revisit uninstall CLI flag model after logging/elevation stabilization (consider reintroducing scoped purge flags with clear UX contract).
 
 ## Ideas / Parking Lot
 

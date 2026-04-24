@@ -30,7 +30,7 @@
         <h1>Uninstall Yambuck</h1>
         <p class="hero-copy">
           Choose the safe default if you only want to remove Yambuck, or use full purge mode for
-          a complete clean-slate reset.
+          a complete clean-slate reset. If system paths exist, the script requests admin permission.
         </p>
         <p class="command-note"><a href="./index.html">Back to install page</a></p>
       </header>
@@ -60,7 +60,7 @@
           scope for a full clean slate.
         </p>
         <div class="command-shell">
-          <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps</code>
+          <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes</code>
           <button id="copy-purge-command" type="button">Copy</button>
         </div>
         <p class="command-note">
