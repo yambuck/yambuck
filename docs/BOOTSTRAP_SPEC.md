@@ -86,13 +86,14 @@ For internal testing and CI:
 
 ## Known v1 Limits
 
-- bootstrap currently installs binary only
-- desktop file association setup for `.yambuck` will be added in a dedicated integration step
+- bootstrap installs binary only
+- desktop file association setup for `.yambuck` is handled in a dedicated integration step
 
-## Implementation Status
+## Reference Paths
 
 - install script path: `docs/install.sh`
 - uninstall script path: `docs/uninstall.sh`
-- active status: bootstrap install + uninstall scripts implemented and wired to live GitHub Release artifacts
-- active status: checksum verification is required by default in normal flow
-- pending: add release signing workflow and signature verification policy in bootstrap
+
+## Open Gaps Tracking
+
+Any implementation gaps against this spec should be tracked in `TODO.md`.

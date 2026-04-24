@@ -1,4 +1,4 @@
-# Yambuck Updates Spec (v1 Draft)
+# Yambuck Updates Spec (v1)
 
 ## Goal
 
@@ -75,12 +75,7 @@ Reliability constraints:
 ## Privilege Model
 
 - Per-user install updates without elevation.
-- System install update should prompt for elevation when user clicks update.
-
-Current implementation status:
-
-- in-app update apply currently targets user installs first
-- system install update apply with elevation is planned next
+- System install update must prompt for elevation when user clicks update.
 
 ## Safety and Transparency
 
@@ -95,6 +90,10 @@ Current implementation status:
 - delta patch updates
 - rollback UI
 - mandatory signature-based update policy (planned later)
+
+## Open Gaps Tracking
+
+Any implementation gaps against this spec should be tracked in `TODO.md`.
 
 ## Operations Note
 

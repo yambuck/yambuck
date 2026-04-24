@@ -46,11 +46,6 @@ Yambuck does not use full inline-only styling as the default architecture.
 - Baseline file: `apps/yambuck-gui/scripts/style-color-literals-baseline.json`.
 - Baseline maintenance command: `node scripts/check-style-color-literals.mjs --update-baseline` (use only after intentional styling review).
 
-## Implementation Status
+## Open Gaps Tracking
 
-- Shared primitives now back installer, installed apps, settings, and modal actions.
-- Dropdown/select controls use a reusable component and shared design tokens.
-- `SelectField` is now migrated to scoped `vanilla-extract` styles as the pilot component.
-- Checkbox behavior is standardized via `CheckboxField`.
-- Primary page panels share width and spacing tokens.
-- Installer, Installed Apps, Settings, and modal surfaces now primarily use scoped style modules (`.css.ts`) with token-driven values.
+Any open implementation gaps against this architecture should be tracked in `TODO.md`.

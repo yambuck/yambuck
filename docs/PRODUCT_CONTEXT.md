@@ -1,138 +1,99 @@
 # Yambuck Product Context
 
-This is the canonical context document for future chats and contributors.
+This is the canonical product brief for Yambuck.
 
-If you only read one file to understand product intent, read this one first.
+It defines product intent, strategy, and governance. Normative technical rules live in owner specs, not here.
+
+## Why Yambuck Exists
+
+I built Yambuck because Linux app installation is still unnecessarily hard for normal users, especially when software is distributed through direct downloads instead of app stores.
+
+After shipping my own apps, I kept seeing the same friction repeatedly:
+
+- users must choose between package formats before they can even start
+- install behavior changes across distros and desktop environments
+- success/failure states are inconsistent and hard to trust
+- uninstall visibility is messy and often unclear
+
+Yambuck exists to make that experience predictable.
 
 ## Mission
 
-Yambuck exists to make installing Linux apps radically easier for non-technical users.
+Make installing Linux apps radically easier for non-technical users.
 
-The product should feel:
+## Product Positioning
 
-- familiar
-- predictable
-- trustworthy
-- polished
+- Linux-first
+- GUI-first
+- CLI is planned/secondary (GUI is the active product surface today)
+- Consumer-style installer UX (guided, plain language, modern)
 
-## Target User
+## Target Users
 
-- Everyday Linux users who do not want to learn distro/package-manager complexity.
-- Users who want a simple, repeatable installer flow and clear outcomes.
-- Users who care about confidence: "if it says installed, it is installed."
+- Everyday Linux users who do not want to learn package-manager complexity
+- Users who install software from GitHub releases or vendor websites
+- Developers/teams who distribute Linux desktop apps directly and want a cleaner install flow
 
-## Product Thesis (Why This Can Work)
+## Product Thesis
 
-- Linux app installation is fragmented and inconsistent across distros/tools.
-- A consistent GUI-first installer flow can remove that friction for end users.
+- Linux installation is fragmented; users absorb too much complexity today.
+- A standardized GUI-first install flow can remove that complexity for end users.
 - If Yambuck is clearly easier and more reliable, users will prefer it.
 - If users prefer it, developers have stronger incentive to ship `.yambuck` packages.
 
-Important framing:
-
-- App stores cover only part of Linux software distribution.
-- The highest friction point is software installed outside app stores (GitHub/vendor downloads).
-- Yambuck v1 is focused on making that downloaded-app install path predictable.
-
-Core strategic loop:
+Strategic loop:
 
 1. Better UX and trust.
 2. More user preference for Yambuck installs.
-3. More pressure/demand for developers to package for Yambuck.
+3. More developer packaging demand for `.yambuck`.
 4. Better ecosystem coverage.
 
-## Realism and Adoption Risk
+## v1 Distribution Model
 
-This project has a real chicken-and-egg risk (users need packages, developers need user demand), but the underlying user need is real.
+- Direct-download packages (`.yambuck`)
+- Developers/vendors host files themselves (GitHub releases, vendor websites)
+- No required central store or hosted backend in v1
 
-Key reality checks:
+## v1 Core User Experience
 
-- Success depends on trust and reliability first, not breadth of ecosystem on day one.
-- If Yambuck feels clearly easier than current Linux install flows, users will pull adoption forward.
-- Early wins should come from a small set of high-value apps that prove the experience end to end.
-- The bar is not "support everything immediately"; the bar is "make common installs feel effortless and safe."
+1. Install Yambuck once (bootstrap).
+2. Download a `.yambuck` file.
+3. Open it in the GUI flow (typically by double-clicking the package file).
+4. Review app details, trust state, and install scope.
+5. Install with clear progress and clear outcomes.
+6. Manage installed apps and uninstall from Yambuck.
 
-## Non-Negotiable UX Principles
+## Product Guardrails
 
-- Keep installs simple and decision-light by default.
-- Keep flow standardized package-to-package (MSI-like consistency).
-- Avoid clutter and "boxes inside boxes" UI where it hurts readability.
-- Keep language plain and outcomes unambiguous.
-- Use progressive disclosure: advanced/technical details behind expandable sections.
+- Trust and predictability are non-negotiable for v1.
+- Scope and ownership boundaries must be explicit and safe.
+- Default UX should be decision-light and consistent package-to-package.
+- Reliability work takes priority over feature sprawl.
 
-## Trust Contract (MVP)
+Normative behavior details are owned by `docs/SPEC.md`.
 
-The following behaviors are mandatory for trust:
+## Current Phase
 
-- If install shows success, the app must be installed and launchable.
-- Failed installs must never route to success UI.
-- Failure UI must include plain-language error + copyable technical logs.
-- Installed apps must remain listed unless the user explicitly uninstalls in Yambuck.
-- Install/uninstall behavior must be deterministic and repeatable.
+Yambuck is past ideation and into execution hardening.
 
-## Ownership and Safety Model
+The direction is set. The work now is reliability, correctness, and cross-environment consistency so installs become boringly dependable.
 
-- Yambuck manages only Yambuck-installed apps.
-- Yambuck must never mutate/remove apps installed by package managers, `.deb`, or manual methods.
-- Install roots should be scope-specific and Yambuck-managed (dedicated `yambuck` subdirectory).
-- Uninstall removes Yambuck-managed artifacts only.
+## Spec Governance
 
-## UX Direction: Installed Apps
-
-Installed Apps should behave like a modern control-panel style manager:
-
-- searchable
-- sortable (minimum: name, install date)
-- filterable (minimum: user vs all-users scope)
-- clear metadata per app (status, scope, version, location)
-
-## Platform and Integration Expectations
-
-- First-class Linux desktop behavior (starting with Linux Mint, then broader desktop coverage).
-- Correct permission/elevation handling for both X11 and Wayland.
-- Use native Wayland portals where appropriate.
-- Proper file association and icon behavior for `.yambuck` files.
-
-## Packaging and Flow Direction
-
-- `.yambuck` is a rigid, predictable install format.
-- Default flow should be the same every time.
-- App-specific install options (if supported) should be constrained and optional.
-- Review/installer modals should use consistent shared components and interaction patterns.
-
-## MVP Success Criteria
-
-MVP is successful when users consistently experience:
-
-- install succeeds cleanly or fails clearly (no ambiguous states)
-- installed apps are reliably present and manageable in Yambuck
-- uninstall is complete for Yambuck-managed payloads and safe for everything else
-- common install/manage tasks are easier than distro-native alternatives for non-technical users
-
-## Current Open Questions
-
-- exact model for optional app-specific install inputs in manifest
-- final install location layout per scope and migration/compatibility details
-- full desktop-environment matrix and edge-case handling
-- finalized multi-architecture manifest structure and payload mapping rules
+- `docs/SPEC.md` and `docs/PACKAGE_SPEC.md` are the v1 quality bar.
+- Do not lower spec to match temporary implementation gaps.
+- If implementation is below spec, update TODO and uplift code.
+- If implementation clearly exceeds spec in a durable, testable way, uplift spec to that higher bar.
+- `TODO.md` is the single active queue for open work; completed items should be removed.
 
 ## Source of Truth Map
 
-- Product overview: `README.md`
+- Product overview and story: `README.md`
+- Product context and decision baseline: `docs/PRODUCT_CONTEXT.md`
+- Package authoring spec (`.yambuck` files): `docs/PACKAGE_SPEC.md`
 - Technical/product spec: `docs/SPEC.md`
-- Current agreed decisions: `docs/DECISIONS.md`
 - Install/update/bootstrap specifics:
   - `docs/BOOTSTRAP_SPEC.md`
   - `docs/UPDATES_SPEC.md`
   - `docs/UNINSTALL.md`
-- Active work backlog and issues: `TODO.md`
-
-## How To Use This Document In New AI Chats
-
-Before planning work, read:
-
-1. `docs/PRODUCT_CONTEXT.md`
-2. `docs/DECISIONS.md`
-3. `TODO.md`
-
-Then propose solutions that optimize for trust, simplicity, and repeatable UX first.
+- Active implementation backlog: `TODO.md`

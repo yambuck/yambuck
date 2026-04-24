@@ -1,227 +1,30 @@
 # TODO
 
-Fast-moving reminder list with enough detail to debug/fix without re-explaining.
+Single active queue for open work only.
 
-## Bugs / Known Issues
-- [x] License acceptance checkbox UI is too small and not in keeping with the rest of the app styling.
-  - Why this matters: weak visual consistency and lower clarity on an important consent action.
+Completed items should be removed from this file.
 
-- [ ] "Install for current user" works, but "install for all users" currently fails.
-  - Observed error: "Install finished with issues. Could not update installed apps index."
-  - Current behavior after failure is incorrect: app shows the normal install-complete screen with actions like "install another" and "launch application".
-  - Expected behavior: do not show success/complete UI when install failed.
-  - Required UX: show a dedicated install-failed screen instead.
-  - Failure screen should include:
-    - a short plain-language error summary
-    - detailed logs in a code-style block (ideally easy to copy)
-  - Reason for logs: allow user/vendor/support (including you) to diagnose install failures quickly.
-  - Probable root cause to confirm: all-users path likely needs elevated permissions, but app does not request elevation now.
-  - Symptom supporting that theory: no username/password or sudo-style auth prompt appears during all-users install attempt.
-  - Platform requirement: implement permission/elevation correctly for both X11 and Wayland.
-  - Implementation preference: use proper native Wayland portals where appropriate.
+## Now
 
-- [ ] `.yambuck` file icon/thumbnail is blank in file browser (observed on Linux Mint).
-  - Current state: double-click/open behavior works, so file association is at least partially in place.
-  - UX gap: downloaded `.yambuck` files do not show Yambuck app branding in the file manager.
-  - Desired behavior: `.yambuck` files should display the Yambuck application icon for instant recognition of which app opens the file.
-  - Why this matters: quick visual trust/recognition is important, especially for non-technical end users.
-  - Scope note: only validated so far on Linux Mint; likely needs proper desktop integration for Linux environments/desktops.
+- [ ] Implement host compatibility preflight before install execution (architecture/target checks with clear plain-language block reasons + technical details).
+- [ ] Define and implement v1 multi-architecture manifest schema and payload mapping rules.
+- [ ] Implement deterministic host payload selection for multi-arch packages and block unsupported hosts before install begins.
+- [ ] Implement post-install cleanup to retain only selected host payload artifacts and remove unused architecture binaries.
+- [ ] Keep default install flow minimal; move app-specific/technical controls behind collapsed `Advanced` sections.
+- [ ] Implement system-scope in-app update apply flow with elevation and failure-safe parity with user-scope updates.
+- [ ] Complete Linux desktop validation matrix and document outcomes (Mint/Cinnamon, GNOME, KDE; X11 and Wayland; MIME/icon/launcher behavior).
 
-- [ ] Review screen/modal window behavior is inconsistent with the rest of the app.
-  - Missing UI: review screen should have the same top-right close `X` icon as other screens/modals.
-  - Layout bug: this screen currently covers the app title bar/window chrome.
-  - Why this is wrong: it blocks native window controls (close, maximize, minimize), which should always remain accessible.
-  - Expected behavior: review flow should use the same presentation/code path/look-and-feel pattern as when opening a `.yambuck` file.
-  - Consistency requirement: standardized/shared components and consistent interaction model across all modal/pop-up style screens.
+## Next
 
-- [ ] On review screen, tooltip in the license section blocks clicking the `View license` button.
-  - Current bug: user cannot click `View license` because tooltip overlay/hover behavior sits in the way.
-  - Expected behavior: `View license` must always be directly clickable and keyboard-accessible.
-  - Requirement: tooltip must not capture/intercept pointer events intended for the button.
-
-- [ ] Review screen needs richer, optional technical details similar to `.yambuck` open screen.
-  - Desired layout: normal application info first, plus a small "expand technical information" control.
-  - Expanded details should include:
-    - install path
-    - configuration location
-    - almost all other useful manifest metadata
-  - Why this matters now: important for early-stage debugging while product behavior is still being stabilized.
-  - Why this matters long-term: helps users self-serve common questions (for example where config lives) without external searching.
-
-- [ ] Installed Apps layout has too many "boxes inside boxes" and wastes horizontal space.
-  - Current pattern uses nested cards (`Installed Apps`, `Choose Package`, `Settings`) that can feel over-framed.
-  - On Installed Apps screen, content behaves like a list/table but card containers appear to have fixed/max width.
-  - Result: widening/fullscreen window does not reveal more info; large unused whitespace remains.
-  - Impact: reduced information density, harder scanning, weaker use of available screen real estate.
-  - Need to evaluate reducing/removing inner cards and placing content directly on page backdrop where appropriate.
-  - Goal: responsive layout that expands with window width and uses extra space for more columns/details.
-
-- [x] Unify primary card width and outer spacing across Installer, Installed Apps, and Settings.
-  - Current inconsistency: Installer card uses nearly full available width, while Installed Apps and Settings primary cards remain noticeably narrower.
-  - UX impact: inconsistent visual rhythm and avoidable wasted horizontal space on medium/large windows.
-  - Desired behavior: all top-level primary cards share one width rule and fill available content width consistently.
-  - Keep a consistent outer gutter/padding from the page shell so cards never touch the window edge.
-  - Scope note: this applies to primary page cards; nested sections can keep context-appropriate widths.
-
-- [x] Dropdown/select controls are visually inconsistent and low contrast in current UI.
-  - Current issue: some dropdowns render as pure white controls with low-contrast text, hurting readability.
-  - Current issue: select elements still look system-default and do not match Yambuck styling language.
-  - UX requirement: dropdown closed state, open menu, hover/focus, and selected item styles should align with app design tokens.
-  - Accessibility requirement: ensure strong text/background contrast and clear keyboard focus styling.
-  - Reuse requirement: avoid one-off dropdown styles; use one standardized component/pattern across screens.
-
-- [ ] Installed Apps list needs stronger usability features (icon size, search, sorting, filtering).
-  - Increase per-app icon size slightly in the installed apps list for quicker recognition/scanning.
-  - Add a search box to filter installed applications by name (fast type-to-filter behavior).
-  - Consider moving to a reusable data-table component for Installed Apps to support richer controls.
-  - Sorting requirements to support early: by name and by date installed (similar to familiar OS app-management lists).
-  - Filtering requirement to support early: install scope (user vs system-wide), likely via dropdown filter.
-  - Goal: start with these controls now, then iterate/refine once real usage feedback comes in.
-
-- [ ] Review and harden install-location ownership model for trust and non-conflicting behavior.
-  - Need an explicit review of where apps are currently installed (user scope and system-wide scope paths).
-  - Confirm whether installs currently land in generic/shared directories and where conflicts could happen.
-  - Direction to implement: in both scopes, install into a dedicated `/yambuck` subdirectory under the appropriate base path.
-  - Goal: keep Yambuck-managed app payloads separated from apps installed by other methods (package manager, `.deb`, manual installs, etc.).
-  - Ownership rule: Yambuck should only manage/uninstall apps it installed itself.
-  - Safety rule: Yambuck uninstall must never remove or alter copies installed outside Yambuck.
-  - Product behavior goal: Installed Apps list shows Yambuck-managed installs only, and entries only disappear when user uninstalls from Yambuck.
-  - Trust requirement: if installed via Yambuck, app should not "magically disappear" from the list unless explicitly uninstalled in Yambuck.
-
-- [ ] Install flow must be rigid, predictable, and familiar every time (MSI-like consistency).
-  - Goal: same flow, same screens, same choices, same language for every `.yambuck` install.
-  - UX requirement: avoid weird/wacky one-off installer behavior that forces user decisions.
-  - Product bar: easiest Linux install experience by a large margin; polished front-end even while backend evolves.
-  - Outcome requirement: if app installs via `.yambuck`, it should install, run, remain listed, and only disappear when explicitly uninstalled in Yambuck.
-
-- [ ] Need explicit strategy for optional app-specific install inputs without breaking default simplicity.
-  - Keep default install path decision-light for non-technical users.
-  - Investigate manifest-defined install options model (only when truly required by package).
-  - Ensure optional choices are constrained/standardized so installer experience remains familiar.
-
-- [ ] Add multi-architecture package support with compatibility preflight and clear user messaging.
-  - Support a single `.yambuck` file containing multiple architecture payloads (at minimum `x86_64` and `aarch64`).
-  - On open/install, detect host architecture early and select matching payload automatically.
-  - If no compatible payload exists, block before install execution and show plain-language reason plus expandable technical details.
-  - Keep this behavior deterministic and consistent across supported distro families.
-
-- [ ] Persist rich installed-app metadata independently of the original downloaded `.yambuck` file.
-  - Keep icon, screenshots, key manifest fields, and ownership/install metadata in Yambuck-managed state after install.
-  - Ensure Installed Apps remains fully informative even if user deletes the downloaded installer file from `Downloads`.
-  - Retain only metadata/assets required for Installed Apps UX and lifecycle actions.
-
-- [ ] Enforce multi-arch storage hygiene after install.
-  - Install and retain only the host-matching payload.
-  - Do not retain unused architecture binaries from the package after successful install.
-  - Ensure uninstall receipts/ownership metadata only reference actually installed artifacts.
-
-- [ ] Trust and adoption depend on reliability + clarity at every stage.
-  - User confidence target: installed means installed, removable means fully removed via Yambuck.
-  - UX target: refined, uncluttered, repeatable interactions with clear status and no ambiguous outcomes.
-  - Strategic note: stronger trust and ease-of-use should increase user demand for software packaged in `.yambuck` format.
-
-## Tasks
-- [x] Define and implement correct privilege escalation flow for all-users installs.
-- [x] Add install-failed screen and wire failed install paths to it (never route failures to success screen).
-- [x] Surface structured failure details/log output in the failed screen for support/debug use.
-- [x] Verify/install flow behavior on both X11 and Wayland with native-first portal usage where appropriate.
-- [x] Implement `.yambuck` MIME type + icon integration so file managers show Yambuck icon instead of blank file icon.
-- [ ] Validate `.yambuck` icon visibility and open-with association on Linux Mint first, then test other Linux desktop environments. (Linux Mint validated; GNOME/KDE/XFCE checks pending.)
-- [x] Refactor review screen to use the same shell/container/modal code path as `.yambuck` open flow.
-- [x] Ensure review screen always preserves visible native title bar/window controls and includes standard top-right `X` close action.
-- [x] Fix license-section tooltip layering/pointer behavior so `View license` is reliably clickable.
-- [x] Add expandable technical-information panel in review screen (aligned with `.yambuck` open screen UX).
-- [x] Populate technical panel with install path, config location, and broad manifest metadata useful for debugging/support.
-- [x] Audit major pages for nested-card usage and identify where cards add value vs visual clutter. (See `docs/UI_SHELL_STANDARD.md`.)
-- [x] Refactor Installed Apps view to a width-fluid list/table container (remove fixed narrow card constraints).
-- [x] Ensure layout scales from small window to fullscreen with progressive information density.
-- [x] Keep visual consistency while avoiding card-inside-card patterns unless functionally necessary.
-- [x] Increase installed-app icon size in list rows while keeping row spacing and alignment clean.
-- [x] Add installed-app search input (name-based filtering with responsive updates).
-- [x] Define or adopt a reusable data-table component for Installed Apps (sorting + filtering + search).
-- [x] Implement table sorting (minimum: app name and date installed).
-- [x] Implement scope filter control (user-installed vs system-wide).
-- [x] Audit current install/uninstall paths for user + system scopes and document exact directories in use. (See `docs/INSTALL_UNINSTALL_PATHS.md`.)
-- [x] Implement dedicated Yambuck-managed install roots (including `/yambuck` subdirectory strategy per scope).
-- [x] Persist and rely on Yambuck ownership metadata so only Yambuck-installed apps are listed/managed by Yambuck.
-- [x] Guard uninstall logic to never touch non-Yambuck installs, even when app names overlap.
-- [x] Ensure Installed Apps list is source-of-truth for Yambuck-managed installs and entries change only through explicit Yambuck install/uninstall actions.
-- [x] Implement atomic install transactions with rollback so failures never leave partial installs.
-- [x] Add post-install verification checks (payload files, launchers/entry points, registration) before showing success state.
-- [x] Implement deterministic uninstall that removes all Yambuck-managed artifacts while never touching non-Yambuck installs.
-- [x] Persist per-install ownership receipts/manifests (files, paths, version, scope, timestamps) as source of truth.
-- [x] Define clear install state machine (queued, downloading, validating, installing, verifying, success, failed).
-- [x] Improve failure UX with one-click recovery actions (`Retry`, `Copy logs`, `Open logs`) and short plain-language root-cause summary.
-- [x] Add package integrity/authenticity validation for `.yambuck` payloads before install execution.
-- [x] Enforce manifest schema validation with user-readable hard-fail errors.
-- [x] Tighten manifest validation to require non-empty `iconPath`, `description`, and `longDescription` fields (trim whitespace; hard-fail when missing/blank).
-- [x] Require at least 1 screenshot in `screenshots` and cap at 6 (to match installer preview limits).
-- [x] Restrict screenshot formats to `.png`, `.jpg`, `.jpeg`, or `.gif` only (hard-fail unsupported formats).
-- [x] Restrict icon formats to `.png`, `.jpg`, or `.jpeg` only (no `.webp` in v1 strict mode).
-- [x] Validate icon and screenshot files by actual file signature (magic bytes) and decode success, not filename extension.
-- [x] Reject zero-byte and tiny placeholder image assets using minimum file-size thresholds for icon and screenshots.
-- [x] Enforce minimum media dimensions (`icon`: at least `128x128`; `screenshots`: at least `256x256`).
-- [x] Ensure installer screenshot rendering never stretches images and always preserves original aspect ratio in preview and modal.
-- [x] Add screenshot aspect-ratio guardrails (reject extreme banner/tall-strip shapes that degrade preview UX).
-- [x] Fail validation when required asset paths point to missing files, directories, or unreadable/corrupt image data.
-- [x] Return field-specific manifest/file errors (for example `iconPath`, `screenshots[0]`) with clear fix guidance for packagers.
-- [x] Add fixture-based tests for strict media validation cases: blank files, renamed text files, corrupt images, too-small dimensions, unsupported extensions, and missing required assets.
-- [x] Add versioned manifest parsing pipeline with explicit handlers per major version (`v1`, future `v2`, etc.).
-- [x] Preserve backward compatibility by routing older package manifests to their matching parser/validator instead of newest-only rules.
-- [x] Define manifest evolution policy: allowed minor additions, major-version breaking changes, and deprecation windows.
-- [x] Add fixture-based compatibility tests for multiple manifest versions (valid/invalid cases per version + upgrade safety checks).
-- [x] Explore code-defined schema representation (or generated schema artifact) per manifest version to keep spec and validation in sync. (See `docs/MANIFEST_SCHEMA_STRATEGY.md`.)
+- [ ] Enforce strict semver validation for `manifestVersion` to match `docs/PACKAGE_SPEC.md` v1 bar.
 - [ ] Add lightweight command/script to export `v1` manifest schema artifact from code-defined structs.
-- [x] Add path safety protections (block traversal/symlink escape and writes outside approved roots).
-- [x] Limit privilege escalation to required steps only; log why elevation was required.
-- [x] Expand Installed Apps list fields to include status, scope, version, install date, and install location.
-- [ ] Keep default install flow minimal; place advanced/technical controls behind expandable "Advanced" sections.
-  - Baseline UX rule: no package-specific complexity on the default path unless strictly required.
-  - Future package-option model: allow developer-defined install options, but group optional/non-essential controls under a collapsed "Advanced" section.
-  - Predictability rule: required options must remain clearly discoverable and never feel hidden behind obscure UI.
-  - Compatibility rule: adding new option types must not change the familiar install flow order for users who ignore Advanced.
-- [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, and retries.
-- [x] Standardize hover effects across all buttons and interactive controls for consistent visual feedback.
-- [ ] Fix title-bar window controls so maximize and close glyphs are visually centered within their circular buttons.
-- [x] Evaluate inline styling approach (similar to Voquill) to keep global `.css` footprint minimal while preserving consistency.
-  - Decision: use token-driven hybrid styling for Yambuck (design tokens + reusable UI primitives + CSS for pseudo states/responsive/layout), not full inline-only styling.
-- [x] Standardize shared layout tokens for page-shell horizontal padding and primary card max width.
-- [x] Refactor Installed Apps page shell/main card to use the same width behavior as Installer.
-- [x] Refactor Settings page shell/main card to use the same width behavior as Installer.
-- [x] Add responsive checks for card-width parity across Installer, Installed Apps, and Settings at common window breakpoints.
-- [x] Define shared dropdown/select design tokens (background, text, border, hover, focus, menu surface, selected state).
-- [x] Implement reusable dropdown/select component wrapper for app-wide use (replace ad-hoc/system-default selects).
-- [x] Migrate existing scope/filter dropdowns to the reusable component and verify visual parity across pages.
-- [x] Add accessibility checks for dropdown contrast and keyboard navigation/focus visibility.
-- [x] Add and adopt reusable UI primitives for controls (`Button`, `TextField`, `CheckboxField`, `Panel`) across installer, installed apps, settings, and modal flows.
-- [x] Standardize checkbox usage to a shared component and remove ad-hoc checkbox markup from feature pages.
-- [x] Replace remaining class-based action buttons in page/modals with shared `Button` primitive usage.
-- [x] Document style architecture decision and conventions (`docs/UI_STYLE_ARCHITECTURE.md`).
-- [x] Refactor key form controls to shared primitives and tokenized state styles (focus, hover, disabled) to reduce style drift.
-- [x] Break monolithic GUI stylesheet into feature-owned CSS files and keep `App.css` as an import-only composition entrypoint.
-- [x] Add CSS size guardrails (soft 800 / hard 1000 lines) with automated checks (`npm run check:styles`).
-- [x] Add raw color literal guardrails for CSS with baseline enforcement to prevent unreviewed non-token color growth.
-- [x] Remove redundant Installed Apps table columns that do not add decision value (status/install location moved to review details).
-- [x] Add copy-feedback toast for technical metadata copy actions in installed app review.
-- [x] Add debug-accessible mock Installed Apps list page that reuses production list/review components with fixture data.
-- [x] Add debug-accessible mock Install Flow page that reuses production installer component states with fixture data.
-- [x] Expand Debug settings shortcuts to open major mock pages directly (app details, installed list, install flow).
-- [x] Replace native select popup behavior with fully styled custom dropdown menu rendering to avoid system-default option panels.
-- [x] Improve Installed Apps table density by truncating long app names/IDs with ellipsis and compacting installed timestamp display.
-- [x] Keep Installed Apps action buttons on a single row to reduce vertical row growth under medium widths.
-- [x] Convert Installed Apps row actions to compact icon-only circular controls with accessible labels/tooltips for better density.
-- [x] Prevent Installed Apps version chip wrapping by applying single-line ellipsis overflow behavior for long version strings.
-- [x] Enable scoped styling migration tooling (`vanilla-extract`) and migrate `SelectField` to component-scoped styles as pilot.
-- [x] Migrate shared UI primitives to scoped styles (`Button`, `TextField`, `CheckboxField`, `Panel`, `ModalShell`) while preserving existing behavior.
-- [x] Migrate Installed Apps and Settings feature styles to component-local scoped style files and trim duplicated global CSS rules.
-- [x] Migrate Installer and modal presentation surfaces to scoped style modules and reduce legacy global style overlap.
-- [x] Move shared metadata/package presentation styles into scoped shared style module used across installer/review/mock pages.
-- [ ] Validate behavior across Linux desktop environments (Mint/Cinnamon, GNOME, KDE) for MIME/icon/launcher consistency.
-- [ ] Validate privilege/auth behavior differences across Wayland and X11 and document fallback rules.
+- [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, retries, and policy blocks.
 - [ ] Define dependency/conflict handling rules (missing deps, incompatible versions, duplicate app IDs/names).
-- [x] Define upgrade/downgrade behavior rules across versions and install scopes.
-- [ ] Add interruption resilience plan (power loss/crash during install) with resume-or-rollback guarantees.
-- [ ] Define multi-architecture manifest schema and validation rules (required arch map, payload paths, optional fallback guidance).
-- [ ] Add host compatibility preflight stage before install execution (arch/target support checks with clear block reasons).
-- [x] Persist Installed Apps presentation metadata (icon, screenshots, descriptions) in Yambuck-managed state independent of source package file.
-- [ ] Ensure post-install cleanup keeps only selected host payload and removes unused architecture payloads.
+- [ ] Define interruption resilience policy (power loss/crash during install) with resume-or-rollback guarantees.
+- [ ] Fix title-bar window controls so maximize and close glyphs are visually centered in circular buttons.
+- [ ] Add lightweight release-gate checklist for spec/code alignment before release (package conformance, reliability checks, desktop validation sign-off).
+
+## Ideas / Parking Lot
+
+- Keep a short section in `docs/PACKAGE_SPEC.md` that labels items as `enforced now` vs `planned` to reduce ambiguity while v1 is still being completed.
+- Consider adding a one-command "pre-release sanity" script that bundles core checks (build, smoke install/uninstall, feed validation).

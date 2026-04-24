@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yambuck | Install Linux Apps</title>
+    <title>Yambuck | Linux App Installer (Alpha Preview)</title>
     <meta
       name="description"
-      content="Yambuck makes Linux app installation simple for non-technical users with a modern, GUI-first installer experience."
+      content="Yambuck is a GUI-first Linux app installer in alpha preview. Try the exploratory testing flow and help shape v1."
     />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -29,15 +29,15 @@
         </div>
         <h1>Install Linux apps like normal software.</h1>
         <p class="hero-copy">
-          Yambuck is a GUI-first installer system for Linux that helps non-technical users download,
-          open, and install apps with less friction.
+          Yambuck is a GUI-first installer for Linux that makes downloaded app installs feel predictable,
+          consistent, and easier to trust.
         </p>
       </header>
 
       <section class="install-card" aria-labelledby="install-title">
         <div class="install-card-header">
           <h2 id="install-title">Install Yambuck</h2>
-          <span class="status">MVP</span>
+          <span class="status">Alpha Preview</span>
         </div>
         <p>
           Run once, then open <code>.yambuck</code> files with a guided installer flow.
@@ -47,12 +47,20 @@
           <button id="copy-command" type="button">Copy</button>
         </div>
         <p class="command-note">
+          Yambuck is in alpha and best used for exploratory testing right now. Core flows work, but
+          expect rough edges.
+        </p>
+        <p class="command-note">
           Prefer explicit download? Get the script directly at
           <a href="./install.sh">/install.sh</a>.
         </p>
         <p class="command-note">
           Need to remove Yambuck later?
           <a href="./uninstall.html">Uninstall instructions</a>.
+        </p>
+        <p class="command-note">
+          Trying it? Share feedback and issues on
+          <a href="https://github.com/yambuck/yambuck/issues">GitHub Issues</a>.
         </p>
       </section>
 
@@ -71,8 +79,9 @@
             href="https://github.com/yambuck/yambuck/releases/latest/download/example-app-linux-x86_64.yambuck"
             aria-label="Download example-app.yambuck"
           >
-            <span>Download</span><code>example-app.yambuck</code>
+            <span class="step-file-label">Download Example Package</span>
           </a>
+          <p class="step-helper">For exploratory testing on Linux x86_64.</p>
         </article>
         <article>
           <p class="step-kicker">Step 3</p>

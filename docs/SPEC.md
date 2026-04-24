@@ -1,18 +1,11 @@
 # Yambuck v1 Specification
 
-## Mission
+Package authoring note:
 
-Yambuck makes Linux app distribution and installation dead simple for non-technical users, with a GUI-first cross-distro experience and optional CLI tooling, to help accelerate mainstream Linux adoption.
+- If you are building `.yambuck` files, use `docs/PACKAGE_SPEC.md` as your primary reference.
+- This document is the full product/runtime spec (installer behavior, trust contract, ownership rules, update model, and platform behavior).
 
-This mission is the primary design constraint for all technical choices.
-
-## Product Position
-
-- Linux-first, GUI-first product
-- Direct-download model (developer-hosted `.yambuck` files)
-- No required central store/repository
-- Optional CLI support, secondary to GUI
-- Familiar installer UX inspired by mainstream consumer installers
+Product intent and positioning are owned by `docs/PRODUCT_CONTEXT.md`.
 
 ## v1 User Experience Contract
 
@@ -60,36 +53,13 @@ Current structure:
 
 ## Package Format (Locked Direction)
 
-### Container
+Canonical package-authoring rules live in `docs/PACKAGE_SPEC.md`.
 
-- A `.yambuck` file is a zip container.
-- Top-level layout is explicit and readable (no required hidden `.yambuck/` root folder).
+This section keeps only runtime expectations that interact with install behavior.
 
-Expected layout:
-
-```text
-<app>.yambuck
-├── manifest.json
-├── app/
-│   └── ... packaged app payload ...
-└── assets/
-    ├── icon.(png|jpg|jpeg)
-    └── screenshots/
-        └── ... required screenshot images ...
-```
-
-### Payload Strategy
-
-- v1 packaging is **bundle-first**.
-- The package should include what the app needs to run after install, rather than relying on distro-specific dependency resolution.
-- Yambuck v1 does not attempt full distro dependency resolution for app runtime.
-
-### Multi-Architecture Direction
-
-- A single `.yambuck` package may contain payloads for multiple architectures (for example `x86_64`, `aarch64`).
-- Installer selects the host-matching payload automatically during preflight.
-- If host architecture is unsupported by the package, installer must stop before install execution with clear user-facing messaging.
-- Post-install state should retain only the selected host payload artifacts (no retention of unused architecture binaries).
+- v1 packaging is bundle-first.
+- Installer/runtime behavior must treat package identity and validation results as hard gates.
+- Multi-architecture support is a v1 direction and is enforced through compatibility preflight rules in this spec.
 
 ### Install Model
 
@@ -102,50 +72,19 @@ Expected layout:
 
 ## Manifest Specification (v1)
 
+For package authoring details (field-by-field requirements, media constraints, and examples), see `docs/PACKAGE_SPEC.md`.
+
+This section keeps runtime decision semantics only.
+
 ### Versioning and Compatibility
 
-- `manifestVersion` is required and uses semver (example: `1.0.0`).
-- Unknown major versions are rejected.
+- Unknown manifest major versions are rejected.
 - New optional fields may be added in backward-compatible minor/patch updates.
 - `minInstallerVersion` may be provided by packages that require newer Yambuck behavior.
-- Manifest field names are canonical `camelCase`; non-canonical forms (snake_case/kebab-case) are invalid.
 
 ### Identity
 
-- `appId` (required): stable reverse-DNS identifier (example: `com.voquill.app`)
-- `appUuid` (required): immutable global UUID for app identity continuity
-- `packageUuid` (required): unique package artifact UUID
-
-### Required v1 fields
-
-- `manifestVersion`
-- `displayName`
-- `description`
-- `version`
-- `publisher`
-- `appId`
-- `appUuid`
-- `packageUuid`
-- `entrypoint`
-- `iconPath`
-- `longDescription`
-- `screenshots` (1-6 image paths)
-
-### Optional v1 fields
-
-- `homepageUrl`
-- `supportUrl`
-- `license`
-- `licenseFile` (local path inside package, typically under `assets/licenses/`)
-- `requiresLicenseAcceptance` (defaults to `false`; requires non-empty bundled `licenseFile` text)
-- `releaseNotes`
-- `target` / `targets`
-- `runtimeDependencies` (informational only in v1)
-- `architectures` (optional map/list describing architecture payload availability and package paths)
-- `configPath` (optional app-declared config location)
-- `cachePath` (optional app-declared cache location)
-- `tempPath` (optional app-declared temp/work location)
-- `trustStatus` (defaults to `unverified` if not present)
+- Install/update decisions rely on package identity continuity (`appId` + `appUuid`), with `packageUuid` representing artifact identity.
 
 ## Rich Install Preview Requirements
 
@@ -167,22 +106,7 @@ UI behavior:
 - when `requiresLicenseAcceptance` is `true`, installer requires explicit acceptance before install can continue.
 - `screenshots` is required with at least 1 image and installer preview renders up to 6 screenshots.
 
-### Media Validation Rules (v1)
-
-- `iconPath` is required and must reference a bundled image file.
-- `screenshots` is required and must contain between 1 and 6 bundled image paths.
-- Allowed icon formats: PNG, JPG, JPEG.
-- Allowed screenshot formats: PNG, JPG, JPEG, GIF.
-- Image validation must use actual file signature/content checks (not extension-only checks).
-- Image assets must decode successfully as valid images.
-- Zero-byte assets are invalid.
-- Minimum dimensions:
-  - icon: at least 128x128
-  - screenshot: at least 256x256
-- Validation failures are hard-fail and should return actionable field-level errors (for example `iconPath` or `screenshots[0]`).
-- Installer preview and screenshot modal must preserve source aspect ratio (no stretching).
-
-This is required to make install decisions easy for non-technical users.
+Media and manifest validation rules are owned by `docs/PACKAGE_SPEC.md`.
 
 ## Installation and Uninstallation
 
@@ -268,7 +192,7 @@ Install decision table (v1):
 - `Update and restart` / `Later`
 - update metadata source: `https://yambuck.com/updates/stable.json`
 - feed points to immutable GitHub Release artifact URLs + checksums
-- in-app apply flow currently targets user installs first
+- in-app apply flow must support both user installs and system installs (with elevation when required)
 
 ## Compatibility and Targets
 
