@@ -5,9 +5,10 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::support::logging::append_log;
-use yambuck_core::{InstallScope, InstalledApp, PackageInfo};
+use yambuck_core::{InstallScope, InstalledApp, PackageInfo, UninstallResult};
 
 const ELEVATED_INSTALL_MODE_ARG: &str = "--yambuck-elevated-install";
+const ELEVATED_UNINSTALL_MODE_ARG: &str = "--yambuck-elevated-uninstall";
 
 #[derive(Clone, Debug)]
 struct ElevationRuntimeContext {
@@ -53,11 +54,43 @@ struct ElevatedInstalledApp {
     icon_data_url: Option<String>,
 }
 
-pub(crate) fn maybe_run_elevated_install_mode(args: &[String]) -> Option<i32> {
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ElevatedUninstallRequest {
+    app_id: String,
+    remove_user_data: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ElevatedUninstallResponse {
+    success: bool,
+    uninstall_result: Option<ElevatedUninstallResult>,
+    error: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ElevatedUninstallResult {
+    app_id: String,
+    install_scope: InstallScope,
+    removed_app_files: bool,
+    removed_user_data: bool,
+    warnings: Vec<String>,
+}
+
+pub(crate) fn maybe_run_elevated_mode(args: &[String]) -> Option<i32> {
     if args.len() == 4 && args[1] == ELEVATED_INSTALL_MODE_ARG {
         let request_path = &args[2];
         let response_path = &args[3];
         let exit_code = run_elevated_install_command(request_path, response_path);
+        return Some(exit_code);
+    }
+
+    if args.len() == 4 && args[1] == ELEVATED_UNINSTALL_MODE_ARG {
+        let request_path = &args[2];
+        let response_path = &args[3];
+        let exit_code = run_elevated_uninstall_command(request_path, response_path);
         return Some(exit_code);
     }
 
@@ -94,6 +127,36 @@ pub(crate) fn install_with_elevation_if_needed(
     );
 
     run_native_elevated_install(package_info, destination_path, allow_downgrade, &context)
+}
+
+pub(crate) fn uninstall_with_elevation_if_needed(
+    app_id: &str,
+    remove_user_data: bool,
+) -> Result<UninstallResult, String> {
+    if is_effectively_root() {
+        let _ = append_log(
+            "INFO",
+            "System uninstall running as root; skipping elevation prompt",
+        );
+        return yambuck_core::uninstall_installed_app(
+            app_id,
+            InstallScope::System,
+            remove_user_data,
+        )
+        .map_err(|error| error.to_string());
+    }
+
+    let context = ElevationRuntimeContext::collect();
+
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "System uninstall requested; elevation required (session={}, desktop={}, flatpakSandboxed={})",
+            context.session_type, context.desktop_environment, context.flatpak_sandboxed
+        ),
+    );
+
+    run_native_elevated_uninstall(app_id, remove_user_data, &context)
 }
 
 fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 {
@@ -163,6 +226,69 @@ fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 
     0
 }
 
+fn run_elevated_uninstall_command(request_path: &str, response_path: &str) -> i32 {
+    let request_content = match fs::read_to_string(request_path) {
+        Ok(content) => content,
+        Err(error) => {
+            let _ = write_response(
+                response_path,
+                ElevatedUninstallResponse {
+                    success: false,
+                    uninstall_result: None,
+                    error: Some(format!("could not read elevation request: {error}")),
+                },
+            );
+            return 2;
+        }
+    };
+
+    let request: ElevatedUninstallRequest = match serde_json::from_str(&request_content) {
+        Ok(value) => value,
+        Err(error) => {
+            let _ = write_response(
+                response_path,
+                ElevatedUninstallResponse {
+                    success: false,
+                    uninstall_result: None,
+                    error: Some(format!("invalid elevation request payload: {error}")),
+                },
+            );
+            return 2;
+        }
+    };
+
+    let result = yambuck_core::uninstall_installed_app(
+        &request.app_id,
+        InstallScope::System,
+        request.remove_user_data,
+    );
+
+    let response = match result {
+        Ok(uninstall_result) => ElevatedUninstallResponse {
+            success: true,
+            uninstall_result: Some(ElevatedUninstallResult {
+                app_id: uninstall_result.app_id,
+                install_scope: uninstall_result.install_scope,
+                removed_app_files: uninstall_result.removed_app_files,
+                removed_user_data: uninstall_result.removed_user_data,
+                warnings: uninstall_result.warnings,
+            }),
+            error: None,
+        },
+        Err(error) => ElevatedUninstallResponse {
+            success: false,
+            uninstall_result: None,
+            error: Some(error.to_string()),
+        },
+    };
+
+    if write_response(response_path, response).is_err() {
+        return 3;
+    }
+
+    0
+}
+
 fn run_native_elevated_install(
     package_info: &PackageInfo,
     destination_path: &str,
@@ -218,13 +344,14 @@ fn run_native_elevated_install(
     let status = run_elevation_command(
         &strategy,
         &current_exe,
+        ELEVATED_INSTALL_MODE_ARG,
         &request_path,
         &response_path,
         context,
     )?;
 
     let output = if response_path.exists() {
-        Some(read_response(&response_path)?)
+        Some(read_response::<ElevatedInstallResponse>(&response_path)?)
     } else {
         None
     };
@@ -290,9 +417,138 @@ fn run_native_elevated_install(
     Err(message)
 }
 
+fn run_native_elevated_uninstall(
+    app_id: &str,
+    remove_user_data: bool,
+    context: &ElevationRuntimeContext,
+) -> Result<UninstallResult, String> {
+    let strategy = select_strategy(context).ok_or_else(|| {
+        let _ = append_log(
+            "ERROR",
+            "Elevation failed: no supported native elevation strategy is available",
+        );
+        if context.flatpak_sandboxed {
+            "All-users uninstall requires administrator permission. No host elevation bridge was found in this Flatpak environment.".to_string()
+        } else {
+            "All-users uninstall requires administrator permission, but no native policykit elevation path is available. Install policykit (pkexec).".to_string()
+        }
+    })?;
+
+    let request = ElevatedUninstallRequest {
+        app_id: app_id.to_string(),
+        remove_user_data,
+    };
+
+    let staging_dir = std::env::temp_dir().join(format!(
+        "yambuck-elevated-uninstall-{}-{}",
+        std::process::id(),
+        unique_suffix()
+    ));
+    fs::create_dir_all(&staging_dir)
+        .map_err(|error| format!("Could not prepare elevation request directory: {error}"))?;
+
+    let request_path = staging_dir.join("request.json");
+    let response_path = staging_dir.join("response.json");
+
+    let request_json = serde_json::to_string(&request)
+        .map_err(|error| format!("Could not serialize elevation request: {error}"))?;
+    fs::write(&request_path, request_json)
+        .map_err(|error| format!("Could not write elevation request: {error}"))?;
+
+    let current_exe = std::env::current_exe()
+        .map_err(|error| format!("Could not resolve application executable path: {error}"))?;
+
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Requesting elevation for uninstall using strategy={} (session={}, desktop={})",
+            strategy.label(),
+            context.session_type,
+            context.desktop_environment,
+        ),
+    );
+    let status = run_elevation_command(
+        &strategy,
+        &current_exe,
+        ELEVATED_UNINSTALL_MODE_ARG,
+        &request_path,
+        &response_path,
+        context,
+    )?;
+
+    let output = if response_path.exists() {
+        Some(read_response::<ElevatedUninstallResponse>(&response_path)?)
+    } else {
+        None
+    };
+    let _ = fs::remove_file(&request_path);
+    let _ = fs::remove_file(&response_path);
+    let _ = fs::remove_dir(&staging_dir);
+
+    if status.success() {
+        let output = output.ok_or_else(|| {
+            "System uninstall finished but produced no elevation response payload.".to_string()
+        })?;
+        if !output.success {
+            let message = output.error.unwrap_or_else(|| {
+                "System uninstall failed after requesting administrator permissions.".to_string()
+            });
+            let _ = append_log(
+                "ERROR",
+                &format!("Elevated system uninstall failed: {message}"),
+            );
+            return Err(message);
+        }
+
+        let _ = append_log(
+            "INFO",
+            "System uninstall completed with elevated permissions",
+        );
+        return output
+            .uninstall_result
+            .map(|item| UninstallResult {
+                app_id: item.app_id,
+                install_scope: item.install_scope,
+                removed_app_files: item.removed_app_files,
+                removed_user_data: item.removed_user_data,
+                warnings: item.warnings,
+            })
+            .ok_or_else(|| {
+                "System uninstall finished but returned no uninstall result.".to_string()
+            });
+    }
+
+    let message = if let Some(result) = output {
+        result.error.unwrap_or_else(|| {
+            "System uninstall failed after requesting administrator permissions.".to_string()
+        })
+    } else if status.code() == Some(126) {
+        "Administrator permissions were not granted. Uninstall was cancelled.".to_string()
+    } else if status.code() == Some(127) {
+        format!(
+            "System policy denied elevation or no authentication agent is available (strategy={}, session={}).",
+            strategy.label(),
+            context.session_type,
+        )
+    } else {
+        format!(
+            "System uninstall failed after requesting administrator permissions (strategy={}, session={}).",
+            strategy.label(),
+            context.session_type,
+        )
+    };
+
+    let _ = append_log(
+        "ERROR",
+        &format!("Elevated system uninstall failed: {message}"),
+    );
+    Err(message)
+}
+
 fn run_elevation_command(
     strategy: &ElevationStrategy,
     current_exe: &PathBuf,
+    mode_arg: &str,
     request_path: &PathBuf,
     response_path: &PathBuf,
     _context: &ElevationRuntimeContext,
@@ -302,7 +558,7 @@ fn run_elevation_command(
             let mut command = Command::new("pkexec");
             command
                 .arg(current_exe)
-                .arg(ELEVATED_INSTALL_MODE_ARG)
+                .arg(mode_arg)
                 .arg(request_path)
                 .arg(response_path);
             command
@@ -313,7 +569,7 @@ fn run_elevation_command(
                 .arg("--host")
                 .arg("pkexec")
                 .arg(current_exe)
-                .arg(ELEVATED_INSTALL_MODE_ARG)
+                .arg(mode_arg)
                 .arg(request_path)
                 .arg(response_path);
             command
@@ -341,14 +597,14 @@ fn has_command(command_name: &str, probe_arg: &str) -> bool {
     Command::new(command_name).arg(probe_arg).output().is_ok()
 }
 
-fn read_response(path: &PathBuf) -> Result<ElevatedInstallResponse, String> {
+fn read_response<T: for<'de> Deserialize<'de>>(path: &PathBuf) -> Result<T, String> {
     let response_content = fs::read_to_string(path)
         .map_err(|error| format!("Could not read elevation result: {error}"))?;
     serde_json::from_str(&response_content)
         .map_err(|error| format!("Could not parse elevation result: {error}"))
 }
 
-fn write_response(path: &str, response: ElevatedInstallResponse) -> Result<(), String> {
+fn write_response<T: Serialize>(path: &str, response: T) -> Result<(), String> {
     let json = serde_json::to_string(&response).map_err(|error| error.to_string())?;
     fs::write(path, json).map_err(|error| error.to_string())
 }

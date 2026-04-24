@@ -114,6 +114,7 @@ Media and manifest validation rules are owned by `docs/PACKAGE_SPEC.md`.
 
 - Default: `Just for me` (user scope)
 - Optional: `All users` (system scope with elevation)
+- System-scope install and system-scope uninstall must request elevation when required by host policy.
 
 ### Installed apps experience
 

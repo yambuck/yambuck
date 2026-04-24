@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yambuck | Donate</title>
+    <meta
+      name="description"
+      content="Support Yambuck development. Donations are optional and Yambuck remains free and MIT licensed."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="page">
+      <header class="hero">
+        <div class="brand-lockup" aria-label="Yambuck">
+          <img src="./favicon.svg" alt="" aria-hidden="true" />
+          <span>Yambuck</span>
+        </div>
+        <h1>Support Yambuck</h1>
+        <p class="hero-copy">
+          Yambuck is an independent project. Donations are optional, never unlock features, and help
+          sustain development.
+        </p>
+        <p class="command-note"><a href="./index.html">Back to install page</a></p>
+      </header>
+
+      <section class="install-card" aria-labelledby="donate-title">
+        <div class="install-card-header">
+          <h2 id="donate-title">Donate via PayPal</h2>
+          <span class="status">Optional</span>
+        </div>
+        <p>
+          Use the button to choose an amount, or scan the QR code on a mobile device.
+        </p>
+
+        <div class="donate-actions">
+          <a
+            class="link-button"
+            href="https://www.paypal.com/donate/?business=NQLJU7FJPRFB4&no_recurring=0&item_name=Support+development+and+maintenance+of+FOSS+Voquill%2C+a+free+and+open-source+offline+dictation+tool.&currency_code=AUD"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Donate with PayPal
+          </a>
+        </div>
+
+        <div class="donate-qr-wrap">
+          <a
+            href="https://www.paypal.com/donate/?business=NQLJU7FJPRFB4&no_recurring=0&item_name=Support+development+and+maintenance+of+FOSS+Voquill%2C+a+free+and+open-source+offline+dictation+tool.&currency_code=AUD"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open PayPal donate link"
+          >
+            <img class="donate-qr" src="./paypal-donate-qr-code.png" alt="PayPal donate QR code" />
+          </a>
+        </div>
+
+        <p class="command-note">
+          Yambuck remains free and MIT licensed regardless of donations.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

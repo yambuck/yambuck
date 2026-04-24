@@ -1,6 +1,11 @@
 # Privilege Elevation Behavior (Linux)
 
-This document defines how Yambuck requests elevation for `All users` installs.
+This document defines how Yambuck requests elevation for `All users` operations.
+
+Covered operations:
+
+- system-scope install
+- system-scope uninstall
 
 ## Native Strategy Order
 
@@ -11,17 +16,17 @@ Yambuck uses native policykit-based elevation and picks a strategy in this order
 2. `pkexec-direct`
    - Used on normal host installs when `pkexec` is available.
 
-If neither strategy is available, Yambuck blocks system install and shows an actionable error.
+If neither strategy is available, Yambuck blocks the requested system operation and shows an actionable error.
 
 ## X11 and Wayland
 
 - On both X11 and Wayland, Yambuck uses policykit authentication prompts via the selected strategy.
 - Session type is logged for diagnostics (`XDG_SESSION_TYPE`), but does not change the policykit contract.
-- If policykit auth is denied or no auth agent is available, install fails with explicit guidance.
+- If policykit auth is denied or no auth agent is available, the requested system operation fails with explicit guidance.
 
 ## Logging and Diagnostics
 
-For each system install request, Yambuck logs:
+For each system operation that requires elevation, Yambuck logs:
 
 - detected session type and desktop environment
 - whether a sandbox bridge was needed
@@ -34,9 +39,11 @@ Validate at least once per release cycle:
 
 1. X11 session + user install (no elevation)
 2. X11 session + all-users install (policykit prompt expected)
-3. Wayland session + user install (no elevation)
-4. Wayland session + all-users install (policykit prompt expected)
-5. Cancel auth prompt in both sessions (install should fail with clear message)
+3. X11 session + all-users uninstall (policykit prompt expected)
+4. Wayland session + user install (no elevation)
+5. Wayland session + all-users install (policykit prompt expected)
+6. Wayland session + all-users uninstall (policykit prompt expected)
+7. Cancel auth prompt in both sessions (operation should fail with clear message)
 
 Expected behavior:
 

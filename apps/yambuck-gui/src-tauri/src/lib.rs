@@ -121,7 +121,10 @@ pub(crate) fn validate_install_options_impl(
         .map_err(|error| error.to_string())
 }
 
-pub(crate) fn get_install_decision_impl(workflow_id: &str, scope: &str) -> Result<InstallDecision, String> {
+pub(crate) fn get_install_decision_impl(
+    workflow_id: &str,
+    scope: &str,
+) -> Result<InstallDecision, String> {
     let workflow = get_workflow_from_session(workflow_id)?;
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
@@ -157,7 +160,8 @@ pub(crate) fn get_installed_app_details_impl(
 ) -> Result<InstalledAppDetails, String> {
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    yambuck_core::get_installed_app_details(app_id, install_scope).map_err(|error| error.to_string())
+    yambuck_core::get_installed_app_details(app_id, install_scope)
+        .map_err(|error| error.to_string())
 }
 
 pub(crate) fn uninstall_installed_app_impl(
@@ -167,8 +171,15 @@ pub(crate) fn uninstall_installed_app_impl(
 ) -> Result<UninstallResult, String> {
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    yambuck_core::uninstall_installed_app(app_id, install_scope, remove_user_data)
-        .map_err(|error| error.to_string())
+    match install_scope {
+        yambuck_core::InstallScope::User => {
+            yambuck_core::uninstall_installed_app(app_id, install_scope, remove_user_data)
+                .map_err(|error| error.to_string())
+        }
+        yambuck_core::InstallScope::System => {
+            support::elevation::uninstall_with_elevation_if_needed(app_id, remove_user_data)
+        }
+    }
 }
 
 pub(crate) fn complete_install_impl(
@@ -235,8 +246,8 @@ pub(crate) fn complete_install_impl(
     Ok(installed_app)
 }
 
-pub fn maybe_run_elevated_install_mode(args: &[String]) -> Option<i32> {
-    support::elevation::maybe_run_elevated_install_mode(args)
+pub fn maybe_run_elevated_mode(args: &[String]) -> Option<i32> {
+    support::elevation::maybe_run_elevated_mode(args)
 }
 
 pub(crate) fn launch_installed_app_impl(app_id: &str, scope: &str) -> Result<(), String> {

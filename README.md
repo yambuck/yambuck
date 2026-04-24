@@ -1,70 +1,116 @@
+<div align="center">
+
+![Yambuck Mark](assets/branding/yambuck-icon-mark.svg)
+
 # Yambuck
 
-I built Yambuck to make Linux app installation feel normal for everyday people.
+**A Linux-first installer that makes direct-download apps feel simple and predictable.**
 
-After shipping my own desktop apps, I kept hitting the same wall: Linux distribution is fragmented, the install story changes distro-to-distro, and normal users are forced to think about package formats and internals they should never need to care about.
+[![Status](https://img.shields.io/badge/status-alpha%20preview-f57c00)](https://github.com/jackbrumley/yambuck)
+[![Platform](https://img.shields.io/badge/platform-linux-455a64)](https://github.com/jackbrumley/yambuck)
+[![UI](https://img.shields.io/badge/interface-GUI--first-1565c0)](https://github.com/jackbrumley/yambuck)
+[![Core](https://img.shields.io/badge/core-rust%20%2B%20tauri-2e7d32)](https://github.com/jackbrumley/yambuck)
+[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-Yambuck is my answer to that. It is Linux-first and GUI-first. CLI support is planned, but today the real product surface is the GUI installer and app manager.
+</div>
 
-## Why I Built Yambuck
+I built Yambuck because Linux app installation is still harder than it should be for normal users, especially when apps are distributed through direct downloads instead of app stores.
 
-I did not start this as a packaging science project. I started it because the current experience is too inconsistent for non-technical users, especially when apps are distributed outside app stores.
+I wanted a flow that feels obvious:
 
-What I want instead is straightforward:
+- download a `.yambuck` package
+- open it in a guided GUI
+- review app identity and trust state
+- choose install scope
+- install and manage it cleanly from one place
 
-- download an app
-- open it
-- review what it is and who published it
-- choose scope
-- install with clear outcomes
+If Yambuck says install succeeded, it should be installed, launchable, and clearly manageable until you uninstall it.
 
-If Yambuck says install succeeded, it should be installed, launchable, and stay visible in Yambuck until explicitly uninstalled.
+## Quick Start
 
-Yambuck is Linux-first and GUI-first. CLI is a planned secondary surface, not the current focus.
+Install Yambuck:
 
-## Read This Next
+```bash
+curl -fsSL https://yambuck.com/install.sh | bash
+```
+
+Uninstall Yambuck (safe default, keeps managed apps):
+
+```bash
+curl -fsSL https://yambuck.com/uninstall.sh | bash
+```
+
+Full purge (remove Yambuck and Yambuck-managed apps):
+
+```bash
+curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps --yes
+```
+
+## Current Status
+
+Yambuck is in alpha preview with a working end-to-end prototype flow and active hardening.
+
+Today, the active product surface is GUI-first (`yambuck-gui`), with CLI planned as a secondary interface.
+
+Reference package for exploratory testing: `example-app-linux-x86_64.yambuck` from the latest release.
+
+## What Works Today
+
+- package inspection and rich preview
+- guided install flow with scope selection (`Just for me` and `All users`)
+- installed-apps management and uninstall flow
+- update feed wiring and in-app update checks
+- ownership-aware install tracking for deterministic management behavior
+
+## Screenshots
+
+![Yambuck installer choose package step](docs/screenshots/yambuck-screenshot-v0.2.0-installer-1.png)
+
+Full end-to-end gallery (13 screenshots): `docs/screenshots/index.html`
+
+Flow covered in the gallery:
+
+1. Choose package
+2. Package selected in GNOME Files
+3. Package details
+4. Package details with technical metadata
+5. Trust and verification
+6. License agreement
+7. License text dialog
+8. Install scope
+9. Install complete
+10. Launched example app
+11. Installed apps list
+12. Installed app details
+13. Installed app technical details
+
+## Read Next
 
 - Product intent and governance: `docs/PRODUCT_CONTEXT.md`
-- Runtime/application technical contract: `docs/SPEC.md`
-- Package authoring contract for `.yambuck`: `docs/PACKAGE_SPEC.md`
-- Active work queue: `TODO.md`
+- Runtime/application contract: `docs/SPEC.md`
+- Package authoring contract (`.yambuck`): `docs/PACKAGE_SPEC.md`
+- Active open work queue: `TODO.md`
 
-## Implementation Direction
+## Developer Commands
 
-- Core language/runtime: Rust
-- UI shell: Tauri (for modern, fully controlled cross-desktop UI)
-- Architecture split:
-  - `yambuck-core`: package parsing, install/uninstall, metadata, verification
-  - `yambuck-gui`: installer and installed-apps UI
-  - `yambuck-cli`: planned secondary interface
-
-Voquill is the first reference app for end-to-end v1 testing via `voquill.yambuck`.
-
-## Status
-
-Pre-alpha with a working end-to-end prototype flow (bootstrap, user-scope install/uninstall, update feed wiring), plus active reliability and UX hardening in progress.
-
-Website bootstrap commands:
-
-- Install: `curl -fsSL https://yambuck.com/install.sh | bash`
-- Uninstall (safe default): `curl -fsSL https://yambuck.com/uninstall.sh | bash`
-- Uninstall (full purge): `curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps --yes`
-
-## Common Commands
-
-- Start desktop dev app with Tauri + Vite HMR: `npm --prefix apps/yambuck-gui run tauri dev`
+- Start Tauri app with Vite HMR: `npm --prefix apps/yambuck-gui run tauri dev`
 - Start frontend-only dev server: `npm --prefix apps/yambuck-gui run dev`
 - Build frontend bundle: `npm --prefix apps/yambuck-gui run build`
 - Check Rust/Tauri compile status: `cargo check --manifest-path apps/yambuck-gui/src-tauri/Cargo.toml`
-- Build real example test package: `./scripts/build-example-app-yambuck.sh`
-- Run one-command example package smoke flow: `./scripts/smoke-example-app.sh`
-- Build release artifact + checksum: `./scripts/package-bootstrap-artifact.sh`
-- Prepare full release bundle (main + example + feed updates): `./scripts/release-all.sh --version 0.1.23`
+- Build example package: `./scripts/build-example-app-yambuck.sh`
+- Run example smoke flow: `./scripts/smoke-example-app.sh`
+- Build release artifact and checksum: `./scripts/package-bootstrap-artifact.sh`
+- Prepare full release bundle: `./scripts/release-all.sh --version 0.1.23`
+
+## Architecture
+
+- `crates/yambuck-core`: package parsing, install/uninstall, metadata, verification
+- `apps/yambuck-gui`: installer and installed-apps experience
+- `apps/example-app`: downloadable reference app used to generate and validate the example `.yambuck` package
+- `yambuck-cli`: planned secondary interface
 
 ## Brand Assets
 
-- Master icon files live in `assets/branding/`:
-  - `assets/branding/yambuck-icon-app.svg` (app icon source, with background)
-  - `assets/branding/yambuck-icon-mark.svg` (website/favicon mark, transparent)
-- Regenerate Tauri app icon outputs from the SVG source:
-  - `npm --prefix apps/yambuck-gui run tauri icon src-tauri/icons/icon-source.svg`
+- `assets/branding/yambuck-icon-app.svg`: app icon source with background
+- `assets/branding/yambuck-icon-mark.svg`: mark for docs and web surfaces
+- Regenerate Tauri icon outputs: `npm --prefix apps/yambuck-gui run tauri icon src-tauri/icons/icon-source.svg`
