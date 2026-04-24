@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yambuck | Linux App Installer (Alpha Preview)</title>
+    <title>Yambuck | Simple Linux App Installer (Alpha)</title>
     <meta
       name="description"
-      content="Yambuck is a GUI-first Linux app installer in alpha preview. Try the exploratory testing flow and help shape v1."
+      content="Yambuck is a beginner-friendly Linux app installer for direct downloads. Open one .yambuck file, review app details and screenshots, install, and uninstall from one place."
     />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,10 +27,10 @@
           <img src="./favicon.svg" alt="" aria-hidden="true" />
           <span>Yambuck</span>
         </div>
-        <h1>Install Linux apps like normal software.</h1>
+        <h1>Simple Linux app installs.</h1>
         <p class="hero-copy">
-          Yambuck is a GUI-first installer for Linux that makes downloaded app installs feel predictable,
-          consistent, and easier to trust.
+          Yambuck is a GUI installer for Linux software. Instead of distro-specific app stores and
+          package formats, it gives users one consistent install experience across distros.
         </p>
       </header>
 
@@ -39,16 +39,13 @@
           <h2 id="install-title">Install Yambuck</h2>
           <span class="status">Alpha Preview</span>
         </div>
-        <p>
-          Run once, then open <code>.yambuck</code> files with a guided installer flow.
-        </p>
+        <p>Install Yambuck once, then open <code>.yambuck</code> packages with a simple guided installer.</p>
         <div class="command-shell">
           <code id="install-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash</code>
           <button id="copy-command" type="button">Copy</button>
         </div>
         <p class="command-note">
-          Yambuck is in alpha and best used for exploratory testing right now. Core flows work, but
-          expect rough edges.
+          Yambuck is in alpha preview. Core flows work, with ongoing reliability improvements.
         </p>
         <p class="command-note">
           Need to remove Yambuck later?
@@ -65,7 +62,7 @@
         <article>
           <p class="step-kicker">Step 2</p>
           <h3>Download example package</h3>
-          <p>Download a demo <code>.yambuck</code> file to try the installer flow after setup.</p>
+          <p>Download a demo <code>.yambuck</code> file to try the full install experience after setup.</p>
           <a
             class="link-button step-action step-file-button"
             href="https://github.com/yambuck/yambuck/releases/latest/download/example-app-linux-x86_64.yambuck"
