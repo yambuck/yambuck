@@ -84,7 +84,7 @@ else
   fail "no SVG rasterizer found. Install one of: rsvg-convert, inkscape, or ImageMagick (magick)."
 fi
 
-render_svg() {
+render_svg_exact() {
   local source_file="$1"
   local output_file="$2"
   local width="$3"
@@ -103,14 +103,33 @@ render_svg() {
   esac
 }
 
+render_svg_fit() {
+  local source_file="$1"
+  local output_file="$2"
+  local max_width="$3"
+  local max_height="$4"
+
+  case "$RENDER_BACKEND" in
+    rsvg-convert)
+      rsvg-convert --width "$max_width" "$source_file" --output "$output_file"
+      ;;
+    inkscape)
+      inkscape "$source_file" --export-type=png --export-filename="$output_file" --export-width="$max_width" >/dev/null 2>&1
+      ;;
+    magick)
+      magick -background none "$source_file" -resize "${max_width}x${max_height}" "$output_file"
+      ;;
+  esac
+}
+
 log "Using renderer: ${RENDER_BACKEND}"
 
 mkdir -p "${OUTPUT_DIR}/screenshots"
 
-render_svg "${SOURCE_DIR}/mock-icon.svg" "${OUTPUT_DIR}/icon.png" "$ICON_SIZE" "$ICON_SIZE"
+render_svg_exact "${SOURCE_DIR}/mock-icon.svg" "${OUTPUT_DIR}/icon.png" "$ICON_SIZE" "$ICON_SIZE"
 
 for suffix in a b c d e f; do
-  render_svg \
+  render_svg_fit \
     "${SOURCE_DIR}/mock-shot-${suffix}.svg" \
     "${OUTPUT_DIR}/screenshots/screenshot-${suffix}.png" \
     "$SCREENSHOT_WIDTH" \
