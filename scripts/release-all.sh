@@ -185,7 +185,7 @@ PUBLISHED_AT="$(utc_now)"
 
 MAIN_TARBALL_PATH="${MAIN_ARTIFACT_DIR}/yambuck-linux-${ARCH}.tar.gz"
 MAIN_SHA_PATH="${MAIN_ARTIFACT_DIR}/yambuck-linux-${ARCH}.tar.gz.sha256"
-EXAMPLE_PACKAGE_PATH="${EXAMPLE_ARTIFACT_DIR}/example-app-linux-${ARCH}.yambuck"
+EXAMPLE_PACKAGE_PATH="${EXAMPLE_ARTIFACT_DIR}/example-app.yambuck"
 
 log "Starting release pipeline for ${TAG}"
 

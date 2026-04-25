@@ -11,7 +11,7 @@ pub(crate) enum ParsedManifest {
     V2(v2::PackageManifestV2),
 }
 
-const MANIFEST_KEY_STYLE_RULES: [(&str, [&str; 2]); 16] = [
+const MANIFEST_KEY_STYLE_RULES: [(&str, [&str; 2]); 23] = [
     ("manifestVersion", ["manifest_version", "manifest-version"]),
     ("packageUuid", ["package_uuid", "package-uuid"]),
     ("appId", ["app_id", "app-id"]),
@@ -34,6 +34,16 @@ const MANIFEST_KEY_STYLE_RULES: [(&str, [&str; 2]); 16] = [
         "runtimeDependencies",
         ["runtime_dependencies", "runtime-dependencies"],
     ),
+    ("payloadRoot", ["payload_root", "payload-root"]),
+    (
+        "desktopEnvironments",
+        ["desktop_environments", "desktop-environments"],
+    ),
+    ("entrypoints", ["entry_points", "entry-points"]),
+    ("commandName", ["command_name", "command-name"]),
+    ("usageHint", ["usage_hint", "usage-hint"]),
+    ("interfaces", ["interface_modes", "interface-modes"]),
+    ("enabled", ["is_enabled", "is-enabled"]),
 ];
 
 pub(crate) fn parse_manifest(manifest_content: &str) -> Result<ParsedManifest, YambuckError> {

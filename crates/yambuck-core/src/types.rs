@@ -40,6 +40,28 @@ pub struct PackageInfo {
     pub temp_path: Option<String>,
     pub package_uuid: String,
     pub trust_status: String,
+    pub app_interface: AppInterface,
+    pub cli_command_name: Option<String>,
+    pub cli_usage_hint: Option<String>,
+    pub selected_target_id: Option<String>,
+    pub payload_root: Option<String>,
+    pub compatibility_status: String,
+    pub compatibility_reasons: Vec<CompatibilityReason>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppInterface {
+    pub has_gui: bool,
+    pub has_cli: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompatibilityReason {
+    pub code: String,
+    pub message: String,
+    pub technical_details: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -177,6 +199,7 @@ pub struct UninstallResult {
 pub struct PreflightCheckResult {
     pub status: String,
     pub message: String,
+    pub reasons: Vec<String>,
 }
 
 #[derive(Clone, Serialize)]

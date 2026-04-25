@@ -226,6 +226,8 @@ function App() {
     copyPackageOpenErrorDetails,
     installFailure,
     copyInstallFailureDetails,
+    installPreflight,
+    copyInstallPreflightDetails,
     openInstallLogsDirectory,
     preview,
     isBusy,
@@ -425,6 +427,7 @@ function App() {
         packageInfo={packageInfo}
         checkingPreflight={checkingPreflight}
         preflightBlockedMessage={preflightBlockedMessage}
+        installPreflight={installPreflight}
         showTechnicalDetails={showTechnicalDetails}
         showCompleteTechnicalDetails={showCompleteTechnicalDetails}
         licenseAccepted={licenseAccepted}
@@ -465,6 +468,7 @@ function App() {
         onCopyPackageOpenErrorDetails={() => void copyPackageOpenErrorDetails()}
         installFailure={installFailure}
         onCopyInstallFailureDetails={() => void copyInstallFailureDetails()}
+        onCopyInstallPreflightDetails={() => void copyInstallPreflightDetails()}
         onOpenInstallLogsDirectory={() => void openInstallLogsDirectory()}
         onSetLicenseAccepted={setLicenseAccepted}
         onSetScope={setScope}

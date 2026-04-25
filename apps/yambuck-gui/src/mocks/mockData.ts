@@ -61,6 +61,16 @@ export const mockPackageInfo: PackageInfo = {
   tempPath: "~/.local/state/voquill/tmp",
   packageUuid: "7f2f2d3e-2662-4d8c-a4ae-05f14de8f8c6",
   trustStatus: "verified",
+  appInterface: {
+    hasGui: true,
+    hasCli: true,
+  },
+  cliCommandName: "voquill",
+  cliUsageHint: "Open Terminal and run: voquill --help",
+  selectedTargetId: "linux-x86_64-default",
+  payloadRoot: "payloads/linux/x86_64/default",
+  compatibilityStatus: "supported",
+  compatibilityReasons: [],
 };
 
 export const mockInstalledApps: InstalledApp[] = [

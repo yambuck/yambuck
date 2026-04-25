@@ -23,7 +23,7 @@ pub fn install_package(package_file: &str, destination_path: &str) -> Result<(),
         return Err(YambuckError::InstallFailed);
     }
 
-    let mut transaction = prepare_install_transaction(package_file, destination_path)?;
+    let mut transaction = prepare_install_transaction(package_file, destination_path, None)?;
     transaction.commit()?;
     transaction.finalize_success()
 }
@@ -90,6 +90,7 @@ impl InstallTransaction {
 fn prepare_install_transaction(
     package_file: &str,
     destination_path: &str,
+    payload_root: Option<&str>,
 ) -> Result<InstallTransaction, YambuckError> {
     let destination_root = PathBuf::from(destination_path);
     let destination_parent = destination_root
@@ -103,7 +104,7 @@ fn prepare_install_transaction(
 
     fs::create_dir_all(&staging_root).map_err(|_| YambuckError::InstallFailed)?;
 
-    let extraction_result = extract_package_to_root(package_file, &staging_root);
+    let extraction_result = extract_package_to_root(package_file, &staging_root, payload_root);
     if let Err(error) = extraction_result {
         let _ = fs::remove_dir_all(&staging_root);
         return Err(error);
@@ -120,11 +121,14 @@ fn prepare_install_transaction(
 fn extract_package_to_root(
     package_file: &str,
     destination_root: &Path,
+    payload_root: Option<&str>,
 ) -> Result<(), YambuckError> {
     let package = fs::File::open(package_file).map_err(|_| YambuckError::InvalidPackageFile)?;
     let mut archive = ZipArchive::new(package).map_err(|_| YambuckError::InvalidPackageFile)?;
 
     let mut installed_any = false;
+    let normalized_payload_root = payload_root.map(|value| value.trim_matches('/').to_string());
+
     for index in 0..archive.len() {
         let mut file = archive
             .by_index(index)
@@ -134,13 +138,38 @@ fn extract_package_to_root(
             continue;
         };
 
-        if !entry_path.starts_with(Path::new("app")) {
-            continue;
+        let install_path = if let Some(root) = normalized_payload_root.as_ref() {
+            if !entry_path.starts_with(Path::new(root)) {
+                continue;
+            }
+
+            let Ok(value) = entry_path.strip_prefix(Path::new(root)) else {
+                continue;
+            };
+
+            if value.as_os_str().is_empty() {
+                continue;
+            }
+
+            value.to_path_buf()
+        } else {
+            if !entry_path.starts_with(Path::new("app")) {
+                continue;
+            }
+
+            entry_path.to_path_buf()
+        };
+
+        if install_path
+            .components()
+            .any(|component| matches!(component, std::path::Component::ParentDir))
+        {
+            return Err(YambuckError::InstallFailed);
         }
 
         installed_any = true;
 
-        let output_path = destination_root.join(&entry_path);
+        let output_path = destination_root.join(&install_path);
         if path_contains_symlink(destination_root, &output_path)? {
             return Err(YambuckError::InstallFailed);
         }
@@ -211,8 +240,11 @@ pub fn install_and_register(
     enforce_install_policy(package_info, scope, allow_downgrade)?;
     validate_destination_path(scope, destination_path, &package_info.app_id)?;
 
-    let mut transaction =
-        prepare_install_transaction(&package_info.package_file, destination_path)?;
+    let mut transaction = prepare_install_transaction(
+        &package_info.package_file,
+        destination_path,
+        package_info.payload_root.as_deref(),
+    )?;
     transaction.commit()?;
 
     if let Err(error) = verify_post_install(destination_path, package_info) {
@@ -394,6 +426,13 @@ fn enforce_install_policy(
     scope: InstallScope,
     allow_downgrade: bool,
 ) -> Result<(), YambuckError> {
+    if package_info.compatibility_status != "supported" {
+        return Err(YambuckError::InstallPolicyBlocked(
+            "This app is not compatible with your current system. Contact the app publisher for a compatible package."
+                .to_string(),
+        ));
+    }
+
     let decision = evaluate_install_decision(package_info, scope)?;
 
     if decision.action == InstallAction::BlockedIdentityMismatch {

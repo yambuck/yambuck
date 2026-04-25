@@ -1,0 +1,38 @@
+{
+  "manifestVersion": "1.0.0",
+  "displayName": "Fixture Unsupported Arch",
+  "description": "QA fixture: host architecture mismatch.",
+  "longDescription": "Preflight should block because this package target architecture does not match the host.",
+  "version": "0.0.1",
+  "publisher": "Yambuck QA",
+  "appId": "com.yambuck.qa.unsupportedarch",
+  "appUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f002",
+  "packageUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f102",
+  "iconPath": "assets/icon.png",
+  "screenshots": [
+    "assets/screenshots/screenshot-a.png"
+  ],
+  "interfaces": {
+    "gui": {
+      "enabled": true
+    }
+  },
+  "targets": [
+    {
+      "id": "linux-riscv64-default",
+      "os": "linux",
+      "arch": "riscv64",
+      "variant": "default",
+      "payloadRoot": "payloads/linux/x86_64/default",
+      "entrypoints": {
+        "gui": "app/bin/example-app"
+      },
+      "linux": {
+        "desktopEnvironments": [
+          "x11",
+          "wayland"
+        ]
+      }
+    }
+  ]
+}

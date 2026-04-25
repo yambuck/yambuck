@@ -1,0 +1,34 @@
+{
+  "manifestVersion": "1.0.0",
+  "displayName": "Fixture CLI Only",
+  "description": "QA fixture: CLI-only package.",
+  "longDescription": "Preflight should not require desktop environment support because this package enables CLI interface only.",
+  "version": "0.0.1",
+  "publisher": "Yambuck QA",
+  "appId": "com.yambuck.qa.clionly",
+  "appUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f004",
+  "packageUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f104",
+  "iconPath": "assets/icon.png",
+  "screenshots": [
+    "assets/screenshots/screenshot-a.png"
+  ],
+  "interfaces": {
+    "cli": {
+      "enabled": true,
+      "commandName": "example-app",
+      "usageHint": "Open Terminal and run: example-app --help"
+    }
+  },
+  "targets": [
+    {
+      "id": "linux-x86_64-default",
+      "os": "linux",
+      "arch": "x86_64",
+      "variant": "default",
+      "payloadRoot": "payloads/linux/x86_64/default",
+      "entrypoints": {
+        "cli": "app/bin/example-app"
+      }
+    }
+  ]
+}

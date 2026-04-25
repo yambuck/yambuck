@@ -19,6 +19,7 @@ Product intent and positioning are owned by `docs/PRODUCT_CONTEXT.md`.
 Compatibility preflight requirement:
 
 - Before install execution, Yambuck checks package compatibility for host architecture/target.
+- Compatibility checks must include host OS, architecture, and Linux desktop environment/session constraints for GUI apps.
 - If unsupported, install is blocked with clear plain-language reason and optional technical details.
 
 Additional UX contract constraints:
@@ -60,6 +61,7 @@ This section keeps only runtime expectations that interact with install behavior
 - v1 packaging is bundle-first.
 - Installer/runtime behavior must treat package identity and validation results as hard gates.
 - Multi-architecture support is a v1 direction and is enforced through compatibility preflight rules in this spec.
+- Packages may expose GUI, CLI, or both interfaces; installer UX should clearly signal CLI-only packages before install continues.
 
 ### Install Model
 

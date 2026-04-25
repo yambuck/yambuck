@@ -89,7 +89,7 @@ need_cmd zip
 need_cmd bash
 
 ARCH="$(resolve_arch)"
-PACKAGE_PATH="${OUT_DIR}/example-app-linux-${ARCH}.yambuck"
+PACKAGE_PATH="${OUT_DIR}/example-app.yambuck"
 
 log "Installing frontend dependencies"
 npm --prefix "$APP_DIR" ci
@@ -107,13 +107,13 @@ if [[ ! -x "$BIN_SOURCE" ]]; then
 fi
 
 rm -rf "$STAGE_DIR"
-mkdir -p "$STAGE_DIR/app/bin"
+mkdir -p "$STAGE_DIR/payloads/linux/${ARCH}/default/app/bin"
 mkdir -p "$STAGE_DIR/assets/screenshots"
 mkdir -p "$STAGE_DIR/assets/licenses"
 mkdir -p "$OUT_DIR"
 
-cp "$BIN_SOURCE" "$STAGE_DIR/app/bin/example-app"
-chmod +x "$STAGE_DIR/app/bin/example-app"
+cp "$BIN_SOURCE" "$STAGE_DIR/payloads/linux/${ARCH}/default/app/bin/example-app"
+chmod +x "$STAGE_DIR/payloads/linux/${ARCH}/default/app/bin/example-app"
 
 if [[ ! -x "$GENERATE_MEDIA_SCRIPT" ]]; then
   printf "Expected executable media generator script at %s\n" "$GENERATE_MEDIA_SCRIPT" >&2
@@ -136,7 +136,6 @@ cat > "${STAGE_DIR}/manifest.json" <<EOF
   "longDescription": "This package exists for deterministic Yambuck smoke tests. It ships a real Tauri v2 binary with a tiny GUI and includes packaged PNG icon/screenshot assets that satisfy current manifest media validation rules.",
   "version": "${PACKAGE_VERSION}",
   "publisher": "Yambuck Project",
-  "entrypoint": "app/bin/example-app",
   "iconPath": "assets/icon.png",
   "screenshots": [
     "assets/screenshots/screenshot-a.png",
@@ -151,14 +150,43 @@ cat > "${STAGE_DIR}/manifest.json" <<EOF
   "license": "MIT",
   "licenseFile": "assets/licenses/LICENSE.txt",
   "requiresLicenseAcceptance": true,
-  "trustStatus": "unverified"
+  "trustStatus": "unverified",
+  "interfaces": {
+    "gui": {
+      "enabled": true
+    },
+    "cli": {
+      "enabled": true,
+      "commandName": "example-app",
+      "usageHint": "Open Terminal and run: example-app --help"
+    }
+  },
+  "targets": [
+    {
+      "id": "linux-${ARCH}-default",
+      "os": "linux",
+      "arch": "${ARCH}",
+      "variant": "default",
+      "payloadRoot": "payloads/linux/${ARCH}/default",
+      "entrypoints": {
+        "gui": "app/bin/example-app",
+        "cli": "app/bin/example-app"
+      },
+      "linux": {
+        "desktopEnvironments": [
+          "x11",
+          "wayland"
+        ]
+      }
+    }
+  ]
 }
 EOF
 
 rm -f "$PACKAGE_PATH"
 (
   cd "$STAGE_DIR"
-  zip -rq "$PACKAGE_PATH" manifest.json app assets
+  zip -rq "$PACKAGE_PATH" manifest.json payloads assets
 )
 
 log "Created ${PACKAGE_PATH}"

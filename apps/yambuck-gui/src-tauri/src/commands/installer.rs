@@ -1,4 +1,5 @@
 use crate::InstallWorkflowSession;
+use crate::InstallPreflightResult;
 use yambuck_core::{
     InstallDecision, InstallOptionSubmission, InstallPreview, InstalledApp, InstalledAppDetails,
     InstallerContext, PackageInfo, PreflightCheckResult, UninstallResult,
@@ -90,6 +91,11 @@ pub fn launch_installed_app(app_id: &str, scope: &str) -> Result<(), String> {
 #[tauri::command]
 pub fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, String> {
     crate::preflight_install_check_impl(app_id)
+}
+
+#[tauri::command]
+pub fn evaluate_install_preflight(workflow_id: &str) -> Result<InstallPreflightResult, String> {
+    crate::evaluate_install_preflight_impl(workflow_id)
 }
 
 #[tauri::command]

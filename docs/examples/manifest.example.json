@@ -8,7 +8,6 @@
   "longDescription": "Voquill helps you capture ideas quickly with low-latency dictation and keyboard-first editing.\n\nUse this field for longer onboarding text, compatibility notes, and guidance that should appear in the installer as plain-text paragraphs.\n\nEnterprise deployments can include environment constraints, support expectations, and rollout notes in this area so teams can make an informed install decision before continuing.\n\nIf your app relies on optional GPU acceleration, audio interfaces, or external services, this section is also a good place to explain expected behavior when those dependencies are unavailable.",
   "version": "1.3.1",
   "publisher": "Voquill Project",
-  "entrypoint": "app/bin/voquill",
   "iconPath": "assets/icon.png",
   "screenshots": [
     "assets/screenshots/screenshot-status.png",
@@ -23,5 +22,34 @@
   "cachePath": "~/.cache/voquill",
   "tempPath": "~/.local/state/voquill/tmp",
   "trustStatus": "unverified",
+  "interfaces": {
+    "gui": {
+      "enabled": true
+    },
+    "cli": {
+      "enabled": true,
+      "commandName": "voquill",
+      "usageHint": "Open Terminal and run: voquill --help"
+    }
+  },
+  "targets": [
+    {
+      "id": "linux-x86_64-default",
+      "os": "linux",
+      "arch": "x86_64",
+      "variant": "default",
+      "payloadRoot": "payloads/linux/x86_64/default",
+      "entrypoints": {
+        "gui": "app/bin/voquill",
+        "cli": "app/bin/voquill"
+      },
+      "linux": {
+        "desktopEnvironments": [
+          "x11",
+          "wayland"
+        ]
+      }
+    }
+  ],
   "runtimeDependencies": []
 }

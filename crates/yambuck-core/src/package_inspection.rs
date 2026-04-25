@@ -1,5 +1,6 @@
 use base64::Engine;
 use image::ImageFormat;
+use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -7,7 +8,8 @@ use zip::ZipArchive;
 
 use crate::manifest::{self, ParsedManifest};
 use crate::{
-    InstallOptionDefinition, InstallWizardStep, InstallWorkflow, PackageInfo, YambuckError,
+    AppInterface, CompatibilityReason, InstallOptionDefinition, InstallWizardStep, InstallWorkflow,
+    PackageInfo, YambuckError,
 };
 
 const ICON_MIN_WIDTH: u32 = 128;
@@ -18,6 +20,23 @@ const SCREENSHOT_MIN_ASPECT_RATIO: f32 = 0.4;
 const SCREENSHOT_MAX_ASPECT_RATIO: f32 = 2.5;
 const ICON_MIN_BYTES: usize = 512;
 const SCREENSHOT_MIN_BYTES: usize = 1024;
+const HOST_OS: &str = std::env::consts::OS;
+const HOST_ARCH: &str = std::env::consts::ARCH;
+
+struct ResolvedInterface {
+    has_gui: bool,
+    has_cli: bool,
+    cli_command_name: Option<String>,
+    cli_usage_hint: Option<String>,
+}
+
+struct SelectedTarget {
+    id: Option<String>,
+    payload_root: Option<String>,
+    entrypoint: Option<String>,
+    compatibility_status: String,
+    compatibility_reasons: Vec<CompatibilityReason>,
+}
 
 #[derive(Copy, Clone)]
 enum AssetKind {
@@ -74,7 +93,6 @@ fn inspect_manifest_v1(
     let description = require_non_empty_manifest_text("description", &manifest.description)?;
     let version = require_non_empty_manifest_text("version", &manifest.version)?;
     let publisher = require_non_empty_manifest_text("publisher", &manifest.publisher)?;
-    let entrypoint = require_non_empty_manifest_text("entrypoint", &manifest.entrypoint)?;
     let icon_path = require_non_empty_manifest_text("iconPath", &manifest.icon_path)?;
     let manifest_version =
         require_non_empty_manifest_text("manifestVersion", &manifest.manifest_version)?;
@@ -132,6 +150,13 @@ fn inspect_manifest_v1(
         ));
     }
 
+    let resolved_interface = resolve_interface_modes(manifest.interfaces.as_ref())?;
+    let selected_target = resolve_target_for_host(
+        archive,
+        manifest.targets.as_ref(),
+        &resolved_interface,
+    )?;
+
     Ok(PackageInfo {
         package_file: package_file.to_string(),
         file_name: file_name.to_string(),
@@ -143,7 +168,7 @@ fn inspect_manifest_v1(
         publisher,
         description,
         long_description: Some(long_description),
-        entrypoint,
+        entrypoint: selected_target.entrypoint.unwrap_or_default(),
         icon_path,
         icon_data_url,
         screenshots,
@@ -168,6 +193,16 @@ fn inspect_manifest_v1(
             .and_then(|value| sanitize_non_empty_text(value)),
         package_uuid,
         trust_status,
+        app_interface: AppInterface {
+            has_gui: resolved_interface.has_gui,
+            has_cli: resolved_interface.has_cli,
+        },
+        cli_command_name: resolved_interface.cli_command_name,
+        cli_usage_hint: resolved_interface.cli_usage_hint,
+        selected_target_id: selected_target.id,
+        payload_root: selected_target.payload_root,
+        compatibility_status: selected_target.compatibility_status,
+        compatibility_reasons: selected_target.compatibility_reasons,
     })
 }
 
@@ -250,6 +285,435 @@ fn sanitize_trust_status(value: Option<&str>) -> String {
         Some("verified") => "verified".to_string(),
         _ => "unverified".to_string(),
     }
+}
+
+fn resolve_interface_modes(
+    interfaces: Option<&crate::manifest::v1::PackageInterfacesV1>,
+) -> Result<ResolvedInterface, YambuckError> {
+    let Some(interface_modes) = interfaces else {
+        return Ok(ResolvedInterface {
+            has_gui: true,
+            has_cli: false,
+            cli_command_name: None,
+            cli_usage_hint: None,
+        });
+    };
+
+    let gui_enabled = interface_modes
+        .gui
+        .as_ref()
+        .and_then(|mode| mode.enabled)
+        .unwrap_or(false);
+    let cli_enabled = interface_modes
+        .cli
+        .as_ref()
+        .and_then(|mode| mode.enabled)
+        .unwrap_or(false);
+
+    if !gui_enabled && !cli_enabled {
+        return Err(YambuckError::InvalidManifestDetails(
+            "`interfaces` must enable at least one mode (`gui` or `cli`)".to_string(),
+        ));
+    }
+
+    Ok(ResolvedInterface {
+        has_gui: gui_enabled,
+        has_cli: cli_enabled,
+        cli_command_name: interface_modes
+            .cli
+            .as_ref()
+            .and_then(|mode| mode.command_name.as_deref())
+            .and_then(sanitize_non_empty_text),
+        cli_usage_hint: interface_modes
+            .cli
+            .as_ref()
+            .and_then(|mode| mode.usage_hint.as_deref())
+            .and_then(sanitize_non_empty_text),
+    })
+}
+
+fn resolve_target_for_host(
+    archive: &mut ZipArchive<fs::File>,
+    targets: Option<&Vec<crate::manifest::v1::PackageTargetV1>>,
+    interface_modes: &ResolvedInterface,
+) -> Result<SelectedTarget, YambuckError> {
+    let target_list = targets.ok_or_else(|| {
+        YambuckError::InvalidManifestDetails(
+            "`targets` is required and must include at least one target object".to_string(),
+        )
+    })?;
+
+    if target_list.is_empty() {
+        return Err(YambuckError::InvalidManifestDetails(
+            "`targets` must include at least one target object".to_string(),
+        ));
+    }
+
+    let mut seen = HashSet::<String>::new();
+    let host_desktop = detect_host_desktop_environment();
+    let mut host_matches = Vec::new();
+    let mut host_messages = Vec::new();
+
+    for target in target_list {
+        let target_id = require_non_empty_manifest_text("targets[].id", &target.id)?;
+        let os = normalize_target_os(&target.os)?;
+        let arch = normalize_target_arch(&target.arch)?;
+        let variant = normalize_variant(target.variant.as_deref());
+        let key = format!("{os}/{arch}/{variant}");
+        if !seen.insert(key.clone()) {
+            return Err(YambuckError::InvalidManifestDetails(format!(
+                "`targets` includes duplicate os/arch/variant combination: {key}"
+            )));
+        }
+
+        let payload_root = require_non_empty_manifest_text("payloadRoot", &target.payload_root)?;
+        validate_payload_root_format(&payload_root)?;
+        validate_archive_directory_exists(archive, &payload_root, "payloadRoot")?;
+
+        if os != HOST_OS {
+            host_messages.push(format!(
+                "target `{}` is for os `{os}` but host is `{}`",
+                target_id, HOST_OS
+            ));
+            continue;
+        }
+
+        if arch != HOST_ARCH {
+            host_messages.push(format!(
+                "target `{}` is for arch `{arch}` but host is `{}`",
+                target_id, HOST_ARCH
+            ));
+            continue;
+        }
+
+        if os == "linux" && interface_modes.has_gui {
+            let allowed_desktops = normalize_linux_desktops(target.linux.as_ref())?;
+            if !allowed_desktops.is_empty() {
+                let Some(host_desktop_name) = host_desktop.as_deref() else {
+                    host_messages.push(format!(
+                        "target `{}` requires desktop environment support {:?}, but host desktop environment could not be detected",
+                        target_id, allowed_desktops
+                    ));
+                    continue;
+                };
+                if !allowed_desktops.iter().any(|value| value == host_desktop_name) {
+                    host_messages.push(format!(
+                        "target `{}` supports {:?}, but host desktop environment is `{host_desktop_name}`",
+                        target_id, allowed_desktops
+                    ));
+                    continue;
+                }
+            }
+        }
+
+        let entrypoint = resolve_target_entrypoint(target, interface_modes)?;
+        validate_safe_relative_path("entrypoints", &entrypoint)?;
+        let target_entrypoint = format!("{}/{}", payload_root.trim_end_matches('/'), entrypoint);
+        validate_archive_file_exists(archive, &target_entrypoint, "entrypoints")?;
+        host_matches.push(SelectedTarget {
+            id: Some(target_id),
+            payload_root: Some(payload_root),
+            entrypoint: Some(entrypoint),
+            compatibility_status: "supported".to_string(),
+            compatibility_reasons: Vec::new(),
+        });
+    }
+
+    if host_matches.is_empty() {
+        let mut reasons = Vec::new();
+        for detail in host_messages {
+            if detail.contains("host desktop environment could not be detected") {
+                reasons.push(CompatibilityReason {
+                    code: "desktop_environment_not_detected".to_string(),
+                    message:
+                        "Sorry, we could not detect your desktop environment to validate this app."
+                            .to_string(),
+                    technical_details: Some(detail),
+                });
+            } else if detail.contains("host desktop environment") {
+                reasons.push(CompatibilityReason {
+                    code: "unsupported_desktop_environment".to_string(),
+                    message:
+                        "This app does not support your current desktop environment/session."
+                            .to_string(),
+                    technical_details: Some(detail),
+                });
+            } else if detail.contains("is for arch") {
+                reasons.push(CompatibilityReason {
+                    code: "unsupported_architecture".to_string(),
+                    message: "This app does not support your system architecture.".to_string(),
+                    technical_details: Some(detail),
+                });
+            } else if detail.contains("is for os") {
+                reasons.push(CompatibilityReason {
+                    code: "unsupported_operating_system".to_string(),
+                    message: "This app does not support your operating system.".to_string(),
+                    technical_details: Some(detail),
+                });
+            } else {
+                reasons.push(CompatibilityReason {
+                    code: "unsupported_target".to_string(),
+                    message: "No compatible package target was found for this system.".to_string(),
+                    technical_details: Some(detail),
+                });
+            }
+        }
+
+        if reasons.is_empty() {
+            reasons.push(CompatibilityReason {
+                code: "unsupported_target".to_string(),
+                message: "No compatible package target was found for this system.".to_string(),
+                technical_details: Some(format!(
+                    "No targets matched host requirements for {HOST_OS}/{HOST_ARCH}."
+                )),
+            });
+        }
+
+        return Ok(SelectedTarget {
+            id: None,
+            payload_root: None,
+            entrypoint: None,
+            compatibility_status: "blocked".to_string(),
+            compatibility_reasons: deduplicate_compatibility_reasons(reasons),
+        });
+    }
+
+    if host_matches.len() > 1 {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "Multiple compatible targets matched this system ({HOST_OS}/{HOST_ARCH}); make target metadata more specific"
+        )));
+    }
+
+    Ok(host_matches.remove(0))
+}
+
+fn resolve_target_entrypoint(
+    target: &crate::manifest::v1::PackageTargetV1,
+    interface_modes: &ResolvedInterface,
+) -> Result<String, YambuckError> {
+    let gui_entrypoint = target
+        .entrypoints
+        .gui
+        .as_deref()
+        .and_then(sanitize_non_empty_text);
+    let cli_entrypoint = target
+        .entrypoints
+        .cli
+        .as_deref()
+        .and_then(sanitize_non_empty_text);
+
+    if interface_modes.has_gui && gui_entrypoint.is_none() {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "target `{}` is missing `entrypoints.gui` while GUI interface is enabled",
+            target.id
+        )));
+    }
+
+    if interface_modes.has_cli && cli_entrypoint.is_none() {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "target `{}` is missing `entrypoints.cli` while CLI interface is enabled",
+            target.id
+        )));
+    }
+
+    if interface_modes.has_gui {
+        return Ok(gui_entrypoint.unwrap_or_default());
+    }
+    Ok(cli_entrypoint.unwrap_or_default())
+}
+
+fn normalize_target_os(value: &str) -> Result<&'static str, YambuckError> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "linux" => Ok("linux"),
+        "windows" => Ok("windows"),
+        "macos" => Ok("macos"),
+        other => Err(YambuckError::InvalidManifestDetails(format!(
+            "unsupported target os `{other}`; supported values are linux, windows, macos"
+        ))),
+    }
+}
+
+fn normalize_target_arch(value: &str) -> Result<&'static str, YambuckError> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "x86_64" | "amd64" => Ok("x86_64"),
+        "aarch64" | "arm64" => Ok("aarch64"),
+        "riscv64" => Ok("riscv64"),
+        other => Err(YambuckError::InvalidManifestDetails(format!(
+            "unsupported target arch `{other}`; supported values are x86_64, aarch64, riscv64"
+        ))),
+    }
+}
+
+fn normalize_variant(value: Option<&str>) -> String {
+    value
+        .and_then(sanitize_non_empty_text)
+        .unwrap_or_else(|| "default".to_string())
+}
+
+fn normalize_linux_desktops(
+    linux: Option<&crate::manifest::v1::LinuxTargetSupportV1>,
+) -> Result<Vec<String>, YambuckError> {
+    let Some(value) = linux else {
+        return Ok(vec!["x11".to_string(), "wayland".to_string()]);
+    };
+    let Some(desktops) = value.desktop_environments.as_ref() else {
+        return Ok(vec!["x11".to_string(), "wayland".to_string()]);
+    };
+
+    if desktops.is_empty() {
+        return Err(YambuckError::InvalidManifestDetails(
+            "`linux.desktopEnvironments` must not be empty when provided".to_string(),
+        ));
+    }
+
+    let mut normalized = Vec::with_capacity(desktops.len());
+    for desktop in desktops {
+        let canonical = match desktop.trim().to_ascii_lowercase().as_str() {
+            "x11" => "x11",
+            "wayland" => "wayland",
+            other => {
+                return Err(YambuckError::InvalidManifestDetails(format!(
+                    "unsupported desktop environment `{other}`; supported values are x11, wayland"
+                )))
+            }
+        };
+        if !normalized.iter().any(|value| value == canonical) {
+            normalized.push(canonical.to_string());
+        }
+    }
+    Ok(normalized)
+}
+
+fn validate_payload_root_format(path: &str) -> Result<(), YambuckError> {
+    validate_safe_relative_path("payloadRoot", path)?;
+    let mut components = Path::new(path)
+        .components()
+        .filter_map(|component| component.as_os_str().to_str())
+        .collect::<Vec<&str>>();
+
+    if components.len() < 4 {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "`payloadRoot` must follow `payloads/<os>/<arch>/<variant>/...` (received `{path}`)"
+        )));
+    }
+
+    if components[0] != "payloads" {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "`payloadRoot` must start with `payloads/` (received `{path}`)"
+        )));
+    }
+
+    components.drain(0..4);
+    Ok(())
+}
+
+fn validate_safe_relative_path(field_name: &str, path: &str) -> Result<(), YambuckError> {
+    let parsed = Path::new(path);
+    if path.trim().is_empty() || parsed.is_absolute() {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "`{field_name}` must be a non-empty relative path"
+        )));
+    }
+
+    if parsed
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "`{field_name}` must not include parent traversal (`..`)"
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_archive_file_exists(
+    archive: &mut ZipArchive<fs::File>,
+    path: &str,
+    field_name: &str,
+) -> Result<(), YambuckError> {
+    let file = archive.by_name(path).map_err(|_| {
+        YambuckError::InvalidManifestDetails(format!(
+            "`{field_name}` references a missing file: `{path}`"
+        ))
+    })?;
+
+    if file.name().ends_with('/') {
+        return Err(YambuckError::InvalidManifestDetails(format!(
+            "`{field_name}` must reference a file, but `{path}` is a directory"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_archive_directory_exists(
+    archive: &mut ZipArchive<fs::File>,
+    path: &str,
+    field_name: &str,
+) -> Result<(), YambuckError> {
+    let normalized = format!("{}/", path.trim_end_matches('/'));
+    if archive.by_name(&normalized).is_ok() {
+        return Ok(());
+    }
+
+    for index in 0..archive.len() {
+        let file = archive.by_index(index).map_err(|_| YambuckError::InvalidPackageFile)?;
+        if file.name().starts_with(&normalized) {
+            return Ok(());
+        }
+    }
+
+    Err(YambuckError::InvalidManifestDetails(format!(
+        "`{field_name}` references a missing directory: `{path}`"
+    )))
+}
+
+fn detect_host_desktop_environment() -> Option<String> {
+    let session = std::env::var("XDG_SESSION_TYPE")
+        .ok()
+        .map(|value| value.trim().to_ascii_lowercase())
+        .filter(|value| !value.is_empty());
+
+    if let Some(value) = session {
+        if value == "x11" || value == "wayland" {
+            return Some(value);
+        }
+    }
+
+    let desktop = std::env::var("XDG_CURRENT_DESKTOP")
+        .or_else(|_| std::env::var("DESKTOP_SESSION"))
+        .ok()
+        .map(|value| value.to_ascii_lowercase())?;
+
+    if desktop.contains("wayland") {
+        return Some("wayland".to_string());
+    }
+    if desktop.contains("x11") || desktop.contains("xfce") {
+        return Some("x11".to_string());
+    }
+
+    None
+}
+
+fn deduplicate_compatibility_reasons(
+    reasons: Vec<CompatibilityReason>,
+) -> Vec<CompatibilityReason> {
+    let mut seen = HashSet::<String>::new();
+    let mut unique = Vec::new();
+
+    for reason in reasons {
+        let key = format!(
+            "{}|{}|{}",
+            reason.code,
+            reason.message,
+            reason.technical_details.as_deref().unwrap_or("")
+        );
+        if seen.insert(key) {
+            unique.push(reason);
+        }
+    }
+
+    unique
 }
 
 fn read_archive_file_to_string(

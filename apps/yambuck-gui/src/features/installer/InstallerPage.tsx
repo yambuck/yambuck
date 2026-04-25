@@ -41,6 +41,7 @@ import {
 import type {
   InstallOptionDefinition,
   InstallOptionValue,
+  InstallPreflightResult,
   InstallDecision,
   InstallPreview,
   InstallScope,
@@ -55,6 +56,7 @@ type InstallerPageProps = {
   packageInfo: PackageInfo | null;
   checkingPreflight: boolean;
   preflightBlockedMessage: string;
+  installPreflight: InstallPreflightResult | null;
   showTechnicalDetails: boolean;
   showCompleteTechnicalDetails: boolean;
   licenseAccepted: boolean;
@@ -105,6 +107,7 @@ type InstallerPageProps = {
     capturedAtDisplay: string;
   } | null;
   onCopyInstallFailureDetails: () => void;
+  onCopyInstallPreflightDetails: () => void;
   onOpenInstallLogsDirectory: () => void;
   onSetLicenseAccepted: (value: boolean) => void;
   onSetScope: (scope: InstallScope) => void;
@@ -121,6 +124,7 @@ export const InstallerPage = ({
   packageInfo,
   checkingPreflight,
   preflightBlockedMessage,
+  installPreflight,
   showTechnicalDetails,
   showCompleteTechnicalDetails,
   licenseAccepted,
@@ -161,6 +165,7 @@ export const InstallerPage = ({
   onCopyPackageOpenErrorDetails,
   installFailure,
   onCopyInstallFailureDetails,
+  onCopyInstallPreflightDetails,
   onOpenInstallLogsDirectory,
   onSetLicenseAccepted,
   onSetScope,
@@ -194,6 +199,31 @@ export const InstallerPage = ({
               <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
                 <p class={`trust-title ${trustTitle}`}>Install blocked</p>
                 <p>{preflightBlockedMessage}</p>
+                {installPreflight?.reasons.length ? (
+                  <ul>
+                    {installPreflight.reasons.map((reason) => (
+                      <li key={`${reason.code}-${reason.message}`}>{reason.message}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <Button size="inline" onClick={onCopyInstallPreflightDetails}>Copy compatibility report</Button>
+              </div>
+            ) : null}
+
+            {packageInfo.appInterface.hasCli && !packageInfo.appInterface.hasGui ? (
+              <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
+                <p class={`trust-title ${trustTitle}`}>Terminal app</p>
+                <p>
+                  This package installs a command-line app. It does not open a desktop window.
+                  Open Terminal and run the command shown below after install.
+                </p>
+              </div>
+            ) : null}
+
+            {packageInfo.appInterface.hasCli && packageInfo.appInterface.hasGui ? (
+              <div class={`trust-box ${trustBox} ${trustVerified}`}>
+                <p class={`trust-title ${trustTitle}`}>Desktop + terminal app</p>
+                <p>This package includes both a desktop interface and command-line tools.</p>
               </div>
             ) : null}
 
@@ -289,6 +319,41 @@ export const InstallerPage = ({
                     onCopySuccess={onMetaFieldCopied}
                     value={<code>{packageInfo.entrypoint}</code>}
                   />
+                  {packageInfo.cliCommandName ? (
+                    <MetaField
+                      label="CLI command"
+                      tooltip="Command to run in Terminal for this package's CLI mode."
+                      copyValue={packageInfo.cliCommandName}
+                      onCopySuccess={onMetaFieldCopied}
+                      value={<code>{packageInfo.cliCommandName}</code>}
+                    />
+                  ) : null}
+                  {packageInfo.cliUsageHint ? (
+                    <MetaField
+                      label="CLI usage"
+                      tooltip="Developer-provided hint for using this package in Terminal."
+                      copyValue={packageInfo.cliUsageHint}
+                      onCopySuccess={onMetaFieldCopied}
+                      value={<code>{packageInfo.cliUsageHint}</code>}
+                    />
+                  ) : null}
+                  {packageInfo.selectedTargetId ? (
+                    <MetaField
+                      label="Target"
+                      tooltip="Resolved package target selected for this system."
+                      value={packageInfo.selectedTargetId}
+                      onCopySuccess={onMetaFieldCopied}
+                    />
+                  ) : null}
+                  {packageInfo.payloadRoot ? (
+                    <MetaField
+                      label="Payload root"
+                      tooltip="Package folder selected for host payload extraction."
+                      copyValue={packageInfo.payloadRoot}
+                      onCopySuccess={onMetaFieldCopied}
+                      value={<code>{packageInfo.payloadRoot}</code>}
+                    />
+                  ) : null}
                   <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={packageInfo.appUuid} onCopySuccess={onMetaFieldCopied} />
                   <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={packageInfo.packageUuid} onCopySuccess={onMetaFieldCopied} />
                 </>

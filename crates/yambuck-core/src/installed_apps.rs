@@ -175,6 +175,7 @@ pub fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, Yam
             message: format!(
                 "{app_id} appears to be installed by another package system. Uninstall it there first, then install via Yambuck."
             ),
+            reasons: vec!["external_conflict".to_string()],
         });
     }
 
@@ -184,12 +185,14 @@ pub fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, Yam
             message:
                 "An existing Yambuck-managed install was found. Continuing will replace it cleanly."
                     .to_string(),
+            reasons: vec!["managed_existing".to_string()],
         });
     }
 
     Ok(PreflightCheckResult {
         status: "ok".to_string(),
         message: "No install conflicts detected.".to_string(),
+        reasons: vec![],
     })
 }
 

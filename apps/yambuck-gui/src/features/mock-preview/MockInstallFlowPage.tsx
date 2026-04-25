@@ -105,6 +105,7 @@ export const MockInstallFlowPage = ({
       packageInfo={mockPackageInfo}
       checkingPreflight={false}
       preflightBlockedMessage=""
+      installPreflight={null}
       showTechnicalDetails={showTechnicalDetails}
       showCompleteTechnicalDetails={showCompleteTechnicalDetails}
       licenseAccepted={licenseAccepted}
@@ -161,6 +162,7 @@ export const MockInstallFlowPage = ({
         capturedAtDisplay: "Apr 20, 2026, 11:02:31 (+01:00)",
       }}
       onCopyInstallFailureDetails={() => onToast("success", "Mock failure details copied.")}
+      onCopyInstallPreflightDetails={() => onToast("success", "Mock compatibility report copied.")}
       onOpenInstallLogsDirectory={() => onToast("info", "Mock logs directory action.")}
       onSetLicenseAccepted={setLicenseAccepted}
       onSetScope={setScope}

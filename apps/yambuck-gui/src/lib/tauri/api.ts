@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   InstallDecision,
+  InstallPreflightResult,
   InstallOptionSubmission,
   InstallWorkflowSession,
   InstallPreview,
@@ -54,6 +55,9 @@ export const launchInstalledApp = (appId: string, scope: string) => invoke("laun
 
 export const preflightInstallCheck = (appId: string) =>
   invoke<PreflightCheckResult>("preflight_install_check", { appId });
+
+export const evaluateInstallPreflight = (workflowId: string) =>
+  invoke<InstallPreflightResult>("evaluate_install_preflight", { workflowId });
 
 export const createInstallPreview = (workflowId: string, scope: string, verifiedPublisher: boolean) =>
   invoke<InstallPreview>("create_install_preview", { workflowId, scope, verifiedPublisher });

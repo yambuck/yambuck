@@ -5,13 +5,13 @@ import {
   completeInstall as completeInstallApi,
   createInstallPreview as createInstallPreviewApi,
   discardInstallWorkflow,
+  evaluateInstallPreflight,
   getInstallDecision,
   openLogsDirectory,
   getRecentLogs,
   getStartupPackageArg,
   inspectPackageWorkflow,
   listInstalledApps,
-  preflightInstallCheck,
   uninstallInstalledApp,
   validateInstallOptions,
 } from "../lib/tauri/api";
@@ -21,6 +21,7 @@ import { toIso8601WithOffset, toReadableLocalTimeWithOffset } from "../utils/tim
 import type {
   AppPage,
   ExternalPackageOpenPayload,
+  InstallPreflightResult,
   InstallDecision,
   InstallOptionSubmission,
   InstallOptionValue,
@@ -106,6 +107,7 @@ export const useInstallerFlow = ({
   const [preview, setPreview] = useState<InstallPreview | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [preflightBlockedMessage, setPreflightBlockedMessage] = useState("");
+  const [installPreflight, setInstallPreflight] = useState<InstallPreflightResult | null>(null);
   const [checkingPreflight, setCheckingPreflight] = useState(false);
   const [activeScreenshotIndex, setActiveScreenshotIndex] = useState<number | null>(null);
   const [screenshotGallery, setScreenshotGallery] = useState<string[]>([]);
@@ -208,7 +210,20 @@ export const useInstallerFlow = ({
     setAllowDowngrade(false);
     setPackageOpenError(null);
     setInstallFailure(null);
+    setInstallPreflight(null);
   }, [workflowId]);
+
+  const runInstallPreflight = useCallback(async (activeWorkflowId: string) => {
+    const preflight = await evaluateInstallPreflight(activeWorkflowId);
+    setInstallPreflight(preflight);
+    if (preflight.status === "blocked") {
+      setPreflightBlockedMessage(preflight.message);
+      return preflight;
+    }
+
+    setPreflightBlockedMessage("");
+    return preflight;
+  }, []);
 
   const installOptions = installWorkflow?.installOptions ?? [];
 
@@ -272,6 +287,7 @@ export const useInstallerFlow = ({
       setAllowDowngrade(false);
       setPackageOpenError(null);
       setInstallFailure(null);
+      setInstallPreflight(null);
       setPage("installer");
       logUiAction("installer-open-package-success", {
         appId: inspected.workflow.packageInfo.appId,
@@ -294,6 +310,7 @@ export const useInstallerFlow = ({
       setConfirmWipeOnReinstall(false);
       setAllowDowngrade(false);
       setInstallFailure(null);
+      setInstallPreflight(null);
       setPackageOpenError({
         packageFile,
         message,
@@ -352,6 +369,55 @@ export const useInstallerFlow = ({
       onToast("success", "Install failure details copied.");
     } catch {
       onToast("error", "Could not copy install failure details.");
+    }
+  };
+
+  const copyInstallPreflightDetails = async () => {
+    if (!installPreflight) {
+      onToast("warning", "No preflight report is available yet.");
+      return;
+    }
+
+    const capturedAt = toIso8601WithOffset(new Date());
+    const reasonLines = installPreflight.reasons.length === 0
+      ? ["- none"]
+      : installPreflight.reasons.flatMap((reason) => [
+        `- [${reason.code}] ${reason.message}`,
+        ...(reason.technicalDetails ? [`  technical: ${reason.technicalDetails}`] : []),
+      ]);
+
+    const details = [
+      "Yambuck install compatibility report",
+      `Time: ${capturedAt}`,
+      `Status: ${installPreflight.status}`,
+      "",
+      "Package:",
+      `- Display name: ${installPreflight.package.displayName}`,
+      `- Version: ${installPreflight.package.version}`,
+      `- App ID: ${installPreflight.package.appId}`,
+      `- Package UUID: ${installPreflight.package.packageUuid}`,
+      `- Target: ${installPreflight.package.selectedTargetId ?? "none"}`,
+      "",
+      "Host:",
+      `- OS: ${installPreflight.host.os}`,
+      `- Arch: ${installPreflight.host.arch}`,
+      `- Distro: ${installPreflight.host.distro}`,
+      `- Kernel: ${installPreflight.host.kernelVersion}`,
+      `- Desktop: ${installPreflight.host.desktopEnvironment}`,
+      `- Session: ${installPreflight.host.sessionType}`,
+      "",
+      "Reasons:",
+      ...reasonLines,
+      "",
+      `Summary: ${installPreflight.message}`,
+      "Action: Please contact the app developer or publisher and share this report.",
+    ].join("\n");
+
+    try {
+      await copyPlainText(details);
+      onToast("success", "Compatibility report copied.");
+    } catch {
+      onToast("error", "Could not copy compatibility report.");
     }
   };
 
@@ -436,22 +502,6 @@ export const useInstallerFlow = ({
     logUiAction("installer-preflight-start", { appId: packageInfo.appId, scope });
     setCheckingPreflight(true);
     try {
-      const result = await preflightInstallCheck(packageInfo.appId);
-
-      if (result.status === "external_conflict") {
-        logUiError("installer-preflight-blocked", {
-          appId: packageInfo.appId,
-          status: result.status,
-        });
-        setPreflightBlockedMessage(result.message);
-        onToast("error", result.message, 5200);
-        return;
-      }
-
-      setPreflightBlockedMessage("");
-      setManagedExistingInstall(false);
-      setInstallDecision(null);
-
       if (!workflowId) {
         logUiError("installer-preflight-failed", {
           appId: packageInfo.appId,
@@ -460,6 +510,20 @@ export const useInstallerFlow = ({
         onToast("error", "Install workflow session missing. Reopen the package and try again.");
         return;
       }
+
+      const result = await runInstallPreflight(workflowId);
+
+      if (result.status === "blocked") {
+        logUiError("installer-preflight-blocked", {
+          appId: packageInfo.appId,
+          status: result.status,
+        });
+        onToast("error", result.message, 5600);
+        return;
+      }
+
+      setManagedExistingInstall(false);
+      setInstallDecision(null);
 
       const decision = await getInstallDecision(workflowId, scope);
       setInstallDecision(decision);
@@ -791,14 +855,16 @@ export const useInstallerFlow = ({
     }
 
     try {
-      const preflight = await preflightInstallCheck(selectedPackage.appId);
-      if (preflight.status === "external_conflict") {
-        setPreflightBlockedMessage(preflight.message);
+      if (!workflowId) {
+        throw new Error("Missing workflow session");
+      }
+      const preflight = await runInstallPreflight(workflowId);
+      if (preflight.status === "blocked") {
         logUiError("install-attempt-blocked", {
           appId: selectedPackage.appId,
-          reason: preflight.status,
+          reason: "preflight-blocked",
         });
-        onToast("error", preflight.message, 5200);
+        onToast("error", preflight.message, 5600);
         return;
       }
     } catch {
@@ -919,6 +985,7 @@ export const useInstallerFlow = ({
     preview,
     isBusy,
     preflightBlockedMessage,
+    installPreflight,
     checkingPreflight,
     showTechnicalDetails,
     setShowTechnicalDetails,
@@ -947,6 +1014,7 @@ export const useInstallerFlow = ({
     copyPackageOpenErrorDetails,
     installFailure,
     copyInstallFailureDetails,
+    copyInstallPreflightDetails,
     openInstallLogsDirectory,
     choosePackage,
     clearSelectedPackage,

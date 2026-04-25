@@ -17,7 +17,7 @@ resolve_arch() {
 }
 
 ARCH="$(resolve_arch)"
-PACKAGE_PATH="${ROOT_DIR}/release-artifacts/packages/example-app-linux-${ARCH}.yambuck"
+PACKAGE_PATH="${ROOT_DIR}/release-artifacts/packages/example-app.yambuck"
 
 "${ROOT_DIR}/scripts/build-example-app-yambuck.sh"
 

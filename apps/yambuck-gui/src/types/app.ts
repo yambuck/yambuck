@@ -39,6 +39,16 @@ export type PackageInfo = {
   tempPath?: string;
   packageUuid: string;
   trustStatus: string;
+  appInterface: {
+    hasGui: boolean;
+    hasCli: boolean;
+  };
+  cliCommandName?: string;
+  cliUsageHint?: string;
+  selectedTargetId?: string;
+  payloadRoot?: string;
+  compatibilityStatus: "supported" | "blocked";
+  compatibilityReasons: CompatibilityReason[];
 };
 
 export type InstallWorkflow = {
@@ -157,6 +167,29 @@ export type SystemInfo = {
 export type PreflightCheckResult = {
   status: "ok" | "managed_existing" | "external_conflict";
   message: string;
+  reasons: string[];
+};
+
+export type CompatibilityReason = {
+  code: string;
+  message: string;
+  technicalDetails?: string;
+};
+
+export type InstallPreflightPackageSnapshot = {
+  displayName: string;
+  version: string;
+  appId: string;
+  packageUuid: string;
+  selectedTargetId?: string;
+};
+
+export type InstallPreflightResult = {
+  status: "ok" | "blocked";
+  message: string;
+  reasons: CompatibilityReason[];
+  host: SystemInfo;
+  package: InstallPreflightPackageSnapshot;
 };
 
 export type ExternalPackageOpenPayload = {

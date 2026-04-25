@@ -43,7 +43,7 @@ git push origin v0.1.0
 gh release create v0.1.0 \
   release-artifacts/yambuck-linux-*.tar.gz \
   release-artifacts/yambuck-linux-*.tar.gz.sha256 \
-  release-artifacts/packages/example-app-linux-*.yambuck \
+  release-artifacts/packages/example-app.yambuck \
   --title "Yambuck v0.1.0" \
   --notes "First bootstrap-compatible release for Yambuck installer testing."
 ```
@@ -89,7 +89,7 @@ Quick local smoke shortcut (build + open in local yambuck-gui dev runtime):
 ./scripts/smoke-example-app.sh
 ```
 
-Then validate with `release-artifacts/packages/example-app-linux-<arch>.yambuck`:
+Then validate with `release-artifacts/packages/example-app.yambuck`:
 
 - open package file in Yambuck GUI
 - complete install flow (`Just for me` first)

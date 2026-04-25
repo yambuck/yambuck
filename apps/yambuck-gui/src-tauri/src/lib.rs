@@ -5,9 +5,9 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 use yambuck_core::{
-    InstallDecision, InstallOptionSubmission, InstallPreview, InstallWorkflow, InstalledApp,
-    InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult, UninstallResult,
-    UpdateCheckResult,
+    CompatibilityReason, InstallDecision, InstallOptionSubmission, InstallPreview, InstallWorkflow,
+    InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
+    UninstallResult, UpdateCheckResult,
 };
 
 mod commands;
@@ -37,6 +37,26 @@ struct OpenPackageEventPayload {
 pub(crate) struct InstallWorkflowSession {
     workflow_id: String,
     workflow: InstallWorkflow,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct InstallPreflightPackageSnapshot {
+    display_name: String,
+    version: String,
+    app_id: String,
+    package_uuid: String,
+    selected_target_id: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct InstallPreflightResult {
+    status: String,
+    message: String,
+    reasons: Vec<CompatibilityReason>,
+    host: support::system_info::SystemInfo,
+    package: InstallPreflightPackageSnapshot,
 }
 
 fn next_workflow_id() -> String {
@@ -305,6 +325,68 @@ pub(crate) fn preflight_install_check_impl(app_id: &str) -> Result<PreflightChec
     yambuck_core::preflight_install_check(app_id).map_err(|error| error.to_string())
 }
 
+pub(crate) fn evaluate_install_preflight_impl(
+    workflow_id: &str,
+) -> Result<InstallPreflightResult, String> {
+    let workflow = get_workflow_from_session(workflow_id)?;
+    let package_info = workflow.package_info;
+    let ownership_preflight = yambuck_core::preflight_install_check(&package_info.app_id)
+        .map_err(|error| error.to_string())?;
+    let host = support::system_info::get_system_info()?;
+
+    let mut reasons = package_info.compatibility_reasons.clone();
+
+    for reason_code in ownership_preflight.reasons {
+        match reason_code.as_str() {
+            "external_conflict" => reasons.push(CompatibilityReason {
+                code: "external_conflict".to_string(),
+                message: "This app appears to already be installed by another package system."
+                    .to_string(),
+                technical_details: Some(ownership_preflight.message.clone()),
+            }),
+            "managed_existing" => reasons.push(CompatibilityReason {
+                code: "managed_existing".to_string(),
+                message:
+                    "An existing Yambuck-managed install was found. Installing will replace it cleanly."
+                        .to_string(),
+                technical_details: Some(ownership_preflight.message.clone()),
+            }),
+            _ => reasons.push(CompatibilityReason {
+                code: reason_code,
+                message: ownership_preflight.message.clone(),
+                technical_details: None,
+            }),
+        }
+    }
+
+    let blocked = package_info.compatibility_status == "blocked"
+        || ownership_preflight.status == "external_conflict";
+
+    let status = if blocked { "blocked" } else { "ok" }.to_string();
+    let message = if blocked {
+        "This app is not supported on your current system. Contact the app developer or publisher and share the preflight report."
+            .to_string()
+    } else if ownership_preflight.status == "managed_existing" {
+        ownership_preflight.message
+    } else {
+        "No compatibility or ownership blockers were detected.".to_string()
+    };
+
+    Ok(InstallPreflightResult {
+        status,
+        message,
+        reasons,
+        host,
+        package: InstallPreflightPackageSnapshot {
+            display_name: package_info.display_name,
+            version: package_info.version,
+            app_id: package_info.app_id,
+            package_uuid: package_info.package_uuid,
+            selected_target_id: package_info.selected_target_id,
+        },
+    })
+}
+
 pub(crate) fn get_startup_package_arg_impl() -> Option<String> {
     let args = std::env::args().collect::<Vec<String>>();
     support::launch_args::package_arg_from_launch_args(&args)
@@ -436,6 +518,7 @@ pub fn run() {
             commands::logs::log_ui_event,
             commands::logs::open_logs_directory,
             commands::installer::preflight_install_check,
+            commands::installer::evaluate_install_preflight,
             commands::installer::get_startup_package_arg,
             commands::installer::list_installed_apps,
             commands::installer::get_installed_app_details,

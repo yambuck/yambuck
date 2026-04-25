@@ -1,0 +1,37 @@
+{
+  "manifestVersion": "1.0.0",
+  "displayName": "Fixture Wayland Only",
+  "description": "QA fixture: Linux desktop environment mismatch.",
+  "longDescription": "Preflight should block on X11 sessions because this package declares Wayland only.",
+  "version": "0.0.1",
+  "publisher": "Yambuck QA",
+  "appId": "com.yambuck.qa.waylandonly",
+  "appUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f003",
+  "packageUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f103",
+  "iconPath": "assets/icon.png",
+  "screenshots": [
+    "assets/screenshots/screenshot-a.png"
+  ],
+  "interfaces": {
+    "gui": {
+      "enabled": true
+    }
+  },
+  "targets": [
+    {
+      "id": "linux-x86_64-wayland",
+      "os": "linux",
+      "arch": "x86_64",
+      "variant": "wayland",
+      "payloadRoot": "payloads/linux/x86_64/default",
+      "entrypoints": {
+        "gui": "app/bin/example-app"
+      },
+      "linux": {
+        "desktopEnvironments": [
+          "wayland"
+        ]
+      }
+    }
+  ]
+}

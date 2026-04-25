@@ -55,7 +55,7 @@ Yambuck is in alpha preview with a working end-to-end prototype flow and active 
 
 Today, the active product surface is GUI-first (`yambuck-gui`), with CLI planned as a secondary interface.
 
-Reference package for exploratory testing: `example-app-linux-x86_64.yambuck` from the latest release.
+Reference package for exploratory testing: `example-app.yambuck` from the latest release.
 
 ## What Works Today
 

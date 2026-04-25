@@ -1,0 +1,32 @@
+{
+  "manifestVersion": "1.0.0",
+  "displayName": "Fixture Unsupported OS",
+  "description": "QA fixture: host OS mismatch.",
+  "longDescription": "Preflight should block because this package targets Windows only.",
+  "version": "0.0.1",
+  "publisher": "Yambuck QA",
+  "appId": "com.yambuck.qa.unsupportedos",
+  "appUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f001",
+  "packageUuid": "e1e6cf46-f836-4797-88d3-1630a0a1f101",
+  "iconPath": "assets/icon.png",
+  "screenshots": [
+    "assets/screenshots/screenshot-a.png"
+  ],
+  "interfaces": {
+    "gui": {
+      "enabled": true
+    }
+  },
+  "targets": [
+    {
+      "id": "windows-x86_64-default",
+      "os": "windows",
+      "arch": "x86_64",
+      "variant": "default",
+      "payloadRoot": "payloads/linux/x86_64/default",
+      "entrypoints": {
+        "gui": "app/bin/example-app"
+      }
+    }
+  ]
+}
