@@ -58,10 +58,6 @@ while [[ $# -gt 0 ]]; do
     --purge-managed-apps)
       purge_managed_apps=true
       ;;
-    --remove-all-apps|--remove-system-apps|--remove-user-apps)
-      log "Note: $1 is deprecated; using --purge-managed-apps behavior."
-      purge_managed_apps=true
-      ;;
     --yes)
       non_interactive=true
       ;;

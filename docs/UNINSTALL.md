@@ -29,5 +29,3 @@ curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --
 - `--purge-managed-apps`: also remove all Yambuck-managed app payloads and metadata (user + system)
 - `--yes`: run non-interactively
 - `--help`: show script usage
-
-Legacy flags (`--remove-all-apps`, `--remove-system-apps`, `--remove-user-apps`) are still accepted as aliases for `--purge-managed-apps`.
