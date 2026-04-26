@@ -285,6 +285,7 @@ function App() {
   const {
     isMaximized,
     handleTitlebarMouseDown,
+    handleResizeMouseDown,
     handleMinimize,
     handleToggleMaximize,
     handleClose,
@@ -753,6 +754,11 @@ function App() {
       />
 
       <div class="workspace-stage" data-no-drag="true">
+        <div class="resize-corner resize-corner-nw" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("NorthWest")(event)} />
+        <div class="resize-corner resize-corner-ne" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("NorthEast")(event)} />
+        <div class="resize-corner resize-corner-sw" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("SouthWest")(event)} />
+        <div class="resize-corner resize-corner-se" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("SouthEast")(event)} />
+
         <section class="content-scroll">
           {renderCurrentPage()}
         </section>

@@ -40,6 +40,51 @@ body {
   overflow: hidden;
 }
 
+.resize-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  z-index: 22;
+  user-select: none;
+}
+
+.resize-corner-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.resize-corner-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.resize-corner-sw {
+  left: 0;
+  bottom: 0;
+  cursor: nesw-resize;
+}
+
+.resize-corner-se {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+.resize-corner-se::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 11px;
+  height: 11px;
+  background: linear-gradient(135deg, var(--colors-style-color077), var(--colors-style-color078));
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+  opacity: 0.95;
+  pointer-events: none;
+}
+
 .content-scroll {
   flex: 1;
   min-height: 0;

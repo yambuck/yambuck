@@ -5,6 +5,8 @@ type UseWindowControlsOptions = {
   onError: (message: string) => void;
 };
 
+type ResizeDirection = "East" | "North" | "NorthEast" | "NorthWest" | "South" | "SouthEast" | "SouthWest" | "West";
+
 export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -83,9 +85,25 @@ export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
     }
   };
 
+  const handleResizeMouseDown = (direction: ResizeDirection) => async (event: MouseEvent) => {
+    if (event.buttons !== 1) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+      await getCurrentWindow().startResizeDragging(direction);
+    } catch {
+      // no-op if resize drag is unavailable
+    }
+  };
+
   return {
     isMaximized,
     handleTitlebarMouseDown,
+    handleResizeMouseDown,
     handleMinimize,
     handleToggleMaximize,
     handleClose,
