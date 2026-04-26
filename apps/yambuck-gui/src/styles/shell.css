@@ -64,8 +64,8 @@ body {
 
 .resize-corner {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 36px;
   z-index: 1;
   user-select: none;
   pointer-events: auto;
