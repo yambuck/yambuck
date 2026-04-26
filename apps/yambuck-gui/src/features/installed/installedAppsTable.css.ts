@@ -45,6 +45,10 @@ globalStyle(`${table} tbody tr:hover`, {
   background: "var(--colors-style-color053)",
 });
 
+globalStyle(`${table} tbody tr:last-child td`, {
+  borderBottom: 0,
+});
+
 globalStyle(`${table} tbody tr`, {
   cursor: "pointer",
 });

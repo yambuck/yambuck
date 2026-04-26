@@ -13,14 +13,15 @@ export const overlay = style({
 });
 
 export const card = style({
-  ["--panel-radius" as string]: "18px",
-  ["--panel-close-size" as string]: "34px",
+  ["--panel-radius" as string]: "var(--radius-panel)",
+  ["--panel-close-size" as string]: "36px",
   width: "min(var(--layout-primary-panel-max-width), 100%)",
-  borderRadius: "18px",
-  border: 0,
+  borderRadius: "var(--radius-panel)",
+  border: "1px solid var(--colors-panel-border)",
   background: "var(--colors-panel-background)",
-  boxShadow: "0 25px 50px var(--colors-panel-shadow), 0 10px 26px var(--colors-panel-shadow-accent)",
-  padding: "1rem",
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 22px 45px var(--colors-panel-shadow), 0 8px 22px var(--colors-panel-shadow-accent)",
+  padding: 0,
   position: "relative",
   maxHeight: "100%",
   display: "flex",
@@ -32,6 +33,12 @@ export const body = style({
   flex: 1,
   minHeight: 0,
   overflow: "auto",
+});
+
+export const content = style({
+  flex: 1,
+  minHeight: "100%",
+  padding: "1rem",
   display: "grid",
   gap: "0.75rem",
 });

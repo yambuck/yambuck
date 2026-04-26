@@ -58,6 +58,16 @@ export const MockInstallFlowPage = ({
     incomingVersion: mockPackageInfo.version,
   }), []);
 
+  const mockWizardSteps: WizardStep[] = [
+    "details",
+    "trust",
+    ...(mockPackageInfo.requiresLicenseAcceptance ? (["license"] as WizardStep[]) : []),
+    "options",
+    "scope",
+    "progress",
+    "complete",
+  ];
+
   useEffect(() => {
     if (step !== "progress") {
       return;
@@ -103,6 +113,7 @@ export const MockInstallFlowPage = ({
     <InstallerPage
       step={step}
       packageInfo={mockPackageInfo}
+      installerWizardSteps={mockWizardSteps}
       checkingPreflight={false}
       preflightBlockedMessage=""
       installPreflight={null}

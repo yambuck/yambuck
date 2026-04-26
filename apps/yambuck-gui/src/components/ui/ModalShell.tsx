@@ -1,6 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { CardCloseButton } from "../../CardCloseButton";
-import { body, card, overlay } from "./modalShell.css";
+import { body, card, content, overlay } from "./modalShell.css";
 
 type ModalShellProps = {
   onClose: () => void;
@@ -32,7 +32,9 @@ export const ModalShell = ({
     >
       <section class={cardClassName} onClick={(event) => event.stopPropagation()}>
         {showCornerClose ? <CardCloseButton title={closeTitle} onClick={onClose} /> : null}
-        <div class={`modal-shell-body ${body}`}>{children}</div>
+        <div class={`modal-shell-body ${body}`}>
+          <div class={`modal-shell-content ${content}`}>{children}</div>
+        </div>
       </section>
     </div>
   );

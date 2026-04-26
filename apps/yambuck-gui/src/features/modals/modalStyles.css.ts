@@ -80,6 +80,13 @@ globalStyle(`${screenshotCard} .modal-shell-body`, {
   display: "flex",
 });
 
+globalStyle(`${screenshotCard} .modal-shell-content`, {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+});
+
 globalStyle(`${screenshotCard} .modal-section`, {
   flex: 1,
   minHeight: 0,

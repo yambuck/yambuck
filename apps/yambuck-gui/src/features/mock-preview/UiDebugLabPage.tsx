@@ -58,7 +58,7 @@ const scopeChoices = [
 ];
 
 const installerSteps = [
-  { id: "details", label: "Details" },
+  { id: "details", label: "Review" },
   { id: "trust", label: "Trust" },
   { id: "license", label: "License" },
   { id: "options", label: "Options" },

@@ -61,26 +61,38 @@ const scopeChoices = [
   },
 ];
 
-const buildInstallerSteps = (includeLicense: boolean): WizardStepperStep[] => {
-  const steps: WizardStepperStep[] = [
-    { id: "details", label: "Details" },
-    { id: "trust", label: "Trust" },
+const stepLabels: Record<WizardStep, string> = {
+  details: "Review",
+  trust: "Trust",
+  license: "License",
+  options: "Options",
+  scope: "Scope",
+  progress: "Install",
+  complete: "Done",
+  failed: "Install",
+};
+
+const buildInstallerSteps = (wizardSteps: WizardStep[] | null, includeLicense: boolean): WizardStepperStep[] => {
+  const defaultSteps: WizardStep[] = [
+    "details",
+    "trust",
+    ...(includeLicense ? ["license" as const] : []),
+    "options",
+    "scope",
+    "progress",
+    "complete",
   ];
-  if (includeLicense) {
-    steps.push({ id: "license", label: "License" });
-  }
-  steps.push(
-    { id: "options", label: "Options" },
-    { id: "scope", label: "Scope" },
-    { id: "progress", label: "Install" },
-    { id: "complete", label: "Done" },
-  );
-  return steps;
+
+  const sourceSteps = wizardSteps && wizardSteps.length > 0 ? wizardSteps : defaultSteps;
+  return sourceSteps
+    .filter((step) => step !== "failed")
+    .map((step) => ({ id: step, label: stepLabels[step] }));
 };
 
 type InstallerPageProps = {
   step: WizardStep;
   packageInfo: PackageInfo | null;
+  installerWizardSteps: WizardStep[] | null;
   checkingPreflight: boolean;
   preflightBlockedMessage: string;
   installPreflight: InstallPreflightResult | null;
@@ -149,6 +161,7 @@ type InstallerPageProps = {
 export const InstallerPage = ({
   step,
   packageInfo,
+  installerWizardSteps,
   checkingPreflight,
   preflightBlockedMessage,
   installPreflight,
@@ -204,7 +217,7 @@ export const InstallerPage = ({
   onViewInstalledDetails,
 }: InstallerPageProps) => {
   const includeLicenseStep = packageInfo?.requiresLicenseAcceptance ?? false;
-  const installerSteps = buildInstallerSteps(includeLicenseStep);
+  const installerSteps = buildInstallerSteps(installerWizardSteps, includeLicenseStep);
   const currentStepId = step === "failed" ? "progress" : step;
 
   const renderStepper = () => (

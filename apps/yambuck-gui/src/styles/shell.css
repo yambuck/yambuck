@@ -55,7 +55,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.55rem 0.9rem;
   margin: 0;
   border: 1px solid var(--colors-surface-border);
   border-left: 0;
@@ -76,6 +76,19 @@ body {
   align-items: center;
   gap: 0.5rem;
   justify-self: start;
+}
+
+.topbar-app-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.topbar-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .topbar-right {
@@ -196,6 +209,7 @@ body {
   box-shadow: 0 12px 28px var(--colors-toast-shadow);
   font-size: 0.86rem;
   animation: fade-up 180ms ease;
+  cursor: copy;
 }
 
 .toast.info {
@@ -263,7 +277,7 @@ body {
   flex-shrink: 0;
   border-top: 1px solid var(--colors-style-color096);
   background: linear-gradient(120deg, var(--colors-style-color097), var(--colors-style-color098));
-  border-radius: var(--radius-toast);
+  border-radius: 0;
   padding: 0.65rem 0.75rem;
   color: var(--colors-style-color099);
   font-size: 0.8rem;

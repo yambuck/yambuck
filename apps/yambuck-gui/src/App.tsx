@@ -25,6 +25,8 @@ import { useWindowControls } from "./hooks/useWindowControls";
 import { getInstallerContext } from "./lib/tauri/api";
 import { logUiAction } from "./lib/ui-log";
 import { mockInstalledApps, toMockInstalledAppDetails } from "./mocks/mockData";
+import { copyPlainText } from "./utils/clipboard";
+import appIcon from "../src-tauri/icons/icon-source.svg";
 import type {
   AppPage,
   InstallScope,
@@ -161,7 +163,7 @@ function App() {
   const [context, setContext] = useState<InstallerContext | null>(null);
   const [showMockTechnicalDetails, setShowMockTechnicalDetails] = useState(false);
 
-  const { toasts, pushToast, dismissToast } = useToastManager();
+  const { toasts, pushToast, dismissToast, pauseToast, resumeToast } = useToastManager();
   const {
     updateResult,
     checkingUpdates,
@@ -255,6 +257,7 @@ function App() {
     licenseViewer,
     openLicenseViewer,
     closeLicenseViewer,
+    installWorkflow,
     choosePackage,
     clearSelectedPackage,
     closeInstallComplete,
@@ -394,6 +397,15 @@ function App() {
     pushToast("info", `${label} copied to clipboard.`);
   };
 
+  const handleCopyToastMessage = async (message: string) => {
+    try {
+      await copyPlainText(message);
+      logUiAction("toast-copied", { length: message.length });
+    } catch {
+      // toast copy is a convenience action; ignore clipboard failures
+    }
+  };
+
   const navigateToInstalledList = () => {
     logUiAction("navigate-installed-list");
     setInstalledReviewTarget(null);
@@ -435,10 +447,11 @@ function App() {
 
   const renderInstallStep = () => {
     return (
-      <InstallerPage
-        step={step}
-        packageInfo={packageInfo}
-        checkingPreflight={checkingPreflight}
+        <InstallerPage
+          step={step}
+          packageInfo={packageInfo}
+          installerWizardSteps={installWorkflow?.wizardSteps ?? null}
+          checkingPreflight={checkingPreflight}
         preflightBlockedMessage={preflightBlockedMessage}
         installPreflight={installPreflight}
         showTechnicalDetails={showTechnicalDetails}
@@ -686,31 +699,34 @@ function App() {
   return (
     <main class="app-shell">
       <header class="topbar" onMouseDown={(event) => void handleTitlebarMouseDown(event)}>
-        <TogglePillGroup
-          class="topbar-left"
-          behavior="buttons"
-          ariaLabel="Primary navigation"
-          items={[
-            {
-              id: "installer",
-              label: "Installer",
-              active: page === "installer",
-              onSelect: () => {
-                logUiAction("navigate-installer-tab");
-                closeInstalledAppDetails();
-                setInstalledReviewTarget(null);
-                setMockInstalledReviewAppId(null);
-                setPage("installer");
+        <div class="topbar-left" data-no-drag="true">
+          <img class="topbar-app-icon" src={appIcon} alt="Yambuck" />
+          <TogglePillGroup
+            class="topbar-nav"
+            behavior="buttons"
+            ariaLabel="Primary navigation"
+            items={[
+              {
+                id: "installer",
+                label: "Installer",
+                active: page === "installer",
+                onSelect: () => {
+                  logUiAction("navigate-installer-tab");
+                  closeInstalledAppDetails();
+                  setInstalledReviewTarget(null);
+                  setMockInstalledReviewAppId(null);
+                  setPage("installer");
+                },
               },
-            },
-            {
-              id: "installed-apps",
-              label: "Installed Apps",
-              active: page === "installed" || page === "installedReview",
-              onSelect: navigateToInstalledList,
-            },
-          ]}
-        />
+              {
+                id: "installed-apps",
+                label: "Installed Apps",
+                active: page === "installed" || page === "installedReview",
+                onSelect: navigateToInstalledList,
+              },
+            ]}
+          />
+        </div>
         <WindowControls
           settingsActive={page === "settings" || page === "uiDebugLab"}
           isMaximized={isMaximized}
@@ -728,7 +744,13 @@ function App() {
         />
       </header>
 
-      <ToastHost toasts={toasts} onDismiss={dismissToast} />
+      <ToastHost
+        toasts={toasts}
+        onDismiss={dismissToast}
+        onPause={pauseToast}
+        onResume={resumeToast}
+        onCopyMessage={(message) => void handleCopyToastMessage(message)}
+      />
 
       <div class="workspace-stage" data-no-drag="true">
         <section class="content-scroll">
