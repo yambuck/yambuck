@@ -1,42 +1,37 @@
-import { CardCloseButton } from "../../CardCloseButton";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
+import { MessagePanel } from "../../components/ui/MessagePanel";
 import { MetaField } from "../../components/ui/MetaField";
 import { inlineActions, licenseActions, licenseLabel, link } from "../../components/ui/metaField.css";
 import { Panel } from "../../components/ui/Panel";
+import { ProgressBar } from "../../components/ui/ProgressBar";
+import { ScopeChoiceCards } from "../../components/ui/ScopeChoiceCards";
+import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
 import { TextField } from "../../components/ui/TextField";
 import { SelectField } from "../../components/ui/SelectField";
 import type { SelectFieldOption } from "../../components/ui/SelectField";
+import { MetaCardGrid } from "../shared/MetaCardGrid";
 import { PackageDetailsSections } from "../shared/PackageDetailsSections";
 import {
   actions,
   actionsStart,
   detailsActions,
   detailsHeader,
-  metaGrid,
-  metaGridCompact,
   metaSection,
   metaSectionHeader,
-  metaToggle,
   packagePanel,
   subtitle,
   technicalSection,
   technicalToggleOnly,
 } from "../shared/packageUi.css";
 import {
+  licenseRequirementNote,
   openPackageErrorBoxText,
   openPackageErrorPre,
   openPackageErrorSection,
-  progressBar,
-  progressShell,
-  progressValue,
-  scopeCard,
-  scopeCardActive,
-  scopeGrid,
-  trustBox,
-  trustTitle,
-  trustVerified,
-  trustWarning,
+  progressWrap,
+  scopeChoicesWrap,
+  scopeNotice,
 } from "./installerPage.css";
 import type {
   InstallOptionDefinition,
@@ -50,6 +45,19 @@ import type {
 } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
+
+const scopeChoices = [
+  {
+    value: "user",
+    title: "Just for me",
+    description: "Recommended. No admin prompt needed.",
+  },
+  {
+    value: "system",
+    title: "All users",
+    description: "May require admin permissions.",
+  },
+];
 
 type InstallerPageProps = {
   step: WizardStep;
@@ -177,8 +185,21 @@ export const InstallerPage = ({
   onViewInstalledDetails,
 }: InstallerPageProps) => {
   if (step === "details") {
+    const interfaceLabel = packageInfo
+      ? packageInfo.appInterface.hasGui && packageInfo.appInterface.hasCli
+        ? "GUI + CLI"
+        : packageInfo.appInterface.hasGui
+          ? "GUI"
+          : "CLI"
+      : "Unknown";
+
     return (
-      <Panel class={`package-panel ${packagePanel}`}>
+      <Panel
+        class={`package-panel ${packagePanel}`}
+        showCornerClose
+        cornerCloseTitle="Close package"
+        onCornerClose={onClearSelectedPackage}
+      >
         {packageInfo ? (
           <>
             <div class={`details-header ${detailsHeader}`}>
@@ -192,12 +213,8 @@ export const InstallerPage = ({
                 </Button>
               </div>
             </div>
-
-            <CardCloseButton title="Close package" onClick={onClearSelectedPackage} />
-
             {preflightBlockedMessage ? (
-              <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
-                <p class={`trust-title ${trustTitle}`}>Install blocked</p>
+              <MessagePanel tone="error" title="Install blocked">
                 <p>{preflightBlockedMessage}</p>
                 {installPreflight?.reasons.length ? (
                   <ul>
@@ -206,25 +223,17 @@ export const InstallerPage = ({
                     ))}
                   </ul>
                 ) : null}
-                <Button size="inline" onClick={onCopyInstallPreflightDetails}>Copy compatibility report</Button>
-              </div>
+                <Button onClick={onCopyInstallPreflightDetails}>Copy compatibility report</Button>
+              </MessagePanel>
             ) : null}
 
             {packageInfo.appInterface.hasCli && !packageInfo.appInterface.hasGui ? (
-              <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
-                <p class={`trust-title ${trustTitle}`}>Terminal app</p>
+              <MessagePanel tone="warning" title="Terminal app">
                 <p>
                   This package installs a command-line app. It does not open a desktop window.
                   Open Terminal and run the command shown below after install.
                 </p>
-              </div>
-            ) : null}
-
-            {packageInfo.appInterface.hasCli && packageInfo.appInterface.hasGui ? (
-              <div class={`trust-box ${trustBox} ${trustVerified}`}>
-                <p class={`trust-title ${trustTitle}`}>Desktop + terminal app</p>
-                <p>This package includes both a desktop interface and command-line tools.</p>
-              </div>
+              </MessagePanel>
             ) : null}
 
             <PackageDetailsSections
@@ -236,6 +245,12 @@ export const InstallerPage = ({
                 <>
                   <MetaField label="Publisher" tooltip="The team or company that published this app." value={packageInfo.publisher} onCopySuccess={onMetaFieldCopied} />
                   <MetaField label="Version" tooltip="The app version that will be installed." value={packageInfo.version} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField
+                    label="Interface"
+                    tooltip="How this app is intended to be used on your system."
+                    value={<code>{interfaceLabel}</code>}
+                    onCopySuccess={onMetaFieldCopied}
+                  />
                   {packageInfo.homepageUrl ? (
                     <MetaField
                       label="Homepage"
@@ -272,7 +287,6 @@ export const InstallerPage = ({
                           <span class={`license-action-label ${licenseLabel}`}>{packageInfo.license}</span>
                           {packageInfo.licenseText ? (
                             <Button
-                              size="inline"
                               onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
                             >
                               View license
@@ -290,7 +304,6 @@ export const InstallerPage = ({
                       value={(
                         <span class={`meta-inline-actions ${inlineActions} license-actions ${licenseActions}`}>
                           <Button
-                            size="inline"
                             onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
                           >
                             View license
@@ -369,7 +382,7 @@ export const InstallerPage = ({
               <div class={`meta-section-header ${metaSectionHeader}`}>
                 <h2>Error details</h2>
               </div>
-              <div class={`trust-box warning open-package-error-box ${trustBox} ${trustWarning}`}>
+              <MessagePanel tone="error" class="open-package-error-box">
                 <p class={openPackageErrorBoxText}>
                   <strong>Package:</strong> <code>{packageOpenError.packageFile}</code>
                 </p>
@@ -377,7 +390,7 @@ export const InstallerPage = ({
                   <strong>Time:</strong> <code>{packageOpenError.capturedAtDisplay}</code>
                 </p>
                 <pre class={`open-package-error-pre ${openPackageErrorPre}`}><code>Error: {packageOpenError.message}</code></pre>
-              </div>
+              </MessagePanel>
             </section>
             <div class={`actions ${actions}`}>
               <Button onClick={onClearSelectedPackage}>Close</Button>
@@ -408,10 +421,9 @@ export const InstallerPage = ({
     return (
       <Panel>
         <h1>Trust and verification</h1>
-        <div class={`trust-box ${trustBox} ${isVerified ? `verified ${trustVerified}` : `warning ${trustWarning}`}`}>
-          <p class={`trust-title ${trustTitle}`}>{isVerified ? "Verified publisher" : "Publisher not verified"}</p>
+        <MessagePanel tone={isVerified ? "success" : "warning"} title={isVerified ? "Verified publisher" : "Publisher not verified"}>
           <p>{isVerified ? "This package is signed by a trusted publisher key." : "Only install if you trust this source."}</p>
-        </div>
+        </MessagePanel>
         <div class={`actions ${actions}`}>
           <Button onClick={onGoBackFromTrustStep}>Back</Button>
           <Button variant="primary" onClick={onContinueFromTrustStep}>
@@ -428,10 +440,6 @@ export const InstallerPage = ({
       <Panel>
         <h1>License agreement</h1>
         <p class={`subtitle ${subtitle}`}>Review and accept the package license before continuing.</p>
-        <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
-          <p class={`trust-title ${trustTitle}`}>Acceptance required</p>
-          <p>This package requires explicit license acceptance as declared in its manifest.</p>
-        </div>
         <div class={`actions start ${actions} ${actionsStart}`}>
           {licenseText ? (
             <Button onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, licenseText)}>
@@ -444,6 +452,9 @@ export const InstallerPage = ({
         <CheckboxField checked={licenseAccepted} disabled={!licenseText} onChange={onSetLicenseAccepted} class="license-acceptance">
           I have read and accept this package license.
         </CheckboxField>
+        {!licenseAccepted ? (
+          <p class={licenseRequirementNote}>The publisher requires license acceptance before install can continue.</p>
+        ) : null}
         <div class={`actions ${actions}`}>
           <Button onClick={onGoBackFromLicenseStep}>Back</Button>
           <Button variant="primary" onClick={onContinueFromLicenseStep} disabled={!licenseText || !licenseAccepted}>
@@ -463,26 +474,21 @@ export const InstallerPage = ({
             ? "Choose reinstall behavior and who can use this application"
             : "Choose who can use this application"}
         </p>
-        <div class={`scope-grid ${scopeGrid}`}>
-          <label class={`scope-card ${scopeCard} ${scope === "user" ? `active ${scopeCardActive}` : ""}`}>
-            <input type="radio" name="scope" checked={scope === "user"} onChange={() => onSetScope("user")} />
-            <span>Just for me</span>
-            <small>Recommended. No admin prompt needed.</small>
-          </label>
-          <label class={`scope-card ${scopeCard} ${scope === "system" ? `active ${scopeCardActive}` : ""}`}>
-            <input type="radio" name="scope" checked={scope === "system"} onChange={() => onSetScope("system")} />
-            <span>All users</span>
-            <small>May require admin permissions.</small>
-          </label>
-        </div>
+        <ScopeChoiceCards
+          value={scope}
+          options={scopeChoices}
+          onValueChange={(nextValue) => onSetScope(nextValue as InstallScope)}
+          name="scope"
+          ariaLabel="Install scope"
+          class={scopeChoicesWrap}
+        />
         {installDecision?.otherScope && installDecision.otherScopeExistingVersion ? (
-          <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
-            <p class={`trust-title ${trustTitle}`}>Also installed in another scope</p>
+          <MessagePanel tone="info" title="Also installed in another scope" class={scopeNotice}>
             <p>
               You already have version <code>{installDecision.otherScopeExistingVersion}</code> installed in {" "}
               <strong>{formatInstallScopeLabel(installDecision.otherScope)}</strong>.
             </p>
-          </div>
+          </MessagePanel>
         ) : null}
         {managedExistingInstall ? (
           <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
@@ -490,15 +496,17 @@ export const InstallerPage = ({
               <h2>Reinstall options</h2>
             </div>
             {installDecision ? (
-              <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
-                <p class={`trust-title ${trustTitle}`}>{installDecision.action === "update" ? "Update" : installDecision.action === "reinstall" ? "Reinstall" : installDecision.action === "downgrade" ? "Downgrade" : "Install"}</p>
+              <MessagePanel
+                tone={installDecision.action === "downgrade" ? "warning" : "info"}
+                title={installDecision.action === "update" ? "Update" : installDecision.action === "reinstall" ? "Reinstall" : installDecision.action === "downgrade" ? "Downgrade" : "Install"}
+              >
                 <p>{installDecision.message}</p>
                 {installDecision.existingVersion ? (
                   <p>
                     Installed: <code>{installDecision.existingVersion}</code> {"->"} Package: <code>{installDecision.incomingVersion}</code>
                   </p>
                 ) : null}
-              </div>
+              </MessagePanel>
             ) : null}
             {installDecision?.action === "downgrade" ? (
               <CheckboxField checked={allowDowngrade} onChange={onSetDowngradeAllowed} class="license-acceptance">
@@ -538,12 +546,11 @@ export const InstallerPage = ({
         <h1>Installer options</h1>
         <p class={`subtitle ${subtitle}`}>Choose any package-defined options before continuing.</p>
         {installOptions.length === 0 ? (
-          <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
-            <p class={`trust-title ${trustTitle}`}>No options defined</p>
+          <MessagePanel tone="info" title="No options defined">
             <p>This step is present in the workflow but the package provided no option schema.</p>
-          </div>
+          </MessagePanel>
         ) : (
-          <div class={`meta-grid ${metaGrid}`}>
+          <MetaCardGrid>
             {installOptions.map((option) => {
               const current = installOptionValues[option.id];
               const selectedValue = current?.type === "select" ? current.value : "";
@@ -607,13 +614,12 @@ export const InstallerPage = ({
                 </div>
               );
             })}
-          </div>
+          </MetaCardGrid>
         )}
         {installOptionError ? (
-          <div class={`trust-box warning ${trustBox} ${trustWarning}`}>
-            <p class={`trust-title ${trustTitle}`}>Invalid options</p>
+          <MessagePanel tone="error" title="Invalid options">
             <p>{installOptionError}</p>
-          </div>
+          </MessagePanel>
         ) : null}
         <div class={`actions ${actions}`}>
           <Button onClick={onGoBackFromOptionsStep}>Back</Button>
@@ -631,10 +637,7 @@ export const InstallerPage = ({
         <h1>Installing {packageInfo.displayName}</h1>
         <p class={`subtitle ${subtitle}`}>{statusText}</p>
         <p class={`subtitle ${subtitle}`}>{`State: ${installLifecycleState}`}</p>
-        <div class={`progress-shell ${progressShell}`} role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-          <div class={`progress-bar ${progressBar}`} style={{ width: `${progress}%` }} />
-        </div>
-        <p class={`progress-value ${progressValue}`}>{progress}%</p>
+        <ProgressBar value={progress} class={progressWrap} ariaLabel="Install progress" />
         <div class={`actions ${actions}`}>
           <Button disabled={isBusy}>Cancel</Button>
         </div>
@@ -654,12 +657,12 @@ export const InstallerPage = ({
             <div class={`meta-section-header ${metaSectionHeader}`}>
               <h2>Failure details</h2>
             </div>
-            <div class={`trust-box warning open-package-error-box ${trustBox} ${trustWarning}`}>
+            <MessagePanel tone="error" class="open-package-error-box">
               <p class={openPackageErrorBoxText}>
                 <strong>Time:</strong> <code>{installFailure.capturedAtDisplay}</code>
               </p>
               <pre class={`open-package-error-pre ${openPackageErrorPre}`}><code>{installFailure.details}</code></pre>
-            </div>
+            </MessagePanel>
           </section>
         ) : null}
 
@@ -674,14 +677,17 @@ export const InstallerPage = ({
   }
 
   return (
-    <Panel class={`package-panel ${packagePanel}`}>
+    <Panel
+      class={`package-panel ${packagePanel}`}
+      showCornerClose
+      cornerCloseTitle="Back to installed apps"
+      onCornerClose={onCloseInstallComplete}
+    >
       <h1>Install complete</h1>
       <p class={`subtitle ${subtitle}`}>{packageInfo.displayName} is ready to launch.</p>
 
-      <CardCloseButton title="Back to installed apps" onClick={onCloseInstallComplete} />
-
       {preview ? (
-        <dl class={`meta-grid compact ${metaGrid} ${metaGridCompact}`}>
+        <MetaCardGrid compact>
           <div>
             <dt>Scope</dt>
             <dd>{formatInstallScopeLabel(preview.installScope)}</dd>
@@ -698,19 +704,23 @@ export const InstallerPage = ({
             <dt>Package</dt>
             <dd>{preview.packageFile}</dd>
           </div>
-        </dl>
+        </MetaCardGrid>
       ) : null}
 
       {preview ? (
         <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
           <div class={`meta-section-header technical-toggle-only ${metaSectionHeader} ${technicalToggleOnly}`}>
-            <button class={`meta-toggle ${metaToggle}`} type="button" onClick={onToggleCompleteTechnicalDetails}>
-              {showCompleteTechnicalDetails ? "Hide technical details" : "Show technical details"}
-            </button>
+            <SectionToggleButton
+              expanded={showCompleteTechnicalDetails}
+              onToggle={onToggleCompleteTechnicalDetails}
+              showLabel="Show technical details"
+              hideLabel="Hide technical details"
+              controlsId="install-complete-technical-details"
+            />
           </div>
 
           {showCompleteTechnicalDetails ? (
-            <dl class={`meta-grid compact ${metaGrid} ${metaGridCompact}`}>
+            <MetaCardGrid compact id="install-complete-technical-details">
               <MetaField
                 label="Launch path"
                 tooltip="The resolved executable path that Yambuck tries to run."
@@ -732,7 +742,7 @@ export const InstallerPage = ({
               <MetaField label="Config path" tooltip="Optional config path from manifest. Not inferred by Yambuck." value={displayOrFallback(packageInfo.configPath)} onCopySuccess={onMetaFieldCopied} />
               <MetaField label="Cache path" tooltip="Optional cache path from manifest. Not inferred by Yambuck." value={displayOrFallback(packageInfo.cachePath)} onCopySuccess={onMetaFieldCopied} />
               <MetaField label="Temp path" tooltip="Optional temp path from manifest. Not inferred by Yambuck." value={displayOrFallback(packageInfo.tempPath)} onCopySuccess={onMetaFieldCopied} />
-            </dl>
+            </MetaCardGrid>
           ) : null}
         </section>
       ) : null}

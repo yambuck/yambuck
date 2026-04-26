@@ -1,6 +1,7 @@
 import type { SettingsTab, SystemInfo } from "../../types/app";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
+import { TogglePillGroup } from "../../components/ui/TogglePillGroup";
 import { logUiAction } from "../../lib/ui-log";
 import {
   debugSection,
@@ -29,6 +30,7 @@ type SettingsPageProps = {
   onCopySystemInfo: () => void;
   onOpenMockPreview: () => void;
   onOpenMockInstalledApps: () => void;
+  onOpenUiDebugLab: () => void;
   onCopyLogs: () => void;
   onClearLogs: () => void;
 };
@@ -45,32 +47,40 @@ export const SettingsPage = ({
   onCopySystemInfo,
   onOpenMockPreview,
   onOpenMockInstalledApps,
+  onOpenUiDebugLab,
   onCopyLogs,
   onClearLogs,
 }: SettingsPageProps) => (
   <Panel class={pagePanel}>
     <h1>Settings</h1>
 
-    <div class={`${tabs} settings-tabs`} data-no-drag="true">
-      <button
-        class={`toggle-pill ${settingsTab === "general" ? "active" : ""}`}
-        onClick={() => {
-          logUiAction("settings-tab-change", { tab: "general" });
-          onChangeSettingsTab("general");
-        }}
-      >
-        General
-      </button>
-      <button
-        class={`toggle-pill ${settingsTab === "debug" ? "active" : ""}`}
-        onClick={() => {
-          logUiAction("settings-tab-change", { tab: "debug" });
-          onChangeSettingsTab("debug");
-        }}
-      >
-        Debug
-      </button>
-    </div>
+    <TogglePillGroup
+      class={`${tabs} settings-tabs`}
+      behavior="tabs"
+      ariaLabel="Settings sections"
+      items={[
+        {
+          id: "settings-general",
+          label: "General",
+          active: settingsTab === "general",
+          controlsId: "settings-general-panel",
+          onSelect: () => {
+            logUiAction("settings-tab-change", { tab: "general" });
+            onChangeSettingsTab("general");
+          },
+        },
+        {
+          id: "settings-debug",
+          label: "Debug",
+          active: settingsTab === "debug",
+          controlsId: "settings-debug-panel",
+          onSelect: () => {
+            logUiAction("settings-tab-change", { tab: "debug" });
+            onChangeSettingsTab("debug");
+          },
+        },
+      ]}
+    />
 
     <p class={tabDescription}>
       {settingsTab === "general"
@@ -79,7 +89,7 @@ export const SettingsPage = ({
     </p>
 
     {settingsTab === "general" ? (
-      <div class={`${settingsGrid} settings-grid`}>
+      <div id="settings-general-panel" role="tabpanel" aria-labelledby="settings-general" class={`${settingsGrid} settings-grid`}>
         <article class={`${settingCard} setting-card`}>
           <h2>Updates</h2>
           <p class={settingCardDescription}>Update checks are enabled on startup and can be run manually.</p>
@@ -95,7 +105,7 @@ export const SettingsPage = ({
         </article>
       </div>
     ) : (
-      <div class={`${debugStack} debug-stack`}>
+      <div id="settings-debug-panel" role="tabpanel" aria-labelledby="settings-debug" class={`${debugStack} debug-stack`}>
         <section class={`${debugSection} debug-section`}>
           <h2>System info</h2>
           {loadingDebug ? <p>Loading runtime data...</p> : null}
@@ -133,6 +143,7 @@ export const SettingsPage = ({
           <div class={`actions start compact ${actions} ${actionsStart} ${actionsCompact}`}>
             <Button onClick={onOpenMockPreview}>Open mock app page</Button>
             <Button onClick={onOpenMockInstalledApps}>Open mock installed list</Button>
+            <Button onClick={onOpenUiDebugLab}>Open UI debugging lab</Button>
           </div>
         </section>
       </div>

@@ -1,14 +1,12 @@
 import type { ComponentChildren, JSX, VNode } from "preact";
 import { logUiAction } from "../../lib/ui-log";
-import { base, fullWidthOnSmall, inline, variant as variantClass } from "./button.css";
+import { base, fullWidthOnSmall, variant as variantClass } from "./button.css";
 
 type ButtonVariant = "primary" | "ghost";
-type ButtonSize = "default" | "inline";
 
 type ButtonProps = {
   children: ComponentChildren;
   variant?: ButtonVariant;
-  size?: ButtonSize;
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   onClick?: JSX.MouseEventHandler<HTMLButtonElement>;
@@ -42,7 +40,6 @@ const extractText = (children: ComponentChildren): string => {
 export const Button = ({
   children,
   variant = "ghost",
-  size = "default",
   type = "button",
   disabled = false,
   onClick,
@@ -51,7 +48,7 @@ export const Button = ({
   logLabel,
   disableClickLog = false,
 }: ButtonProps) => {
-  const classes = ["button", variant, size === "inline" ? "inline" : "", base, variantClass[variant], fullWidthOnSmall, size === "inline" ? inline : "", className].filter(Boolean).join(" ");
+  const classes = ["button", variant, base, variantClass[variant], fullWidthOnSmall, className].filter(Boolean).join(" ");
 
   const handleClick: JSX.MouseEventHandler<HTMLButtonElement> = (event) => {
     if (!disableClickLog) {

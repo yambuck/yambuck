@@ -3,12 +3,14 @@ import { useEffect, useState } from "preact/hooks";
 import { ToastHost } from "./components/ui/ToastHost";
 import { WindowControls } from "./components/ui/WindowControls";
 import { Panel } from "./components/ui/Panel";
+import { TogglePillGroup } from "./components/ui/TogglePillGroup";
 import { InstalledAppReviewPage } from "./features/installed/InstalledAppReviewPage";
 import { InstalledAppsPage } from "./features/installed/InstalledAppsPage";
 import { InstallerPage } from "./features/installer/InstallerPage";
 import { MockInstallFlowPage } from "./features/mock-preview/MockInstallFlowPage";
 import { MockInstalledAppsPage } from "./features/mock-preview/MockInstalledAppsPage";
 import { MockPreviewPage } from "./features/mock-preview/MockPreviewPage";
+import { UiDebugLabPage } from "./features/mock-preview/UiDebugLabPage";
 import { LicenseViewerModal } from "./features/modals/LicenseViewerModal";
 import { ScreenshotModal } from "./features/modals/ScreenshotModal";
 import { UninstallWizardModal } from "./features/modals/UninstallWizardModal";
@@ -82,6 +84,14 @@ const routeFromHash = (hash: string): RouteState => {
   }
 
   if (segments[0] === "settings") {
+    if (segments[1] === "debug" && segments[2] === "ui-lab") {
+      return {
+        page: "uiDebugLab",
+        settingsTab: "debug",
+        installedReviewTarget: null,
+        mockInstalledReviewAppId: null,
+      };
+    }
     return {
       page: "settings",
       settingsTab: segments[1] === "debug" ? "debug" : "general",
@@ -123,6 +133,9 @@ const hashFromRoute = ({ page, settingsTab, installedReviewTarget, mockInstalled
   }
   if (page === "settings") {
     return settingsTab === "debug" ? "#/settings/debug" : "#/settings";
+  }
+  if (page === "uiDebugLab") {
+    return "#/settings/debug/ui-lab";
   }
   if (page === "mockInstalled") {
     return "#/mock/installed";
@@ -623,8 +636,22 @@ function App() {
         setMockInstalledReviewAppId(null);
         setPage("mockInstalled");
       }}
+      onOpenUiDebugLab={() => {
+        setSettingsTab("debug");
+        setPage("uiDebugLab");
+      }}
       onCopyLogs={() => void copyLogs()}
       onClearLogs={() => void clearLogs()}
+    />
+  );
+
+  const renderUiDebugLabPage = () => (
+    <UiDebugLabPage
+      onBackToSettingsDebug={() => {
+        setSettingsTab("debug");
+        setPage("settings");
+      }}
+      onToast={pushToast}
     />
   );
 
@@ -641,6 +668,9 @@ function App() {
     if (page === "settings") {
       return renderSettingsPage();
     }
+    if (page === "uiDebugLab") {
+      return renderUiDebugLabPage();
+    }
     if (page === "mockInstalled") {
       return renderMockInstalledAppsPage();
     }
@@ -656,28 +686,33 @@ function App() {
   return (
     <main class="app-shell">
       <header class="topbar" onMouseDown={(event) => void handleTitlebarMouseDown(event)}>
-        <div class="topbar-left" data-no-drag="true">
-          <button
-            class={`toggle-pill ${page === "installer" ? "active" : ""}`}
-            onClick={() => {
-              logUiAction("navigate-installer-tab");
-              closeInstalledAppDetails();
-              setInstalledReviewTarget(null);
-              setMockInstalledReviewAppId(null);
-              setPage("installer");
-            }}
-          >
-            Installer
-          </button>
-          <button
-            class={`toggle-pill ${page === "installed" || page === "installedReview" ? "active" : ""}`}
-            onClick={navigateToInstalledList}
-          >
-            Installed Apps
-          </button>
-        </div>
+        <TogglePillGroup
+          class="topbar-left"
+          behavior="buttons"
+          ariaLabel="Primary navigation"
+          items={[
+            {
+              id: "installer",
+              label: "Installer",
+              active: page === "installer",
+              onSelect: () => {
+                logUiAction("navigate-installer-tab");
+                closeInstalledAppDetails();
+                setInstalledReviewTarget(null);
+                setMockInstalledReviewAppId(null);
+                setPage("installer");
+              },
+            },
+            {
+              id: "installed-apps",
+              label: "Installed Apps",
+              active: page === "installed" || page === "installedReview",
+              onSelect: navigateToInstalledList,
+            },
+          ]}
+        />
         <WindowControls
-          settingsActive={page === "settings"}
+          settingsActive={page === "settings" || page === "uiDebugLab"}
           isMaximized={isMaximized}
           onOpenSettings={() => {
             logUiAction("navigate-settings");

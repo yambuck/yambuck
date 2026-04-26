@@ -2,6 +2,7 @@ import { style } from "@vanilla-extract/css";
 
 export const input = style({
   width: "100%",
+  height: "36px",
   minHeight: "36px",
   borderRadius: "10px",
   border: "1px solid var(--colors-select-border)",
@@ -10,7 +11,16 @@ export const input = style({
   padding: "0.45rem 0.62rem",
   font: "inherit",
   fontSize: "0.88rem",
+  lineHeight: 1.2,
+  appearance: "none",
+  WebkitAppearance: "none",
   selectors: {
+    '&::-webkit-search-decoration': {
+      WebkitAppearance: "none",
+    },
+    '&::-webkit-search-cancel-button': {
+      WebkitAppearance: "none",
+    },
     '&::placeholder': {
       color: "var(--colors-select-placeholder)",
     },

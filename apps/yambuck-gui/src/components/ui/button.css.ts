@@ -50,11 +50,6 @@ export const variant = styleVariants({
   },
 });
 
-export const inline = style({
-  padding: "0.16rem 0.5rem",
-  fontSize: "0.74rem",
-});
-
 export const fullWidthOnSmall = style({
   '@media': {
     '(max-width: 720px)': {

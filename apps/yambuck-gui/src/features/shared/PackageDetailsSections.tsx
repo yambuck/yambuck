@@ -1,13 +1,12 @@
 import type { ComponentChildren } from "preact";
+import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
 import type { PackageInfo } from "../../types/app";
 import { truncateDescription } from "../../utils/text";
 import {
   longDescriptionCard,
   longDescriptionSection,
-  metaGrid,
   metaSection,
   metaSectionHeader,
-  metaToggle,
   packageDescription,
   packageIcon,
   packageIconPlaceholder,
@@ -18,6 +17,7 @@ import {
   technicalSection,
   technicalToggleOnly,
 } from "./packageUi.css";
+import { MetaCardGrid } from "./MetaCardGrid";
 
 type PackageDetailsSectionsProps = {
   packageInfo: PackageInfo;
@@ -71,16 +71,20 @@ export const PackageDetailsSections = ({
       <div class={`meta-section-header ${metaSectionHeader}`}>
         <h2>App details</h2>
       </div>
-      <dl class={`meta-grid ${metaGrid}`}>{appDetailsContent}</dl>
+      <MetaCardGrid>{appDetailsContent}</MetaCardGrid>
     </section>
 
     <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
       <div class={`meta-section-header technical-toggle-only ${metaSectionHeader} ${technicalToggleOnly}`}>
-        <button class={`meta-toggle ${metaToggle}`} type="button" onClick={onToggleTechnicalDetails}>
-          {showTechnicalDetails ? "Hide technical details" : "Show technical details"}
-        </button>
+        <SectionToggleButton
+          expanded={showTechnicalDetails}
+          onToggle={onToggleTechnicalDetails}
+          showLabel="Show technical details"
+          hideLabel="Hide technical details"
+          controlsId="package-technical-details"
+        />
       </div>
-      {showTechnicalDetails ? <dl class={`meta-grid ${metaGrid}`}>{technicalDetailsContent}</dl> : null}
+      {showTechnicalDetails ? <MetaCardGrid id="package-technical-details">{technicalDetailsContent}</MetaCardGrid> : null}
     </section>
 
     {packageInfo.longDescription?.trim() ? (

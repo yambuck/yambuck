@@ -1,4 +1,3 @@
-import { CardCloseButton } from "../../CardCloseButton";
 import { Button } from "../../components/ui/Button";
 import { MetaField } from "../../components/ui/MetaField";
 import { inlineActions, licenseActions, licenseLabel } from "../../components/ui/metaField.css";
@@ -34,7 +33,12 @@ export const InstalledAppReviewPage = ({
   onLaunch,
   onUninstall,
 }: InstalledAppReviewPageProps) => (
-  <Panel class={`package-panel ${packagePanel}`}>
+  <Panel
+    class={`package-panel ${packagePanel}`}
+    showCornerClose
+    cornerCloseTitle="Back to installed apps"
+    onCornerClose={onBack}
+  >
     <div class={`details-header ${detailsHeader}`}>
       <h1>{details.displayName}</h1>
       <div class={`details-actions ${detailsActions}`} data-no-drag="true">
@@ -42,8 +46,6 @@ export const InstalledAppReviewPage = ({
         <Button variant="primary" onClick={onLaunch}>Launch app</Button>
       </div>
     </div>
-
-    <CardCloseButton title="Back to installed apps" onClick={onBack} />
 
     <PackageDetailsSections
       packageInfo={details.packageInfo}
@@ -68,7 +70,6 @@ export const InstalledAppReviewPage = ({
                 <span class={`license-action-label ${licenseLabel}`}>{displayOrFallback(details.packageInfo.license)}</span>
                 {details.packageInfo.licenseText ? (
                   <Button
-                    size="inline"
                     onClick={() => onOpenLicense(`${details.displayName} License`, details.packageInfo.licenseText!)}
                   >
                     View license

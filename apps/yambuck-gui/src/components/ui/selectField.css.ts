@@ -21,6 +21,7 @@ export const root = style({
 });
 
 export const control = style({
+  height: "36px",
   minHeight: "36px",
   width: "100%",
   borderRadius: "10px",

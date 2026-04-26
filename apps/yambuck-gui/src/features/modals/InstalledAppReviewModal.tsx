@@ -76,7 +76,6 @@ export const InstalledAppReviewModal = ({
                     <span class={`license-action-label ${licenseLabel}`}>{displayOrFallback(details.packageInfo.license)}</span>
                     {details.packageInfo.licenseText ? (
                       <Button
-                        size="inline"
                         onClick={() => onOpenLicense(`${details.displayName} License`, details.packageInfo.licenseText!)}
                       >
                         View license
