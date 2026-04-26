@@ -84,15 +84,15 @@ export const MockPreviewPage = ({
   onStartInstallFlow,
   onMetaFieldCopied,
 }: MockPreviewPageProps) => {
-  const mockName = "Voquill (Mock Preview)";
+  const mockName = "Example App (Mock Preview)";
   const mockVersion = "1.4.0";
   const mockManifestVersion = "1.0.0";
-  const mockAppId = "com.voquill.app";
+  const mockAppId = "com.example.app";
   const mockAppUuid = "6b61815c-66c5-4cc6-85ba-ec0736ecef4c";
   const mockPackageUuid = "7f2f2d3e-2662-4d8c-a4ae-05f14de8f8c6";
-  const mockPublisher = "Voquill Project";
-  const mockHomepage = "https://voquill.org";
-  const mockSupport = "https://github.com/voquill/voquill";
+  const mockPublisher = "Example Project";
+  const mockHomepage = "https://example.com";
+  const mockSupport = "https://example.com/support";
   const mockLicense = "MIT";
   const mockLicenseText =
     "Example License\n\n" +
@@ -125,7 +125,7 @@ export const MockPreviewPage = ({
   const mockDescription =
     "Mock package view for rapid UI iteration. Use this screen to tweak spacing, screenshots, metadata layout, and card actions with HMR while validating how dense package metadata reads inside a compact panel before the installer flow continues. This sentence intentionally extends well beyond normal copy length to simulate a package summary that pushes the short-description limit and demonstrates truncation behavior for at-a-glance review during install.";
   const mockLongDescription =
-    "Voquill is designed for people who think faster than they type. It combines low-latency speech capture with keyboard-first editing so you can dictate rough drafts and refine them without leaving your normal workflow.\n\nIn this mock package, the long description is plain text and supports paragraph breaks. Developers can use this area for onboarding context, compatibility notes, expected hardware behavior, and any caveats that do not belong in the one-line summary.\n\nFor final packaging, keep the short summary fast to scan and reserve this section for deeper detail that helps users decide whether to trust and install the app.\n\nTeams distributing private builds can also use this space to explain deployment constraints, required environment variables, and support expectations before a user clicks Install.\n\nIf your app integrates with microphones, cameras, or hardware accelerators, call those requirements out here so users can assess compatibility in advance and avoid surprise runtime errors.";
+    "Example App is designed for people who think faster than they type. It combines low-latency speech capture with keyboard-first editing so you can dictate rough drafts and refine them without leaving your normal workflow.\n\nIn this mock package, the long description is plain text and supports paragraph breaks. Developers can use this area for onboarding context, compatibility notes, expected hardware behavior, and any caveats that do not belong in the one-line summary.\n\nFor final packaging, keep the short summary fast to scan and reserve this section for deeper detail that helps users decide whether to trust and install the app.\n\nTeams distributing private builds can also use this space to explain deployment constraints, required environment variables, and support expectations before a user clicks Install.\n\nIf your app integrates with microphones, cameras, or hardware accelerators, call those requirements out here so users can assess compatibility in advance and avoid surprise runtime errors.";
   const mockShots = [MOCK_SHOT_A, MOCK_SHOT_B, MOCK_SHOT_C, MOCK_SHOT_D, MOCK_SHOT_E, MOCK_SHOT_F];
 
   return (
@@ -222,15 +222,15 @@ export const MockPreviewPage = ({
         </div>
         {showMockTechnicalDetails ? (
           <MetaCardGrid id="mock-preview-technical-details">
-            <MetaField label="Package" tooltip="The package file name selected for this install." value="voquill-mock.yambuck" onCopySuccess={onMetaFieldCopied} />
+            <MetaField label="Package" tooltip="The package file name selected for this install." value="example-app-mock.yambuck" onCopySuccess={onMetaFieldCopied} />
             <MetaField label="Manifest" tooltip="The manifest schema version this package was built with." value={mockManifestVersion} onCopySuccess={onMetaFieldCopied} />
             <MetaField label="App ID" tooltip="A stable identifier Yambuck uses for updates and app tracking." value={mockAppId} onCopySuccess={onMetaFieldCopied} />
             <MetaField
               label="Entrypoint"
               tooltip="The internal command Yambuck uses to launch the installed app."
-              copyValue="app/bin/voquill"
+              copyValue="app/bin/example-app"
               onCopySuccess={onMetaFieldCopied}
-              value={<code>app/bin/voquill</code>}
+              value={<code>app/bin/example-app</code>}
             />
             <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={mockAppUuid} onCopySuccess={onMetaFieldCopied} />
             <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={mockPackageUuid} onCopySuccess={onMetaFieldCopied} />

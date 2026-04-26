@@ -229,8 +229,8 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
           <p class={sectionDescription}>Preview the chevron-style row affordance used in Installed Apps.</p>
           <div class={listRowPreview}>
             <div>
-              <div class={listRowTitle}>Voquill</div>
-              <div class={listRowSubtitle}>com.voquill.app</div>
+              <div class={listRowTitle}>Example App</div>
+              <div class={listRowSubtitle}>com.example.app</div>
             </div>
             <TableRowAction />
           </div>
@@ -280,7 +280,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
             <MetaField
               label="App ID"
               tooltip="Stable app identifier used for ownership and updates."
-              value="com.voquill.app"
+              value="com.example.app"
               onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
             />
             <MetaField
@@ -292,15 +292,15 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
             <MetaField
               label="Entrypoint"
               tooltip="Launch command path from package metadata."
-              copyValue="app/bin/voquill"
-              value={<code>app/bin/voquill</code>}
+              copyValue="app/bin/example-app"
+              value={<code>app/bin/example-app</code>}
               onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
             />
             <MetaField
               label="Install Path"
               tooltip="Destination path where package payload is installed."
-              copyValue="~/.local/share/yambuck/apps/com.voquill.app"
-              value={<code>~/.local/share/yambuck/apps/com.voquill.app</code>}
+              copyValue="~/.local/share/yambuck/apps/com.example.app"
+              value={<code>~/.local/share/yambuck/apps/com.example.app</code>}
               onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
             />
           </MetaCardGrid>

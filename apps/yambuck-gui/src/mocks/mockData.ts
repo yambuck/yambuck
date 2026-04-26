@@ -27,18 +27,18 @@ const mockScreenshots = [
 ];
 
 export const mockPackageInfo: PackageInfo = {
-  packageFile: "/tmp/voquill-mock.yambuck",
-  fileName: "voquill-mock.yambuck",
-  displayName: "Voquill (Mock Package)",
-  appId: "com.voquill.app",
+  packageFile: "/tmp/example-app-mock.yambuck",
+  fileName: "example-app-mock.yambuck",
+  displayName: "Example App (Mock Package)",
+  appId: "com.example.app",
   appUuid: "6b61815c-66c5-4cc6-85ba-ec0736ecef4c",
   version: "1.4.2",
   manifestVersion: "1.0.0",
-  publisher: "Voquill Project",
+  publisher: "Example Project",
   description: "Mock package to iterate on installer and review UI without backend operations.",
   longDescription:
     "This mock package exists to exercise the installer layout, metadata density, and responsive behavior while preserving the exact production rendering path. Use it to verify screenshots, actions, and technical details at multiple window sizes.",
-  entrypoint: "app/bin/voquill",
+  entrypoint: "app/bin/example-app",
   iconPath: "assets/icon.svg",
   iconDataUrl: mockIcon("#103450", "#5be7bf"),
   screenshots: [
@@ -49,24 +49,24 @@ export const mockPackageInfo: PackageInfo = {
     "assets/screens/shot-5.png",
   ],
   screenshotDataUrls: mockScreenshots,
-  homepageUrl: "https://voquill.org",
-  supportUrl: "https://github.com/voquill/voquill",
+  homepageUrl: "https://example.com",
+  supportUrl: "https://example.com/support",
   license: "MIT",
   licenseFile: "LICENSE",
   licenseText:
     "MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in the Software without restriction.",
   requiresLicenseAcceptance: true,
-  configPath: "~/.config/voquill",
-  cachePath: "~/.cache/voquill",
-  tempPath: "~/.local/state/voquill/tmp",
+  configPath: "~/.config/example-app",
+  cachePath: "~/.cache/example-app",
+  tempPath: "~/.local/state/example-app/tmp",
   packageUuid: "7f2f2d3e-2662-4d8c-a4ae-05f14de8f8c6",
   trustStatus: "verified",
   appInterface: {
     hasGui: true,
     hasCli: true,
   },
-  cliCommandName: "voquill",
-  cliUsageHint: "Open Terminal and run: voquill --help",
+  cliCommandName: "example-app",
+  cliUsageHint: "Open Terminal and run: example-app --help",
   selectedTargetId: "linux-x86_64-default",
   payloadRoot: "payloads/linux/x86_64/default",
   compatibilityStatus: "supported",
@@ -75,13 +75,13 @@ export const mockPackageInfo: PackageInfo = {
 
 export const mockInstalledApps: InstalledApp[] = [
   {
-    appId: "com.voquill.app",
-    displayName: "Voquill Speech Composer",
+    appId: "com.example.app",
+    displayName: "Example App",
     version: "1.4.2",
     installStatus: "installed",
     installScope: "user",
     installedAt: "2026-04-20T10:12:16.220+01:00",
-    destinationPath: "/home/jack/.local/share/yambuck/apps/com.voquill.app",
+    destinationPath: "/home/jack/.local/share/yambuck/apps/com.example.app",
     iconDataUrl: mockPackageInfo.iconDataUrl,
   },
   {
