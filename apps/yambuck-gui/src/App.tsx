@@ -1,13 +1,11 @@
 import { IconBrandGithub } from "@tabler/icons-preact";
 import { useEffect, useState } from "preact/hooks";
 import { ToastHost } from "./components/ui/ToastHost";
-import { WindowControls } from "./components/ui/WindowControls";
 import { Button } from "./components/ui/Button";
 import { CheckboxField } from "./components/ui/CheckboxField";
 import { ModalShell } from "./components/ui/ModalShell";
 import { Panel } from "./components/ui/Panel";
 import { PanelHeader } from "./components/ui/PanelHeader";
-import { TogglePillGroup } from "./components/ui/TogglePillGroup";
 import { InstalledAppReviewPage } from "./features/installed/InstalledAppReviewPage";
 import { InstalledAppsPage } from "./features/installed/InstalledAppsPage";
 import { UninstallFlowPage } from "./features/installed/UninstallFlowPage";
@@ -23,6 +21,7 @@ import { LicenseViewerModal } from "./features/modals/LicenseViewerModal";
 import { ScreenshotModal } from "./features/modals/ScreenshotModal";
 import { UpdateModal } from "./features/modals/UpdateModal";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { AppTopBar } from "./layout/AppTopBar";
 import { useDebugTools } from "./hooks/useDebugTools";
 import { useInstalledAppsManager } from "./hooks/useInstalledAppsManager";
 import { useInstallerFlow } from "./hooks/useInstallerFlow";
@@ -34,23 +33,15 @@ import { logUiAction } from "./lib/ui-log";
 import { mockInstalledApps, mockPackageInfo, toMockInstalledAppDetails } from "./mocks/mockData";
 import { copyPlainText } from "./utils/clipboard";
 import { appText } from "./i18n/app";
-import appIcon from "../src-tauri/icons/icon-source.svg";
 import type {
   AppPage,
-  InstallScope,
   InstalledApp,
   InstallerContext,
   SettingsTab,
 } from "./types/app";
+import { hashFromRoute, makeInstalledReviewTarget, parseInstalledReviewTarget, routeFromHash } from "./routes/appRoutes";
 import { useEscapeKey } from "./useEscapeKey";
 import "./App.css";
-
-type RouteState = {
-  page: AppPage;
-  settingsTab: SettingsTab;
-  installedReviewTarget: string | null;
-  mockInstalledReviewAppId: string | null;
-};
 
 const BUILDER_GATE_DISMISS_KEY = "yambuck.builderGateDismissed";
 
@@ -81,140 +72,6 @@ const getInteractionLabel = (element: HTMLElement): string => {
   return element.tagName.toLowerCase();
 };
 
-const makeInstalledReviewTarget = (appId: string, installScope: InstallScope): string => `${appId}::${installScope}`;
-
-const parseInstalledReviewTarget = (
-  value: string | null,
-): { appId: string; installScope: InstallScope } | null => {
-  if (!value) {
-    return null;
-  }
-
-  const delimiter = value.lastIndexOf("::");
-  if (delimiter <= 0 || delimiter === value.length - 2) {
-    return null;
-  }
-
-  const appId = value.slice(0, delimiter);
-  const scopeCandidate = value.slice(delimiter + 2);
-  if (scopeCandidate !== "user" && scopeCandidate !== "system") {
-    return null;
-  }
-
-  return { appId, installScope: scopeCandidate };
-};
-
-const routeFromHash = (hash: string): RouteState => {
-  const segments = hash.replace(/^#\/?/, "").split("/").filter(Boolean);
-  if (segments.length === 0 || segments[0] === "installer") {
-    return { page: "installer", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-  }
-
-  if (segments[0] === "installed") {
-    if (segments[1] === "uninstall") {
-      return { page: "installedUninstall", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-    }
-    if (segments[1] === "review" && segments[2]) {
-      return {
-        page: "installedReview",
-        settingsTab: "general",
-        installedReviewTarget: decodeURIComponent(segments.slice(2).join("/")),
-        mockInstalledReviewAppId: null,
-      };
-    }
-    return { page: "installed", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-  }
-
-  if (segments[0] === "build-package") {
-    return { page: "packageBuilder", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-  }
-
-  if (segments[0] === "settings") {
-    if (segments[1] === "debug" && segments[2] === "ui-lab") {
-      return {
-        page: "uiDebugLab",
-        settingsTab: "debug",
-        installedReviewTarget: null,
-        mockInstalledReviewAppId: null,
-      };
-    }
-    return {
-      page: "settings",
-      settingsTab: segments[1] === "debug" ? "debug" : "general",
-      installedReviewTarget: null,
-      mockInstalledReviewAppId: null,
-    };
-  }
-
-  if (segments[0] === "debug") {
-    if (segments[1] === "installed") {
-      if (segments[2] === "uninstall") {
-        return {
-          page: "mockInstalledUninstall",
-          settingsTab: "general",
-          installedReviewTarget: null,
-          mockInstalledReviewAppId: decodeURIComponent(segments.slice(3).join("/")) || null,
-        };
-      }
-      if (segments[2] === "review" && segments[3]) {
-        return {
-          page: "mockInstalledReview",
-          settingsTab: "general",
-          installedReviewTarget: null,
-          mockInstalledReviewAppId: decodeURIComponent(segments.slice(3).join("/")),
-        };
-      }
-      return { page: "mockInstalled", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-    }
-    if (segments[1] === "install-flow") {
-      return { page: "mockInstallFlow", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-    }
-    return { page: "mockPreview", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-  }
-
-  return { page: "installer", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
-};
-
-const hashFromRoute = ({ page, settingsTab, installedReviewTarget, mockInstalledReviewAppId }: RouteState): string => {
-  if (page === "installer") {
-    return "#/installer";
-  }
-  if (page === "installed") {
-    return "#/installed";
-  }
-  if (page === "installedReview") {
-    return installedReviewTarget ? `#/installed/review/${encodeURIComponent(installedReviewTarget)}` : "#/installed";
-  }
-  if (page === "installedUninstall") {
-    return "#/installed/uninstall";
-  }
-  if (page === "packageBuilder") {
-    return "#/build-package";
-  }
-  if (page === "settings") {
-    return settingsTab === "debug" ? "#/settings/debug" : "#/settings";
-  }
-  if (page === "uiDebugLab") {
-    return "#/settings/debug/ui-lab";
-  }
-  if (page === "mockInstalled") {
-    return "#/debug/installed";
-  }
-  if (page === "mockInstalledReview") {
-    return mockInstalledReviewAppId
-      ? `#/debug/installed/review/${encodeURIComponent(mockInstalledReviewAppId)}`
-      : "#/debug/installed";
-  }
-  if (page === "mockInstalledUninstall") {
-    return mockInstalledReviewAppId
-      ? `#/debug/installed/uninstall/${encodeURIComponent(mockInstalledReviewAppId)}`
-      : "#/debug/installed/uninstall";
-  }
-  if (page === "mockInstallFlow") {
-    return "#/debug/install-flow";
-  }
-  return "#/debug/preview";
-};
 
 function App() {
   const [page, setPage] = useState<AppPage>(() => routeFromHash(window.location.hash).page);
@@ -956,68 +813,48 @@ function App() {
     || page === "mockInstalledUninstall";
   const showDebugScenarioControls = page === "uiDebugLab" || page === "mockInstallFlow";
 
+  const navigateToInstaller = () => {
+    logUiAction("navigate-installer-tab");
+    closeUninstallWizard();
+    closeInstalledAppDetails();
+    setInstalledReviewTarget(null);
+    setMockInstalledReviewAppId(null);
+    setPage("installer");
+  };
+
+  const navigateToPackageBuilder = () => {
+    logUiAction("navigate-package-builder");
+    closeUninstallWizard();
+    closeInstalledAppDetails();
+    setInstalledReviewTarget(null);
+    setMockInstalledReviewAppId(null);
+    setPage("packageBuilder");
+  };
+
+  const navigateToSettings = () => {
+    logUiAction("navigate-settings");
+    closeUninstallWizard();
+    closeInstalledAppDetails();
+    setInstalledReviewTarget(null);
+    setMockInstalledReviewAppId(null);
+    setPage("settings");
+    setSettingsTab("general");
+  };
+
   return (
     <main class="app-shell">
-      <header class="topbar" onMouseDown={(event) => void handleTitlebarMouseDown(event)}>
-        <div class="topbar-left" data-no-drag="true">
-          <img class="topbar-app-icon" src={appIcon} alt="Yambuck" />
-          <TogglePillGroup
-            class="topbar-nav"
-            behavior="buttons"
-            ariaLabel={appText("app.nav.primaryAria")}
-            items={[
-              {
-                id: "installer",
-                label: appText("app.nav.installer"),
-                active: page === "installer",
-                  onSelect: () => {
-                    logUiAction("navigate-installer-tab");
-                    closeUninstallWizard();
-                    closeInstalledAppDetails();
-                    setInstalledReviewTarget(null);
-                    setMockInstalledReviewAppId(null);
-                    setPage("installer");
-                  },
-              },
-              {
-                id: "installed-apps",
-                label: appText("app.nav.installedApps"),
-                active: page === "installed" || page === "installedReview" || page === "installedUninstall",
-                onSelect: navigateToInstalledList,
-              },
-              {
-                id: "package-builder",
-                label: appText("app.nav.packageBuilder"),
-                active: page === "packageBuilder",
-                onSelect: () => {
-                  logUiAction("navigate-package-builder");
-                  closeUninstallWizard();
-                  closeInstalledAppDetails();
-                  setInstalledReviewTarget(null);
-                  setMockInstalledReviewAppId(null);
-                  setPage("packageBuilder");
-                },
-              },
-            ]}
-          />
-        </div>
-        <WindowControls
-          settingsActive={page === "settings" || page === "uiDebugLab"}
-          isMaximized={isMaximized}
-          onOpenSettings={() => {
-            logUiAction("navigate-settings");
-              closeUninstallWizard();
-              closeInstalledAppDetails();
-              setInstalledReviewTarget(null);
-              setMockInstalledReviewAppId(null);
-              setPage("settings");
-              setSettingsTab("general");
-          }}
-          onMinimize={() => void handleMinimize()}
-          onToggleMaximize={() => void handleToggleMaximize()}
-          onClose={() => void handleClose()}
-        />
-      </header>
+      <AppTopBar
+        page={page}
+        isMaximized={isMaximized}
+        onTitlebarMouseDown={handleTitlebarMouseDown}
+        onNavigateInstaller={navigateToInstaller}
+        onNavigateInstalled={navigateToInstalledList}
+        onNavigatePackageBuilder={navigateToPackageBuilder}
+        onOpenSettings={navigateToSettings}
+        onMinimize={() => void handleMinimize()}
+        onToggleMaximize={() => void handleToggleMaximize()}
+        onClose={() => void handleClose()}
+      />
 
       <ToastHost
         toasts={toasts}
