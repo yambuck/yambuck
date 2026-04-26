@@ -1,5 +1,6 @@
 import { IconMinus, IconSettings, IconSquare, IconX } from "@tabler/icons-preact";
 import { logUiAction } from "../../lib/ui-log";
+import { appText } from "../../i18n/app";
 
 type WindowControlsProps = {
   settingsActive: boolean;
@@ -25,8 +26,8 @@ export const WindowControls = ({
         logUiAction("window-open-settings");
         onOpenSettings();
       }}
-      title="Settings"
-      aria-label="Open settings"
+      title={appText("window.settingsTitle")}
+      aria-label={appText("window.settingsAria")}
     >
       <IconSettings size={14} />
     </button>
@@ -37,8 +38,8 @@ export const WindowControls = ({
           logUiAction("window-minimize");
           onMinimize();
         }}
-        title="Minimize"
-        aria-label="Minimize window"
+        title={appText("window.minimizeTitle")}
+        aria-label={appText("window.minimizeAria")}
       >
         <IconMinus size={14} stroke={2.2} />
       </button>
@@ -48,8 +49,8 @@ export const WindowControls = ({
           logUiAction("window-toggle-maximize", { isMaximized });
           onToggleMaximize();
         }}
-        title={isMaximized ? "Restore" : "Maximize"}
-        aria-label={isMaximized ? "Restore window" : "Maximize window"}
+        title={isMaximized ? appText("window.restoreTitle") : appText("window.maximizeTitle")}
+        aria-label={isMaximized ? appText("window.restoreAria") : appText("window.maximizeAria")}
       >
         <IconSquare size={12} stroke={2.2} />
       </button>
@@ -59,8 +60,8 @@ export const WindowControls = ({
           logUiAction("window-close");
           onClose();
         }}
-        title="Close"
-        aria-label="Close window"
+        title={appText("window.closeTitle")}
+        aria-label={appText("window.closeAria")}
       >
         <IconX size={14} stroke={2.2} />
       </button>

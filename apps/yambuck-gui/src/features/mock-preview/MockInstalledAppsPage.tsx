@@ -1,4 +1,5 @@
 import { InstalledAppsPage } from "../installed/InstalledAppsPage";
+import { appText } from "../../i18n/app";
 import { mockInstalledApps } from "../../mocks/mockData";
 import type { InstalledApp } from "../../types/app";
 
@@ -14,7 +15,7 @@ export const MockInstalledAppsPage = ({
   <InstalledAppsPage
     loadingInstalled={false}
     installedApps={mockInstalledApps}
-    onRefresh={() => onToast("info", "Mock list refreshed.")}
+    onRefresh={() => onToast("info", appText("toast.mockListRefreshed"))}
     onOpenDetails={onOpenDetails}
   />
 );

@@ -1,4 +1,5 @@
 import { TableRowAction } from "../../components/ui/TableRowAction";
+import { appText } from "../../i18n/app";
 import type { InstalledApp } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { formatCanonicalTimestampForDisplay, formatCompactTimestampForTable } from "../../utils/time";
@@ -45,26 +46,26 @@ export const InstalledAppsTable = ({
         <tr>
           <th aria-sort={sortField === "name" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
             <button type="button" class={sortButton} onClick={() => onSortFieldChange("name")}>
-              Application
+              {appText("installed.table.application")}
               <span class={sortIndicator} aria-hidden="true">
                 {sortField === "name" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
               </span>
             </button>
           </th>
-          <th class={`${colVersion} col-version`}>Version</th>
-          <th class={`${colScope} col-scope`}>Scope</th>
+          <th class={`${colVersion} col-version`}>{appText("installed.table.version")}</th>
+          <th class={`${colScope} col-scope`}>{appText("installed.table.scope")}</th>
           <th
             class={`${colInstalled} col-installed`}
             aria-sort={sortField === "installedAt" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
           >
             <button type="button" class={sortButton} onClick={() => onSortFieldChange("installedAt")}>
-              Installed
+              {appText("installed.table.installed")}
               <span class={sortIndicator} aria-hidden="true">
                 {sortField === "installedAt" ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
               </span>
             </button>
           </th>
-          <th class={`${colAction} col-action`} aria-label="Open app details" />
+          <th class={`${colAction} col-action`} aria-label={appText("installed.table.openDetailsAria")} />
         </tr>
       </thead>
       <tbody>
@@ -73,9 +74,9 @@ export const InstalledAppsTable = ({
             <td>
               <div class={`${appCell} installed-table-app`}>
                 {app.iconDataUrl ? (
-                  <img class={`${icon} installed-table-icon`} src={app.iconDataUrl} alt={`${app.displayName} icon`} />
+                  <img class={`${icon} installed-table-icon`} src={app.iconDataUrl} alt={appText("package.iconAlt", { appName: app.displayName })} />
                 ) : (
-                  <div class={`${icon} ${iconPlaceholder} installed-table-icon placeholder`} aria-hidden="true">No icon</div>
+                  <div class={`${icon} ${iconPlaceholder} installed-table-icon placeholder`} aria-hidden="true">{appText("installed.table.noIcon")}</div>
                 )}
                 <div class={`${appCopy} installed-table-app-copy`}>
                   <strong class={appName} title={app.displayName}>{app.displayName}</strong>

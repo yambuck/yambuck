@@ -1,5 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { Panel } from "../../components/ui/Panel";
+import { appText } from "../../i18n/app";
 import { logUiAction } from "../../lib/ui-log";
 import { subtitle } from "../shared/packageUi.css";
 import { InstalledAppsTable } from "./InstalledAppsTable";
@@ -81,8 +82,8 @@ export const InstalledAppsPage = ({
 
   return (
     <Panel>
-      <h1>Installed apps</h1>
-      <p class={`subtitle ${subtitle}`}>Manage applications installed by Yambuck.</p>
+      <h1>{appText("installed.title")}</h1>
+      <p class={`subtitle ${subtitle}`}>{appText("installed.subtitle")}</p>
 
       <InstalledAppsToolbar
         searchQuery={searchQuery}
@@ -98,12 +99,12 @@ export const InstalledAppsPage = ({
         onRefresh={onRefresh}
       />
 
-      {loadingInstalled ? <p class={`subtitle ${subtitle}`}>Loading installed apps...</p> : null}
+      {loadingInstalled ? <p class={`subtitle ${subtitle}`}>{appText("installed.loading")}</p> : null}
 
-      {!loadingInstalled && installedApps.length === 0 ? <p class={`subtitle ${subtitle}`}>No apps installed yet.</p> : null}
+      {!loadingInstalled && installedApps.length === 0 ? <p class={`subtitle ${subtitle}`}>{appText("installed.empty")}</p> : null}
 
       {!loadingInstalled && installedApps.length > 0 && visibleApps.length === 0 ? (
-        <p class={`subtitle ${subtitle}`}>No installed apps match your current search/filter.</p>
+        <p class={`subtitle ${subtitle}`}>{appText("installed.noMatches")}</p>
       ) : null}
 
       {visibleApps.length > 0 ? (

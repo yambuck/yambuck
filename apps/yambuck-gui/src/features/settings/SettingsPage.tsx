@@ -2,6 +2,7 @@ import type { SettingsTab, SystemInfo } from "../../types/app";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
 import { TogglePillGroup } from "../../components/ui/TogglePillGroup";
+import { appText } from "../../i18n/app";
 import { logUiAction } from "../../lib/ui-log";
 import {
   debugSection,
@@ -52,16 +53,16 @@ export const SettingsPage = ({
   onClearLogs,
 }: SettingsPageProps) => (
   <Panel class={pagePanel}>
-    <h1>Settings</h1>
+    <h1>{appText("settings.title")}</h1>
 
     <TogglePillGroup
       class={`${tabs} settings-tabs`}
       behavior="tabs"
-      ariaLabel="Settings sections"
+      ariaLabel={appText("settings.tabs.aria")}
       items={[
         {
           id: "settings-general",
-          label: "General",
+          label: appText("settings.tabs.general"),
           active: settingsTab === "general",
           controlsId: "settings-general-panel",
           onSelect: () => {
@@ -71,7 +72,7 @@ export const SettingsPage = ({
         },
         {
           id: "settings-debug",
-          label: "Debug",
+          label: appText("settings.tabs.debug"),
           active: settingsTab === "debug",
           controlsId: "settings-debug-panel",
           onSelect: () => {
@@ -84,66 +85,66 @@ export const SettingsPage = ({
 
     <p class={tabDescription}>
       {settingsTab === "general"
-        ? "Configure update checks and install behavior defaults."
-        : "Inspect runtime details, logs, and mock UI screens."}
+        ? appText("settings.description.general")
+        : appText("settings.description.debug")}
     </p>
 
     {settingsTab === "general" ? (
       <div id="settings-general-panel" role="tabpanel" aria-labelledby="settings-general" class={`${settingsGrid} settings-grid`}>
         <article class={`${settingCard} setting-card`}>
-          <h2>Updates</h2>
-          <p class={settingCardDescription}>Update checks are enabled on startup and can be run manually.</p>
+          <h2>{appText("settings.general.updatesTitle")}</h2>
+          <p class={settingCardDescription}>{appText("settings.general.updatesBody")}</p>
           <div class={`actions start compact ${actions} ${actionsStart} ${actionsCompact}`}>
             <Button onClick={onCheckForUpdates} disabled={checkingUpdates}>
-              {checkingUpdates ? "Checking..." : "Check now"}
+              {checkingUpdates ? appText("settings.general.checking") : appText("settings.general.checkNow")}
             </Button>
           </div>
         </article>
         <article class={`${settingCard} setting-card`}>
-          <h2>Install behavior</h2>
-          <p class={settingCardDescription}>Default install scope is per-user. System scope requires elevation.</p>
+          <h2>{appText("settings.general.installBehaviorTitle")}</h2>
+          <p class={settingCardDescription}>{appText("settings.general.installBehaviorBody")}</p>
         </article>
       </div>
     ) : (
       <div id="settings-debug-panel" role="tabpanel" aria-labelledby="settings-debug" class={`${debugStack} debug-stack`}>
         <section class={`${debugSection} debug-section`}>
-          <h2>System info</h2>
-          {loadingDebug ? <p>Loading runtime data...</p> : null}
+          <h2>{appText("settings.debug.systemInfoTitle")}</h2>
+          {loadingDebug ? <p>{appText("settings.debug.loadingRuntime")}</p> : null}
           {systemInfo ? (
             <ul class={`${systemInfoList} system-info-list`}>
-              <li>Version: <code class={systemInfoCode}>{systemInfo.appVersion}</code></li>
-              <li>Distro: <code class={systemInfoCode}>{systemInfo.distro}</code></li>
-              <li>Kernel: <code class={systemInfoCode}>{systemInfo.kernelVersion}</code></li>
-              <li>Desktop: <code class={systemInfoCode}>{systemInfo.desktopEnvironment}</code></li>
-              <li>Session: <code class={systemInfoCode}>{systemInfo.sessionType}</code></li>
-              <li>Arch: <code class={systemInfoCode}>{systemInfo.arch}</code></li>
-              <li>Install Path: <code class={systemInfoCode}>{systemInfo.installPath}</code></li>
-              <li>Update Feed: <code class={systemInfoCode}>{systemInfo.updateFeedUrl}</code></li>
+              <li>{appText("settings.debug.version")}: <code class={systemInfoCode}>{systemInfo.appVersion}</code></li>
+              <li>{appText("settings.debug.distro")}: <code class={systemInfoCode}>{systemInfo.distro}</code></li>
+              <li>{appText("settings.debug.kernel")}: <code class={systemInfoCode}>{systemInfo.kernelVersion}</code></li>
+              <li>{appText("settings.debug.desktop")}: <code class={systemInfoCode}>{systemInfo.desktopEnvironment}</code></li>
+              <li>{appText("settings.debug.session")}: <code class={systemInfoCode}>{systemInfo.sessionType}</code></li>
+              <li>{appText("settings.debug.arch")}: <code class={systemInfoCode}>{systemInfo.arch}</code></li>
+              <li>{appText("settings.debug.installPath")}: <code class={systemInfoCode}>{systemInfo.installPath}</code></li>
+              <li>{appText("settings.debug.updateFeed")}: <code class={systemInfoCode}>{systemInfo.updateFeedUrl}</code></li>
             </ul>
           ) : null}
           <div class={`actions start compact ${actions} ${actionsStart} ${actionsCompact}`}>
-            <Button onClick={onLoadDebugData} disabled={loadingDebug}>Refresh</Button>
-            <Button onClick={onCopySystemInfo}>Copy system info</Button>
+            <Button onClick={onLoadDebugData} disabled={loadingDebug}>{appText("settings.debug.refresh")}</Button>
+            <Button onClick={onCopySystemInfo}>{appText("settings.debug.copySystemInfo")}</Button>
           </div>
         </section>
 
         <section class={`${debugSection} debug-section`}>
-          <h2>Logs</h2>
-          <p>Timestamped events for update checks and installer actions.</p>
-          <pre class={`${logView} log-view`}>{logText || "No logs yet."}</pre>
+          <h2>{appText("settings.debug.logsTitle")}</h2>
+          <p>{appText("settings.debug.logsBody")}</p>
+          <pre class={`${logView} log-view`}>{logText || appText("settings.debug.noLogs")}</pre>
           <div class={`actions start compact ${actions} ${actionsStart} ${actionsCompact}`}>
-            <Button onClick={onCopyLogs}>Copy logs</Button>
-            <Button onClick={onClearLogs}>Clear logs</Button>
+            <Button onClick={onCopyLogs}>{appText("settings.debug.copyLogs")}</Button>
+            <Button onClick={onClearLogs}>{appText("settings.debug.clearLogs")}</Button>
           </div>
         </section>
 
         <section class={`${debugSection} debug-section`}>
-          <h2>UI debugging</h2>
-          <p>Open realistic mock screens that reuse production components and styling paths.</p>
+          <h2>{appText("settings.debug.uiTitle")}</h2>
+          <p>{appText("settings.debug.uiBody")}</p>
           <div class={`actions start compact ${actions} ${actionsStart} ${actionsCompact}`}>
-            <Button onClick={onOpenMockPreview}>Open mock app page</Button>
-            <Button onClick={onOpenMockInstalledApps}>Open mock installed list</Button>
-            <Button onClick={onOpenUiDebugLab}>Open UI debugging lab</Button>
+            <Button onClick={onOpenMockPreview}>{appText("settings.debug.openMockApp")}</Button>
+            <Button onClick={onOpenMockInstalledApps}>{appText("settings.debug.openMockInstalled")}</Button>
+            <Button onClick={onOpenUiDebugLab}>{appText("settings.debug.openUiLab")}</Button>
           </div>
         </section>
       </div>

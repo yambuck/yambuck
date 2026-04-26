@@ -1,4 +1,5 @@
 import { Button } from "../../components/ui/Button";
+import { appText } from "../../i18n/app";
 import { SelectField } from "../../components/ui/SelectField";
 import type { SelectFieldOption } from "../../components/ui/SelectField";
 import { TextField } from "../../components/ui/TextField";
@@ -7,9 +8,9 @@ import { actions, field, fieldLabel, root } from "./installedAppsToolbar.css";
 type InstalledAppsScopeFilter = "all" | "user" | "system";
 
 const scopeOptions: SelectFieldOption[] = [
-  { value: "all", label: "All scopes" },
-  { value: "user", label: "My user" },
-  { value: "system", label: "System wide" },
+  { value: "all", label: appText("installed.scope.all") },
+  { value: "user", label: appText("installed.scope.user") },
+  { value: "system", label: appText("installed.scope.system") },
 ] as const;
 
 type InstalledAppsToolbarProps = {
@@ -29,17 +30,17 @@ export const InstalledAppsToolbar = ({
 }: InstalledAppsToolbarProps) => (
   <div class={`${root} installed-toolbar`} data-no-drag="true">
     <label class={`${field} installed-toolbar-field installed-toolbar-search`}>
-      <span class={fieldLabel}>Search</span>
+      <span class={fieldLabel}>{appText("installed.toolbar.search")}</span>
       <TextField
         type="search"
-        placeholder="Search app name or ID"
+        placeholder={appText("installed.toolbar.searchPlaceholder")}
         value={searchQuery}
         onInput={onSearchQueryChange}
       />
     </label>
 
     <label class={`${field} installed-toolbar-field`}>
-      <span class={fieldLabel}>Scope</span>
+      <span class={fieldLabel}>{appText("installed.toolbar.scope")}</span>
       <SelectField
         value={scopeFilter}
         onValueChange={(nextScope) => onScopeFilterChange(nextScope as InstalledAppsScopeFilter)}
@@ -49,7 +50,7 @@ export const InstalledAppsToolbar = ({
     </label>
 
     <div class={`${actions} installed-toolbar-actions`}>
-      <Button onClick={onRefresh}>Refresh list</Button>
+      <Button onClick={onRefresh}>{appText("installed.toolbar.refresh")}</Button>
     </div>
   </div>
 );

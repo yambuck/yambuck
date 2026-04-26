@@ -1,6 +1,7 @@
 import type { InstalledApp, InstalledAppDetails, UninstallResult, UninstallStep } from "../../types/app";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
+import { appText } from "../../i18n/app";
 import { ModalShell } from "../../components/ui/ModalShell";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { section, updateActions } from "./modalStyles.css";
@@ -33,60 +34,60 @@ export const UninstallWizardModal = ({
   onSetRemoveUserData,
   onRunUninstall,
 }: UninstallWizardModalProps) => (
-  <ModalShell onClose={onClose} closeTitle="Close uninstall dialog">
+  <ModalShell onClose={onClose} closeTitle={appText("modal.close.uninstall")}>
     <section class={`modal-section ${section}`}>
       {uninstallStep === "confirm" ? (
         <>
-          <h2>{`Uninstall ${uninstallTarget.displayName}?`}</h2>
-          <p class={`subtitle ${subtitle}`}>This removes the app from Yambuck and deletes installed app files.</p>
-          <p class={`subtitle ${subtitle}`}>{`Scope: ${formatInstallScopeLabel(uninstallTarget.installScope)}`}</p>
+          <h2>{appText("uninstall.confirmTitle", { appName: uninstallTarget.displayName })}</h2>
+          <p class={`subtitle ${subtitle}`}>{appText("uninstall.confirmBody")}</p>
+          <p class={`subtitle ${subtitle}`}>{appText("uninstall.scope", { scope: formatInstallScopeLabel(uninstallTarget.installScope) })}</p>
           <div class={`update-actions ${updateActions}`}>
-            <Button onClick={onClose}>Cancel</Button>
-            <Button variant="primary" onClick={() => onSetStep("options")}>Continue</Button>
+            <Button onClick={onClose}>{appText("uninstall.cancel")}</Button>
+            <Button variant="primary" onClick={() => onSetStep("options")}>{appText("uninstall.continue")}</Button>
           </div>
         </>
       ) : null}
 
       {uninstallStep === "options" ? (
         <>
-          <h2>Uninstall options</h2>
-          <p class={`subtitle ${subtitle}`}>App files will be removed. Choose whether to also remove app data paths.</p>
+          <h2>{appText("uninstall.optionsTitle")}</h2>
+          <p class={`subtitle ${subtitle}`}>{appText("uninstall.optionsBody")}</p>
           <CheckboxField
             checked={uninstallRemoveUserData}
             onChange={onSetRemoveUserData}
             class="checkbox-row"
           >
-            Remove user data and settings paths from package manifest
+            {appText("uninstall.removeUserData")}
           </CheckboxField>
-          {loadingUninstallDetails ? <p class={`subtitle ${subtitle}`}>Loading package metadata...</p> : null}
+          {loadingUninstallDetails ? <p class={`subtitle ${subtitle}`}>{appText("uninstall.loadingMetadata")}</p> : null}
           {uninstallDetails?.packageInfo ? (
             <ul class="system-info-list">
-              {uninstallDetails.packageInfo.configPath ? <li>Config: <code>{uninstallDetails.packageInfo.configPath}</code></li> : null}
-              {uninstallDetails.packageInfo.cachePath ? <li>Cache: <code>{uninstallDetails.packageInfo.cachePath}</code></li> : null}
-              {uninstallDetails.packageInfo.tempPath ? <li>Temp: <code>{uninstallDetails.packageInfo.tempPath}</code></li> : null}
+              {uninstallDetails.packageInfo.configPath ? <li>{appText("uninstall.config")}: <code>{uninstallDetails.packageInfo.configPath}</code></li> : null}
+              {uninstallDetails.packageInfo.cachePath ? <li>{appText("uninstall.cache")}: <code>{uninstallDetails.packageInfo.cachePath}</code></li> : null}
+              {uninstallDetails.packageInfo.tempPath ? <li>{appText("uninstall.temp")}: <code>{uninstallDetails.packageInfo.tempPath}</code></li> : null}
             </ul>
           ) : null}
           <div class={`update-actions ${updateActions}`}>
-            <Button onClick={() => onSetStep("confirm")}>Back</Button>
-            <Button variant="danger" onClick={onRunUninstall}>Uninstall</Button>
+            <Button onClick={() => onSetStep("confirm")}>{appText("uninstall.back")}</Button>
+            <Button variant="danger" onClick={onRunUninstall}>{appText("uninstall.run")}</Button>
           </div>
         </>
       ) : null}
 
       {uninstallStep === "running" ? (
         <>
-          <h2>Uninstalling...</h2>
-          <p class={`subtitle ${subtitle}`}>Removing application files and updating installed app index.</p>
+          <h2>{appText("uninstall.runningTitle")}</h2>
+          <p class={`subtitle ${subtitle}`}>{appText("uninstall.runningBody")}</p>
         </>
       ) : null}
 
       {uninstallStep === "result" ? (
         <>
-          <h2>{uninstallError ? "Uninstall failed" : "Uninstall complete"}</h2>
+          <h2>{uninstallError ? appText("uninstall.failedTitle") : appText("uninstall.completeTitle")}</h2>
           {uninstallError ? <p class={`subtitle ${subtitle}`}>{uninstallError}</p> : null}
           {uninstallResult?.warnings.length ? (
             <>
-              <p class={`subtitle ${subtitle}`}>Completed with warnings:</p>
+              <p class={`subtitle ${subtitle}`}>{appText("uninstall.warningsTitle")}</p>
               <ul class="system-info-list">
                 {uninstallResult.warnings.map((warning) => (
                   <li key={warning}>{warning}</li>
@@ -95,7 +96,7 @@ export const UninstallWizardModal = ({
             </>
           ) : null}
           <div class={`update-actions ${updateActions}`}>
-            <Button variant="primary" onClick={onClose}>Close</Button>
+            <Button variant="primary" onClick={onClose}>{appText("uninstall.close")}</Button>
           </div>
         </>
       ) : null}

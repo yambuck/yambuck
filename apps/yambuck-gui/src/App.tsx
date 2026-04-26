@@ -26,6 +26,7 @@ import { getInstallerContext } from "./lib/tauri/api";
 import { logUiAction } from "./lib/ui-log";
 import { mockInstalledApps, toMockInstalledAppDetails } from "./mocks/mockData";
 import { copyPlainText } from "./utils/clipboard";
+import { appText } from "./i18n/app";
 import appIcon from "../src-tauri/icons/icon-source.svg";
 import type {
   AppPage,
@@ -298,7 +299,7 @@ function App() {
         setContext(value);
         setScope(value.defaultScope);
       } catch {
-        pushToast("error", "Unable to load installer runtime context.");
+        pushToast("error", appText("toast.installerContextLoadFailed"));
       }
     };
 
@@ -395,7 +396,7 @@ function App() {
 
   const handleMetaFieldCopied = (label: string) => {
     logUiAction("meta-field-copied", { label });
-    pushToast("info", `${label} copied to clipboard.`);
+    pushToast("info", appText("toast.metaCopied", { label }));
   };
 
   const handleCopyToastMessage = async (message: string) => {
@@ -525,8 +526,8 @@ function App() {
     if (!installedAppDetails || isMismatchedTarget) {
       return (
         <Panel>
-          <h1>Loading app review...</h1>
-          <p>{loadingInstalledAppDetails ? "Fetching archived package details." : "Unable to load app review."}</p>
+          <h1>{appText("app.loadingReviewTitle")}</h1>
+          <p>{loadingInstalledAppDetails ? appText("app.loadingReviewFetching") : appText("app.loadingReviewFailed")}</p>
         </Panel>
       );
     }
@@ -593,8 +594,8 @@ function App() {
     if (!target) {
       return (
         <Panel>
-          <h1>Unable to load mock app review.</h1>
-          <p>Return to the mock installed list and choose an app.</p>
+          <h1>{appText("app.mockReviewMissingTitle")}</h1>
+          <p>{appText("app.mockReviewMissingBody")}</p>
         </Panel>
       );
     }
@@ -610,8 +611,8 @@ function App() {
         onOpenScreenshot={openScreenshotModal}
         onOpenLicense={openLicenseViewer}
         onMetaFieldCopied={handleMetaFieldCopied}
-        onLaunch={() => pushToast("success", `Mock launch: ${details.displayName}`)}
-        onUninstall={() => pushToast("warning", `Mock uninstall prompt: ${details.displayName}`)}
+        onLaunch={() => pushToast("success", appText("app.mock.launch", { appName: details.displayName }))}
+        onUninstall={() => pushToast("warning", appText("app.mock.uninstallPrompt", { appName: details.displayName }))}
       />
     );
   };
@@ -705,11 +706,11 @@ function App() {
           <TogglePillGroup
             class="topbar-nav"
             behavior="buttons"
-            ariaLabel="Primary navigation"
+            ariaLabel={appText("app.nav.primaryAria")}
             items={[
               {
                 id: "installer",
-                label: "Installer",
+                label: appText("app.nav.installer"),
                 active: page === "installer",
                 onSelect: () => {
                   logUiAction("navigate-installer-tab");
@@ -721,7 +722,7 @@ function App() {
               },
               {
                 id: "installed-apps",
-                label: "Installed Apps",
+                label: appText("app.nav.installedApps"),
                 active: page === "installed" || page === "installedReview",
                 onSelect: navigateToInstalledList,
               },
@@ -766,7 +767,7 @@ function App() {
         <footer class="app-footer">
           <div class="footer-meta">
             <span class="footer-version">
-              {context ? `Yambuck v${context.appVersion}` : "Yambuck"}
+              {context ? `Yambuck v${context.appVersion}` : appText("app.footer.productFallback")}
             </span>
             {hasUpdateAvailable ? (
               <button
@@ -776,13 +777,13 @@ function App() {
                   openUpdateModal();
                 }}
               >
-                Update available
+                {appText("app.footer.updateAvailable")}
               </button>
             ) : null}
           </div>
           <a class="footer-link" href="https://github.com/yambuck/yambuck" target="_blank" rel="noreferrer">
             <IconBrandGithub size={16} />
-            GitHub
+            {appText("app.footer.github")}
           </a>
         </footer>
 

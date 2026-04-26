@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
 import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
+import { appText } from "../../i18n/app";
 import type { PackageInfo } from "../../types/app";
 import { truncateDescription } from "../../utils/text";
 import {
@@ -43,9 +44,13 @@ export const PackageDetailsSections = ({
   <>
     <div class={`package-overview ${packageOverview}${overviewClassName ? ` ${overviewClassName}` : ""}`}>
       {packageInfo.iconDataUrl ? (
-        <img class={`package-icon ${packageIcon}`} src={packageInfo.iconDataUrl} alt={`${packageInfo.displayName} icon`} />
+        <img
+          class={`package-icon ${packageIcon}`}
+          src={packageInfo.iconDataUrl}
+          alt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        />
       ) : (
-        <div class={`package-icon placeholder ${packageIcon} ${packageIconPlaceholder}`}>No icon</div>
+        <div class={`package-icon placeholder ${packageIcon} ${packageIconPlaceholder}`}>{appText("package.noIcon")}</div>
       )}
       <div>
         <p class={`subtitle package-description ${subtitle} ${packageDescription}`}>{truncateDescription(packageInfo.description)}</p>
@@ -59,9 +64,9 @@ export const PackageDetailsSections = ({
             key={`${packageInfo.packageUuid}-${index}`}
             class={`screenshot-tile ${screenshotTile}`}
             onClick={() => onOpenScreenshot(packageInfo.screenshotDataUrls, index)}
-            title={`Open screenshot ${index + 1}`}
+            title={appText("package.screenshot.open", { index: index + 1 })}
           >
-            <img src={source} alt={`Screenshot ${index + 1}`} />
+            <img src={source} alt={appText("package.screenshot.alt", { index: index + 1 })} />
           </button>
         ))}
       </div>
@@ -69,7 +74,7 @@ export const PackageDetailsSections = ({
 
     <section class={`meta-section ${metaSection}`}>
       <div class={`meta-section-header ${metaSectionHeader}`}>
-        <h2>App details</h2>
+        <h2>{appText("package.sections.appDetails")}</h2>
       </div>
       <MetaCardGrid>{appDetailsContent}</MetaCardGrid>
     </section>
@@ -79,8 +84,8 @@ export const PackageDetailsSections = ({
         <SectionToggleButton
           expanded={showTechnicalDetails}
           onToggle={onToggleTechnicalDetails}
-          showLabel="Show technical details"
-          hideLabel="Hide technical details"
+          showLabel={appText("package.technical.show")}
+          hideLabel={appText("package.technical.hide")}
           controlsId="package-technical-details"
         />
       </div>
@@ -90,7 +95,7 @@ export const PackageDetailsSections = ({
     {packageInfo.longDescription?.trim() ? (
       <section class={`meta-section long-description ${metaSection} ${longDescriptionSection}${longDescriptionClassName ? ` ${longDescriptionClassName}` : ""}`}>
         <div class={`meta-section-header ${metaSectionHeader}`}>
-          <h2>About this app</h2>
+          <h2>{appText("package.sections.about")}</h2>
         </div>
         <div class={`long-description-card ${longDescriptionCard}`}>
           <p>{packageInfo.longDescription}</p>

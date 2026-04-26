@@ -5,6 +5,7 @@ import {
   mockPackageInfo,
   mockPreviewForScope,
 } from "../../mocks/mockData";
+import { appText } from "../../i18n/app";
 import { installerText } from "../../i18n/installer";
 import type {
   InstallDecision,
@@ -168,10 +169,10 @@ export const MockInstallFlowPage = ({
       packageOpenError={null}
       onCopyPackageOpenErrorDetails={() => onToast("info", installerText("mock.copyPackageErrorDetails"))}
       installFailure={{
-        summary: "Mock install failed at validation stage.",
-        details: "This is mock-only failure output for UI verification.",
+        summary: installerText("mock.installFailureSummary"),
+        details: installerText("mock.installFailureDetails"),
         capturedAtIso8601: "2026-04-20T11:02:31.502+01:00",
-        capturedAtDisplay: "Apr 20, 2026, 11:02:31 (+01:00)",
+        capturedAtDisplay: installerText("mock.installFailureTime"),
       }}
       onCopyInstallFailureDetails={() => onToast("info", installerText("mock.copyFailureDetails"))}
       onCopyInstallPreflightDetails={() => onToast("info", installerText("mock.copyCompatibilityReport"))}
@@ -182,7 +183,7 @@ export const MockInstallFlowPage = ({
       onCloseInstallComplete={onExitToDebug}
       onToggleCompleteTechnicalDetails={() => setShowCompleteTechnicalDetails((prev) => !prev)}
       onLaunchCurrentPackage={() => onToast("success", installerText("mock.launchComplete"))}
-      onMetaFieldCopied={(label) => onToast("info", `${label} copied to clipboard.`)}
+      onMetaFieldCopied={(label) => onToast("info", appText("toast.metaCopied", { label }))}
       onViewInstalledDetails={() => onViewInstalledDetails(mockPackageInfo.appId)}
     />
   );

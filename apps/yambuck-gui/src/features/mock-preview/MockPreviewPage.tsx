@@ -4,6 +4,7 @@ import { inlineActions, licenseActions, licenseLabel, link } from "../../compone
 import { Panel } from "../../components/ui/Panel";
 import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
 import { MetaCardGrid } from "../shared/MetaCardGrid";
+import { appText } from "../../i18n/app";
 import {
   detailsActions,
   detailsHeader,
@@ -132,21 +133,21 @@ export const MockPreviewPage = ({
     <Panel
       class={`package-panel ${packagePanel}`}
       showCornerClose
-      cornerCloseTitle="Back to debug"
+      cornerCloseTitle={appText("app.mock.backToDebug")}
       onCornerClose={onBackToSettings}
     >
       <div class={`details-header ${detailsHeader}`}>
         <div>
           <h1>{mockName}</h1>
-          <p class={`subtitle ${subtitle}`}>Mock Preview (Debug)</p>
+          <p class={`subtitle ${subtitle}`}>{appText("app.mock.previewSubtitle")}</p>
         </div>
         <div class={`details-actions ${detailsActions}`} data-no-drag="true">
-          <Button variant="primary" onClick={onStartInstallFlow}>Install</Button>
+          <Button variant="primary" onClick={onStartInstallFlow}>{appText("app.mock.install")}</Button>
         </div>
       </div>
 
       <div class={`package-overview ${packageOverview}`}>
-        <img class={`package-icon ${packageIcon}`} src={MOCK_ICON} alt="Mock app icon" />
+        <img class={`package-icon ${packageIcon}`} src={MOCK_ICON} alt={appText("app.mock.iconAlt")} />
         <div>
           <p class={`subtitle package-description ${subtitle} ${packageDescription}`}>{truncateDescription(mockDescription)}</p>
         </div>
@@ -158,52 +159,52 @@ export const MockPreviewPage = ({
             key={`mock-shot-${index}`}
             class={`screenshot-tile ${screenshotTile}`}
             onClick={() => onOpenScreenshot(mockShots, index)}
-            title={`Open screenshot ${index + 1}`}
+            title={appText("package.screenshot.open", { index: index + 1 })}
           >
-            <img src={source} alt={`Mock screenshot ${index + 1}`} />
+            <img src={source} alt={appText("package.screenshot.alt", { index: index + 1 })} />
           </button>
         ))}
       </div>
 
       <section class={`meta-section ${metaSection}`}>
         <div class={`meta-section-header ${metaSectionHeader}`}>
-          <h2>App details</h2>
+          <h2>{appText("package.sections.appDetails")}</h2>
         </div>
         <MetaCardGrid>
-          <MetaField label="Publisher" tooltip="The team or company that published this app." value={mockPublisher} onCopySuccess={onMetaFieldCopied} />
-          <MetaField label="Version" tooltip="The app version that will be installed." value={mockVersion} onCopySuccess={onMetaFieldCopied} />
+          <MetaField label={appText("meta.publisher.label")} tooltip={appText("meta.publisher.tooltip")} value={mockPublisher} onCopySuccess={onMetaFieldCopied} />
+          <MetaField label={appText("meta.version.label")} tooltip={appText("meta.version.tooltip")} value={mockVersion} onCopySuccess={onMetaFieldCopied} />
           <MetaField
-            label="Homepage"
-            tooltip="The app's official website for product information."
+            label={appText("meta.homepageUrl.label")}
+            tooltip={appText("meta.homepageUrl.tooltip")}
             copyValue={mockHomepage}
             onCopySuccess={onMetaFieldCopied}
             value={<a class={`meta-link ${link}`} href={mockHomepage} target="_blank" rel="noreferrer">{mockHomepage}</a>}
           />
           <MetaField
-            label="Support"
-            tooltip="Where to get help, report bugs, or contact maintainers."
+            label={appText("meta.supportUrl.label")}
+            tooltip={appText("meta.supportUrl.tooltip")}
             copyValue={mockSupport}
             onCopySuccess={onMetaFieldCopied}
             value={<a class={`meta-link ${link}`} href={mockSupport} target="_blank" rel="noreferrer">{mockSupport}</a>}
           />
           <MetaField
-            label="License"
-            tooltip="The legal terms for using this app."
+            label={appText("meta.license.label")}
+            tooltip={appText("meta.license.tooltip")}
             onCopySuccess={onMetaFieldCopied}
             value={(
               <span class={`meta-inline-actions ${inlineActions} license-actions ${licenseActions}`}>
                 <span class={`license-action-label ${licenseLabel}`}>{mockLicense}</span>
                 <Button
-                  onClick={() => onOpenLicense("Example License", mockLicenseText)}
+                  onClick={() => onOpenLicense(appText("review.licenseTitle", { appName: mockName }), mockLicenseText)}
                 >
-                  View license
+                  {appText("review.actions.viewLicense")}
                 </Button>
               </span>
             )}
           />
           <MetaField
-            label="Trust"
-            tooltip="Whether Yambuck could verify the package publisher signature."
+            label={appText("meta.trust.label")}
+            tooltip={appText("meta.trust.tooltip")}
             value={mockTrust}
             onCopySuccess={onMetaFieldCopied}
           />
@@ -215,32 +216,32 @@ export const MockPreviewPage = ({
           <SectionToggleButton
             expanded={showMockTechnicalDetails}
             onToggle={onToggleTechnicalDetails}
-            showLabel="Show technical details"
-            hideLabel="Hide technical details"
+            showLabel={appText("package.technical.show")}
+            hideLabel={appText("package.technical.hide")}
             controlsId="mock-preview-technical-details"
           />
         </div>
         {showMockTechnicalDetails ? (
           <MetaCardGrid id="mock-preview-technical-details">
-            <MetaField label="Package" tooltip="The package file name selected for this install." value="example-app-mock.yambuck" onCopySuccess={onMetaFieldCopied} />
-            <MetaField label="Manifest" tooltip="The manifest schema version this package was built with." value={mockManifestVersion} onCopySuccess={onMetaFieldCopied} />
-            <MetaField label="App ID" tooltip="A stable identifier Yambuck uses for updates and app tracking." value={mockAppId} onCopySuccess={onMetaFieldCopied} />
+            <MetaField label={appText("meta.package.label")} tooltip={appText("meta.package.tooltip")} value="example-app-mock.yambuck" onCopySuccess={onMetaFieldCopied} />
+            <MetaField label={appText("meta.manifest.label")} tooltip={appText("meta.manifest.tooltip")} value={mockManifestVersion} onCopySuccess={onMetaFieldCopied} />
+            <MetaField label={appText("meta.appId.label")} tooltip={appText("meta.appId.tooltip")} value={mockAppId} onCopySuccess={onMetaFieldCopied} />
             <MetaField
-              label="Entrypoint"
-              tooltip="The internal command Yambuck uses to launch the installed app."
+              label={appText("meta.entrypoint.label")}
+              tooltip={appText("meta.entrypoint.tooltip")}
               copyValue="app/bin/example-app"
               onCopySuccess={onMetaFieldCopied}
               value={<code>app/bin/example-app</code>}
             />
-            <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={mockAppUuid} onCopySuccess={onMetaFieldCopied} />
-            <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={mockPackageUuid} onCopySuccess={onMetaFieldCopied} />
+            <MetaField label={appText("meta.appUuid.label")} tooltip={appText("meta.appUuid.tooltip")} value={mockAppUuid} onCopySuccess={onMetaFieldCopied} />
+            <MetaField label={appText("meta.packageUuid.label")} tooltip={appText("meta.packageUuid.tooltip")} value={mockPackageUuid} onCopySuccess={onMetaFieldCopied} />
           </MetaCardGrid>
         ) : null}
       </section>
 
       <section class={`meta-section long-description ${metaSection} ${longDescriptionSection}`}>
         <div class={`meta-section-header ${metaSectionHeader}`}>
-          <h2>About this app</h2>
+          <h2>{appText("package.sections.about")}</h2>
         </div>
         <div class={`long-description-card ${longDescriptionCard}`}>
           <p>{mockLongDescription}</p>

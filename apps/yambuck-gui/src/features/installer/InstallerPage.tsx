@@ -37,6 +37,7 @@ import {
   scopeChoicesWrap,
   scopeNotice,
 } from "./installerPage.css";
+import { appText } from "../../i18n/app";
 import type {
   InstallOptionDefinition,
   InstallOptionValue,
@@ -54,25 +55,25 @@ import { installerDecisionMessage, installerDecisionTitle, installerText } from 
 const scopeChoices = [
   {
     value: "user",
-    title: "Just for me",
-    description: "Recommended. No admin prompt needed.",
+    title: installerText("scope.user.title"),
+    description: installerText("scope.user.description"),
   },
   {
     value: "system",
-    title: "All users",
-    description: "May require admin permissions.",
+    title: installerText("scope.system.title"),
+    description: installerText("scope.system.description"),
   },
 ];
 
 const stepLabels: Record<WizardStep, string> = {
-  details: "Review",
-  trust: "Trust",
-  license: "License",
-  options: "Options",
-  scope: "Scope",
-  progress: "Install",
-  complete: "Done",
-  failed: "Install",
+  details: installerText("step.details"),
+  trust: installerText("step.trust"),
+  license: installerText("step.license"),
+  options: installerText("step.options"),
+  scope: installerText("step.scope"),
+  progress: installerText("step.progress"),
+  complete: installerText("step.complete"),
+  failed: installerText("step.failed"),
 };
 
 const buildInstallerSteps = (wizardSteps: WizardStep[] | null, includeLicense: boolean): WizardStepperStep[] => {
@@ -230,17 +231,17 @@ export const InstallerPage = ({
   if (step === "details") {
     const interfaceLabel = packageInfo
       ? packageInfo.appInterface.hasGui && packageInfo.appInterface.hasCli
-        ? "GUI + CLI"
+        ? installerText("interface.guiCli")
         : packageInfo.appInterface.hasGui
-          ? "GUI"
-          : "CLI"
-      : "Unknown";
+          ? installerText("interface.gui")
+          : installerText("interface.cli")
+      : installerText("interface.unknown");
 
     return (
       <Panel
         class={`package-panel ${packagePanel} ${installerPanel}`}
         showCornerClose={packageInfo !== null}
-        cornerCloseTitle="Close package"
+        cornerCloseTitle={installerText("ui.closePackage")}
         onCornerClose={onClearSelectedPackage}
       >
         {packageInfo || packageOpenError ? renderStepper() : null}
@@ -253,7 +254,7 @@ export const InstallerPage = ({
               </div>
               <div class={`details-actions ${detailsActions}`} data-no-drag="true">
                 <Button variant="primary" onClick={onContinueFromDetails} disabled={checkingPreflight}>
-                  {checkingPreflight ? "Checking..." : "Install"}
+                  {checkingPreflight ? installerText("ui.checking") : installerText("ui.install")}
                 </Button>
               </div>
             </div>
@@ -267,7 +268,7 @@ export const InstallerPage = ({
                     ))}
                   </ul>
                 ) : null}
-                <Button onClick={onCopyInstallPreflightDetails}>Copy compatibility report</Button>
+                <Button onClick={onCopyInstallPreflightDetails}>{installerText("ui.copyCompatibilityReport")}</Button>
               </MessagePanel>
             ) : null}
 
@@ -284,18 +285,18 @@ export const InstallerPage = ({
               onOpenScreenshot={onOpenScreenshotModal}
               appDetailsContent={(
                 <>
-                  <MetaField label="Publisher" tooltip="The team or company that published this app." value={packageInfo.publisher} onCopySuccess={onMetaFieldCopied} />
-                  <MetaField label="Version" tooltip="The app version that will be installed." value={packageInfo.version} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField label={appText("meta.publisher.label")} tooltip={appText("meta.publisher.tooltip")} value={packageInfo.publisher} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField label={appText("meta.version.label")} tooltip={appText("meta.version.tooltip")} value={packageInfo.version} onCopySuccess={onMetaFieldCopied} />
                   <MetaField
-                    label="Interface"
-                    tooltip="How this app is intended to be used on your system."
+                    label={installerText("ui.meta.interface.label")}
+                    tooltip={installerText("ui.meta.interface.tooltip")}
                     value={<code>{interfaceLabel}</code>}
                     onCopySuccess={onMetaFieldCopied}
                   />
                   {packageInfo.homepageUrl ? (
                     <MetaField
-                      label="Homepage"
-                      tooltip="The app's official website for product information."
+                      label={appText("meta.homepageUrl.label")}
+                      tooltip={installerText("ui.meta.homepage.tooltip")}
                       copyValue={packageInfo.homepageUrl}
                       onCopySuccess={onMetaFieldCopied}
                       value={
@@ -307,8 +308,8 @@ export const InstallerPage = ({
                   ) : null}
                   {packageInfo.supportUrl ? (
                     <MetaField
-                      label="Support"
-                      tooltip="Where to get help, report bugs, or contact maintainers."
+                      label={appText("meta.supportUrl.label")}
+                      tooltip={installerText("ui.meta.support.tooltip")}
                       copyValue={packageInfo.supportUrl}
                       onCopySuccess={onMetaFieldCopied}
                       value={
@@ -320,17 +321,17 @@ export const InstallerPage = ({
                   ) : null}
                   {packageInfo.license ? (
                     <MetaField
-                      label="License"
-                      tooltip="The legal terms for using this app."
+                      label={appText("meta.license.label")}
+                      tooltip={installerText("ui.meta.license.tooltip")}
                       onCopySuccess={onMetaFieldCopied}
                       value={(
                         <span class={`meta-inline-actions ${inlineActions} license-actions ${licenseActions}`}>
                           <span class={`license-action-label ${licenseLabel}`}>{packageInfo.license}</span>
                           {packageInfo.licenseText ? (
-                            <Button
-                              onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
-                            >
-                              View license
+                              <Button
+                                onClick={() => onOpenLicenseViewer(appText("review.licenseTitle", { appName: packageInfo.displayName }), packageInfo.licenseText!)}
+                              >
+                              {installerText("ui.viewLicense")}
                             </Button>
                           ) : null}
                         </span>
@@ -339,23 +340,23 @@ export const InstallerPage = ({
                   ) : null}
                   {!packageInfo.license && packageInfo.licenseText ? (
                     <MetaField
-                      label="License"
-                      tooltip="The legal terms for using this app."
+                      label={appText("meta.license.label")}
+                      tooltip={installerText("ui.meta.license.tooltip")}
                       onCopySuccess={onMetaFieldCopied}
                       value={(
                         <span class={`meta-inline-actions ${inlineActions} license-actions ${licenseActions}`}>
                           <Button
-                            onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, packageInfo.licenseText!)}
+                            onClick={() => onOpenLicenseViewer(appText("review.licenseTitle", { appName: packageInfo.displayName }), packageInfo.licenseText!)}
                           >
-                            View license
+                            {installerText("ui.viewLicense")}
                           </Button>
                         </span>
                       )}
                     />
                   ) : null}
                   <MetaField
-                    label="Trust"
-                    tooltip="Whether Yambuck could verify the package publisher signature."
+                    label={appText("meta.trust.label")}
+                    tooltip={installerText("ui.meta.trust.tooltip")}
                     value={packageInfo.trustStatus}
                     onCopySuccess={onMetaFieldCopied}
                   />
@@ -363,20 +364,20 @@ export const InstallerPage = ({
               )}
               technicalDetailsContent={(
                 <>
-                  <MetaField label="Package" tooltip="The package file name selected for this install." value={packageInfo.fileName} onCopySuccess={onMetaFieldCopied} />
-                  <MetaField label="Manifest" tooltip="The manifest schema version this package was built with." value={packageInfo.manifestVersion} onCopySuccess={onMetaFieldCopied} />
-                  <MetaField label="App ID" tooltip="A stable identifier Yambuck uses for updates and app tracking." value={packageInfo.appId} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField label={appText("meta.package.label")} tooltip={appText("meta.package.tooltip")} value={packageInfo.fileName} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField label={appText("meta.manifest.label")} tooltip={appText("meta.manifest.tooltip")} value={packageInfo.manifestVersion} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField label={appText("meta.appId.label")} tooltip={appText("meta.appId.tooltip")} value={packageInfo.appId} onCopySuccess={onMetaFieldCopied} />
                   <MetaField
-                    label="Entrypoint"
-                    tooltip="The internal command Yambuck uses to launch the installed app."
+                    label={installerText("ui.meta.entrypoint.label")}
+                    tooltip={installerText("ui.meta.entrypoint.tooltip")}
                     copyValue={packageInfo.entrypoint}
                     onCopySuccess={onMetaFieldCopied}
                     value={<code>{packageInfo.entrypoint}</code>}
                   />
                   {packageInfo.cliCommandName ? (
                     <MetaField
-                      label="CLI command"
-                      tooltip="Command to run in Terminal for this package's CLI mode."
+                      label={installerText("ui.meta.cliCommand.label")}
+                      tooltip={installerText("ui.meta.cliCommand.tooltip")}
                       copyValue={packageInfo.cliCommandName}
                       onCopySuccess={onMetaFieldCopied}
                       value={<code>{packageInfo.cliCommandName}</code>}
@@ -384,8 +385,8 @@ export const InstallerPage = ({
                   ) : null}
                   {packageInfo.cliUsageHint ? (
                     <MetaField
-                      label="CLI usage"
-                      tooltip="Developer-provided hint for using this package in Terminal."
+                      label={installerText("ui.meta.cliUsage.label")}
+                      tooltip={installerText("ui.meta.cliUsage.tooltip")}
                       copyValue={packageInfo.cliUsageHint}
                       onCopySuccess={onMetaFieldCopied}
                       value={<code>{packageInfo.cliUsageHint}</code>}
@@ -393,23 +394,23 @@ export const InstallerPage = ({
                   ) : null}
                   {packageInfo.selectedTargetId ? (
                     <MetaField
-                      label="Target"
-                      tooltip="Resolved package target selected for this system."
+                      label={installerText("ui.meta.target.label")}
+                      tooltip={installerText("ui.meta.target.tooltip")}
                       value={packageInfo.selectedTargetId}
                       onCopySuccess={onMetaFieldCopied}
                     />
                   ) : null}
                   {packageInfo.payloadRoot ? (
                     <MetaField
-                      label="Payload root"
-                      tooltip="Package folder selected for host payload extraction."
+                      label={installerText("ui.meta.payloadRoot.label")}
+                      tooltip={installerText("ui.meta.payloadRoot.tooltip")}
                       copyValue={packageInfo.payloadRoot}
                       onCopySuccess={onMetaFieldCopied}
                       value={<code>{packageInfo.payloadRoot}</code>}
                     />
                   ) : null}
-                  <MetaField label="App UUID" tooltip="The immutable app identity UUID declared by the publisher." value={packageInfo.appUuid} onCopySuccess={onMetaFieldCopied} />
-                  <MetaField label="Package UUID" tooltip="The unique UUID assigned to this specific package build." value={packageInfo.packageUuid} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField label={appText("meta.appUuid.label")} tooltip={appText("meta.appUuid.tooltip")} value={packageInfo.appUuid} onCopySuccess={onMetaFieldCopied} />
+                  <MetaField label={appText("meta.packageUuid.label")} tooltip={appText("meta.packageUuid.tooltip")} value={packageInfo.packageUuid} onCopySuccess={onMetaFieldCopied} />
                 </>
               )}
             />
@@ -425,17 +426,17 @@ export const InstallerPage = ({
               </div>
               <MessagePanel tone="error" class="open-package-error-box">
                 <p class={openPackageErrorBoxText}>
-                  <strong>Package:</strong> <code>{packageOpenError.packageFile}</code>
+                  <strong>{installerText("ui.errorPackageLabel")}:</strong> <code>{packageOpenError.packageFile}</code>
                 </p>
                 <p class={openPackageErrorBoxText}>
-                  <strong>Time:</strong> <code>{packageOpenError.capturedAtDisplay}</code>
+                  <strong>{installerText("ui.errorTimeLabel")}:</strong> <code>{packageOpenError.capturedAtDisplay}</code>
                 </p>
-                <pre class={`open-package-error-pre ${openPackageErrorPre}`}><code>Error: {packageOpenError.message}</code></pre>
+                <pre class={`open-package-error-pre ${openPackageErrorPre}`}><code>{installerText("ui.errorMessageLabel")}: {packageOpenError.message}</code></pre>
               </MessagePanel>
             </section>
             <div class={`actions ${actions} ${installerActionRow}`}>
-              <Button onClick={onClearSelectedPackage}>Close</Button>
-              <Button variant="primary" onClick={onCopyPackageOpenErrorDetails}>Copy details</Button>
+              <Button onClick={onClearSelectedPackage}>{installerText("ui.close")}</Button>
+              <Button variant="primary" onClick={onCopyPackageOpenErrorDetails}>{installerText("ui.copyDetails")}</Button>
             </div>
           </>
         ) : (
@@ -470,9 +471,9 @@ export const InstallerPage = ({
           <p>{isVerified ? installerText("ui.verifiedPublisherBody") : installerText("ui.unverifiedPublisherBody")}</p>
         </MessagePanel>
         <div class={`actions ${actions} ${installerActionRow}`}>
-          <Button onClick={onGoBackFromTrustStep}>Back</Button>
+          <Button onClick={onGoBackFromTrustStep}>{installerText("ui.back")}</Button>
           <Button variant="primary" onClick={onContinueFromTrustStep}>
-            {isVerified ? "Next" : "Install anyway"}
+            {isVerified ? installerText("ui.next") : installerText("ui.installAnyway")}
           </Button>
         </div>
       </Panel>
@@ -488,23 +489,23 @@ export const InstallerPage = ({
         <p class={`subtitle ${subtitle}`}>{installerText("ui.licenseSubtitle")}</p>
         <div class={`actions start ${actions} ${actionsStart}`}>
           {licenseText ? (
-            <Button onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, licenseText)}>
-              View license
+            <Button onClick={() => onOpenLicenseViewer(appText("review.licenseTitle", { appName: packageInfo.displayName }), licenseText)}>
+              {installerText("ui.viewLicense")}
             </Button>
           ) : (
             <p class={`subtitle ${subtitle}`}>{installerText("ui.licenseMissingBody")}</p>
           )}
         </div>
         <CheckboxField checked={licenseAccepted} disabled={!licenseText} onChange={onSetLicenseAccepted} class="license-acceptance">
-          I have read and accept this package license.
+          {installerText("ui.licenseAcceptedLabel")}
         </CheckboxField>
         {!licenseAccepted ? (
-          <p class={licenseRequirementNote}>The publisher requires license acceptance before install can continue.</p>
+          <p class={licenseRequirementNote}>{installerText("ui.licenseRequiredBody")}</p>
         ) : null}
         <div class={`actions ${actions} ${installerActionRow}`}>
-          <Button onClick={onGoBackFromLicenseStep}>Back</Button>
+          <Button onClick={onGoBackFromLicenseStep}>{installerText("ui.back")}</Button>
           <Button variant="primary" onClick={onContinueFromLicenseStep} disabled={!licenseText || !licenseAccepted}>
-            Continue
+            {installerText("ui.continue")}
           </Button>
         </div>
       </Panel>
@@ -526,7 +527,7 @@ export const InstallerPage = ({
           options={scopeChoices}
           onValueChange={(nextValue) => onSetScope(nextValue as InstallScope)}
           name="scope"
-          ariaLabel="Install scope"
+          ariaLabel={installerText("ui.installScopeAria")}
           class={scopeChoicesWrap}
         />
         {installDecision?.otherScope && installDecision.otherScopeExistingVersion ? (
@@ -552,28 +553,30 @@ export const InstallerPage = ({
                 <p>{installerDecisionMessage(installDecision)}</p>
                 {installDecision.existingVersion ? (
                   <p>
-                    Installed: <code>{installDecision.existingVersion}</code> {"->"} Package: <code>{installDecision.incomingVersion}</code>
+                    {installerText("ui.installedLabel")}: <code>{installDecision.existingVersion}</code>
+                    {" -> "}
+                    {installerText("ui.packageLabel")}: <code>{installDecision.incomingVersion}</code>
                   </p>
                 ) : null}
-              </MessagePanel>
+                </MessagePanel>
             ) : null}
             {installDecision?.action === "downgrade" ? (
               <CheckboxField checked={allowDowngrade} onChange={onSetDowngradeAllowed} class="license-acceptance">
-                I understand this installs an older version and I want to continue.
+                {installerText("ui.confirmDowngrade")}
               </CheckboxField>
             ) : null}
             <CheckboxField checked={wipeOnReinstall} onChange={onSetReinstallWipeChoice} class="license-acceptance">
-              Remove existing app settings, cache, and temp data before reinstall.
+              {installerText("ui.removeExistingData")}
             </CheckboxField>
             {wipeOnReinstall ? (
               <CheckboxField checked={confirmWipeOnReinstall} onChange={onSetConfirmWipeOnReinstall} class="license-acceptance">
-                I understand this permanently deletes existing app data.
+                {installerText("ui.confirmDeleteData")}
               </CheckboxField>
             ) : null}
           </section>
         ) : null}
         <div class={`actions ${actions} ${installerActionRow}`}>
-          <Button onClick={onGoBackFromScopeStep}>Back</Button>
+          <Button onClick={onGoBackFromScopeStep}>{installerText("ui.back")}</Button>
           <Button
             variant="primary"
             onClick={onStartInstall}
@@ -582,7 +585,7 @@ export const InstallerPage = ({
               || (installDecision?.action === "downgrade" && !allowDowngrade)
             }
           >
-            {installDecision?.action === "update" ? "Update" : managedExistingInstall ? "Reinstall" : "Install"}
+            {installDecision?.action === "update" ? installerText("ui.action.update") : managedExistingInstall ? installerText("ui.action.reinstall") : installerText("ui.install")}
           </Button>
         </div>
       </Panel>
@@ -615,7 +618,7 @@ export const InstallerPage = ({
                     {option.inputType === "select" ? (
                       (() => {
                         const selectOptions: SelectFieldOption[] = [
-                          ...(option.required ? [] : [{ value: "", label: "No selection" }]),
+                          ...(option.required ? [] : [{ value: "", label: installerText("ui.noSelection") }]),
                           ...option.choices.map((choice) => ({ value: choice.value, label: choice.label })),
                         ];
 
@@ -645,7 +648,7 @@ export const InstallerPage = ({
                         }
                         class="license-acceptance"
                       >
-                        Enabled
+                        {installerText("ui.enabled")}
                       </CheckboxField>
                     ) : null}
                     {option.inputType === "text" ? (
@@ -657,7 +660,7 @@ export const InstallerPage = ({
                             value,
                           })
                         }
-                        placeholder={option.required ? "Required" : "Optional"}
+                        placeholder={option.required ? installerText("ui.required") : installerText("ui.optional")}
                       />
                     ) : null}
                   </dd>
@@ -672,9 +675,9 @@ export const InstallerPage = ({
           </MessagePanel>
         ) : null}
         <div class={`actions ${actions} ${installerActionRow}`}>
-          <Button onClick={onGoBackFromOptionsStep}>Back</Button>
+          <Button onClick={onGoBackFromOptionsStep}>{installerText("ui.back")}</Button>
           <Button variant="primary" onClick={onContinueFromOptionsStep} disabled={validatingInstallOptions}>
-            {validatingInstallOptions ? "Validating..." : "Continue"}
+            {validatingInstallOptions ? installerText("ui.validating") : installerText("ui.continue")}
           </Button>
         </div>
       </Panel>
@@ -694,7 +697,7 @@ export const InstallerPage = ({
           ariaLabel={installerText("ui.installProgressAria", { state: installLifecycleState })}
         />
         <div class={`actions ${actions} ${installerActionRow}`}>
-          <Button disabled={isBusy}>Cancel</Button>
+          <Button disabled={isBusy}>{installerText("ui.cancel")}</Button>
         </div>
       </Panel>
     );
@@ -715,7 +718,7 @@ export const InstallerPage = ({
             </div>
             <MessagePanel tone="error" class="open-package-error-box">
               <p class={openPackageErrorBoxText}>
-                <strong>Time:</strong> <code>{installFailure.capturedAtDisplay}</code>
+                <strong>{installerText("ui.errorTimeLabel")}:</strong> <code>{installFailure.capturedAtDisplay}</code>
               </p>
               <pre class={`open-package-error-pre ${openPackageErrorPre}`}><code>{installFailure.details}</code></pre>
             </MessagePanel>
@@ -723,10 +726,10 @@ export const InstallerPage = ({
         ) : null}
 
         <div class={`actions ${actions} ${installerActionRow}`}>
-          <Button onClick={() => onSetStep("scope")}>Retry</Button>
-          <Button onClick={onCopyInstallFailureDetails} disabled={!installFailure}>Copy details</Button>
-          <Button onClick={onOpenInstallLogsDirectory}>Open logs</Button>
-          <Button variant="primary" onClick={onClearSelectedPackage}>Close</Button>
+          <Button onClick={() => onSetStep("scope")}>{installerText("ui.retry")}</Button>
+          <Button onClick={onCopyInstallFailureDetails} disabled={!installFailure}>{installerText("ui.copyDetails")}</Button>
+          <Button onClick={onOpenInstallLogsDirectory}>{installerText("ui.openLogs")}</Button>
+          <Button variant="primary" onClick={onClearSelectedPackage}>{installerText("ui.close")}</Button>
         </div>
       </Panel>
     );
@@ -736,7 +739,7 @@ export const InstallerPage = ({
     <Panel
       class={`package-panel ${packagePanel} ${installerPanel}`}
       showCornerClose
-      cornerCloseTitle="Back to installed apps"
+      cornerCloseTitle={installerText("ui.backToInstalled")}
       onCornerClose={onCloseInstallComplete}
     >
       {renderStepper()}
@@ -746,19 +749,19 @@ export const InstallerPage = ({
       {preview ? (
         <MetaCardGrid compact>
           <div>
-            <dt>Scope</dt>
+            <dt>{installerText("ui.preview.scope")}</dt>
             <dd>{formatInstallScopeLabel(preview.installScope)}</dd>
           </div>
           <div>
-            <dt>Destination</dt>
+            <dt>{installerText("ui.preview.destination")}</dt>
             <dd>{preview.destinationPath}</dd>
           </div>
           <div>
-            <dt>Trust</dt>
+            <dt>{installerText("ui.preview.trust")}</dt>
             <dd>{preview.trustStatus}</dd>
           </div>
           <div>
-            <dt>Package</dt>
+            <dt>{installerText("ui.preview.package")}</dt>
             <dd>{preview.packageFile}</dd>
           </div>
         </MetaCardGrid>
@@ -770,8 +773,8 @@ export const InstallerPage = ({
             <SectionToggleButton
               expanded={showCompleteTechnicalDetails}
               onToggle={onToggleCompleteTechnicalDetails}
-              showLabel="Show technical details"
-              hideLabel="Hide technical details"
+              showLabel={appText("package.technical.show")}
+              hideLabel={appText("package.technical.hide")}
               controlsId="install-complete-technical-details"
             />
           </div>
@@ -779,34 +782,34 @@ export const InstallerPage = ({
           {showCompleteTechnicalDetails ? (
             <MetaCardGrid compact id="install-complete-technical-details">
               <MetaField
-                label="Launch path"
-                tooltip="The resolved executable path that Yambuck tries to run."
+                label={installerText("ui.meta.launchPath.label")}
+                tooltip={installerText("ui.meta.launchPath.tooltip")}
                 copyValue={`${preview.destinationPath}/${packageInfo.entrypoint}`}
                 onCopySuccess={onMetaFieldCopied}
                 value={<code>{`${preview.destinationPath}/${packageInfo.entrypoint}`}</code>}
               />
               <MetaField
-                label="Entrypoint"
-                tooltip="The launch command path declared by the package manifest."
+                label={installerText("ui.meta.entrypoint.label")}
+                tooltip={installerText("ui.meta.entrypointComplete.tooltip")}
                 copyValue={packageInfo.entrypoint}
                 onCopySuccess={onMetaFieldCopied}
                 value={<code>{packageInfo.entrypoint}</code>}
               />
-              <MetaField label="Manifest" tooltip="Manifest schema version for this package." value={packageInfo.manifestVersion} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="App ID" tooltip="Stable identifier used by Yambuck for ownership and updates." value={packageInfo.appId} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="App UUID" tooltip="Immutable app identity UUID set by the publisher." value={packageInfo.appUuid} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Package UUID" tooltip="Unique UUID for this specific package build artifact." value={packageInfo.packageUuid} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Config path" tooltip="Optional config path from manifest. Not inferred by Yambuck." value={displayOrFallback(packageInfo.configPath)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Cache path" tooltip="Optional cache path from manifest. Not inferred by Yambuck." value={displayOrFallback(packageInfo.cachePath)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Temp path" tooltip="Optional temp path from manifest. Not inferred by Yambuck." value={displayOrFallback(packageInfo.tempPath)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.manifest.label")} tooltip={installerText("ui.meta.manifest.tooltip")} value={packageInfo.manifestVersion} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.appId.label")} tooltip={installerText("ui.meta.appId.tooltip")} value={packageInfo.appId} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.appUuid.label")} tooltip={installerText("ui.meta.appUuid.tooltip")} value={packageInfo.appUuid} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.packageUuid.label")} tooltip={installerText("ui.meta.packageUuid.tooltip")} value={packageInfo.packageUuid} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={installerText("ui.meta.configPath.label")} tooltip={installerText("ui.meta.configPath.tooltip")} value={displayOrFallback(packageInfo.configPath)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={installerText("ui.meta.cachePath.label")} tooltip={installerText("ui.meta.cachePath.tooltip")} value={displayOrFallback(packageInfo.cachePath)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={installerText("ui.meta.tempPath.label")} tooltip={installerText("ui.meta.tempPath.tooltip")} value={displayOrFallback(packageInfo.tempPath)} onCopySuccess={onMetaFieldCopied} />
             </MetaCardGrid>
           ) : null}
         </section>
       ) : null}
 
       <div class={`actions ${actions} ${installerActionRow}`}>
-        {onViewInstalledDetails ? <Button onClick={onViewInstalledDetails}>Show installed details</Button> : null}
-        <Button variant="primary" onClick={onLaunchCurrentPackage}>Launch app</Button>
+        {onViewInstalledDetails ? <Button onClick={onViewInstalledDetails}>{installerText("ui.showInstalledDetails")}</Button> : null}
+        <Button variant="primary" onClick={onLaunchCurrentPackage}>{installerText("ui.launchApp")}</Button>
       </div>
     </Panel>
   );

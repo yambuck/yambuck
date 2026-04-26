@@ -1,5 +1,6 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useState } from "preact/hooks";
+import { appText } from "../i18n/app";
 import { applyUpdateAndRestart, checkForUpdates as checkForUpdatesApi } from "../lib/tauri/api";
 import type { UpdateCheckResult } from "../types/app";
 
@@ -30,7 +31,7 @@ export const useUpdateManager = ({ onErrorToast, onInfoToast }: UseUpdateManager
         setIsUpdateModalOpen(true);
       }
     } catch {
-      onErrorToast("Unable to check for updates right now.");
+      onErrorToast(appText("toast.updateCheckFailed"));
     } finally {
       setCheckingUpdates(false);
     }
@@ -41,14 +42,14 @@ export const useUpdateManager = ({ onErrorToast, onInfoToast }: UseUpdateManager
 
   const relativeLastChecked = () => {
     if (!lastCheckedAt) {
-      return "Not checked yet";
+      return appText("update.notCheckedYet");
     }
     const elapsed = Date.now() - lastCheckedAt;
     if (elapsed < 60_000) {
-      return "Just now";
+      return appText("update.justNow");
     }
     const minutes = Math.floor(elapsed / 60_000);
-    return `${minutes}m ago`;
+    return appText("update.minutesAgo", { minutes });
   };
 
   const handleUpdateAndRestart = async () => {
@@ -57,18 +58,18 @@ export const useUpdateManager = ({ onErrorToast, onInfoToast }: UseUpdateManager
     }
 
     if (!updateResult.downloadUrl || !updateResult.sha256) {
-      onErrorToast("Update metadata is incomplete. Please try again later.");
+      onErrorToast(appText("toast.updateMetadataIncomplete"));
       return;
     }
 
     setApplyingUpdate(true);
-    onInfoToast(`Applying update ${updateResult.latestVersion}. Yambuck will restart.`);
+    onInfoToast(appText("toast.updateApplying", { version: updateResult.latestVersion }));
 
     try {
       await applyUpdateAndRestart(updateResult.downloadUrl, updateResult.sha256);
       await getCurrentWindow().close();
     } catch {
-      onErrorToast("Unable to apply update automatically. Please retry or use website installer.");
+      onErrorToast(appText("toast.updateApplyFailed"));
       setApplyingUpdate(false);
     }
   };

@@ -12,6 +12,8 @@ import { TableRowAction } from "../../components/ui/TableRowAction";
 import { TextField } from "../../components/ui/TextField";
 import { TogglePillGroup } from "../../components/ui/TogglePillGroup";
 import { WizardStepper } from "../../components/ui/WizardStepper";
+import { appText } from "../../i18n/app";
+import { installerText } from "../../i18n/installer";
 import { MetaCardGrid } from "../shared/MetaCardGrid";
 import {
   fieldWrap,
@@ -39,32 +41,32 @@ type UiDebugLabPageProps = {
 };
 
 const densityOptions = [
-  { value: "compact", label: "Compact" },
-  { value: "balanced", label: "Balanced" },
-  { value: "comfortable", label: "Comfortable" },
+  { value: "compact", label: appText("debugLab.forms.densityCompact") },
+  { value: "balanced", label: appText("debugLab.forms.densityBalanced") },
+  { value: "comfortable", label: appText("debugLab.forms.densityComfortable") },
 ];
 
 const scopeChoices = [
   {
     value: "user",
-    title: "Just for me",
-    description: "Recommended. No admin prompt needed.",
+    title: installerText("scope.user.title"),
+    description: installerText("scope.user.description"),
   },
   {
     value: "system",
-    title: "All users",
-    description: "May require admin permissions.",
+    title: installerText("scope.system.title"),
+    description: installerText("scope.system.description"),
   },
 ];
 
 const installerSteps = [
-  { id: "details", label: "Review" },
-  { id: "trust", label: "Trust" },
-  { id: "license", label: "License" },
-  { id: "options", label: "Options" },
-  { id: "scope", label: "Scope" },
-  { id: "progress", label: "Install" },
-  { id: "complete", label: "Done" },
+  { id: "details", label: installerText("step.details") },
+  { id: "trust", label: installerText("step.trust") },
+  { id: "license", label: installerText("step.license") },
+  { id: "options", label: installerText("step.options") },
+  { id: "scope", label: installerText("step.scope") },
+  { id: "progress", label: installerText("step.progress") },
+  { id: "complete", label: installerText("step.complete") },
 ];
 
 const installerStepOptions = installerSteps.map((step) => ({ value: step.id, label: step.label }));
@@ -80,43 +82,40 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const [activeInstallerStep, setActiveInstallerStep] = useState("options");
 
   return (
-    <Panel showCornerClose cornerCloseTitle="Back to debug" onCornerClose={onBackToSettingsDebug}>
-      <h1>UI Debugging Lab</h1>
-      <p>
-        Interactive component gallery for fast HMR styling checks. Use this page to tune spacing,
-        typography, and state visuals without running installer flows.
-      </p>
+    <Panel showCornerClose cornerCloseTitle={appText("debugLab.back")} onCornerClose={onBackToSettingsDebug}>
+      <h1>{appText("debugLab.title")}</h1>
+      <p>{appText("debugLab.subtitle")}</p>
 
       <div class={stack}>
         <section class={section}>
-          <h2 class={sectionTitle}>Buttons</h2>
-          <p class={sectionDescription}>Check variant and disabled states.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.buttons.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.buttons.body")}</p>
           <div class={row}>
-            <Button onClick={() => onToast("success", "Primary button action fired.")} variant="primary">Primary</Button>
-            <Button onClick={() => onToast("info", "Ghost button action fired.")}>Ghost</Button>
-            <Button onClick={() => onToast("warning", "Danger button action fired.")} variant="danger">Danger</Button>
-            <Button disabled>Disabled</Button>
+            <Button onClick={() => onToast("success", appText("debugLab.buttons.toastPrimary"))} variant="primary">{appText("debugLab.buttons.primary")}</Button>
+            <Button onClick={() => onToast("info", appText("debugLab.buttons.toastGhost"))}>{appText("debugLab.buttons.ghost")}</Button>
+            <Button onClick={() => onToast("warning", appText("debugLab.buttons.toastDanger"))} variant="danger">{appText("debugLab.buttons.danger")}</Button>
+            <Button disabled>{appText("debugLab.buttons.disabled")}</Button>
           </div>
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Navigation Toggles</h2>
-          <p class={sectionDescription}>Preview segmented tab/toggle states used in the top bar and settings.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.nav.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.nav.body")}</p>
           <div class={toggleGroupShell}>
             <TogglePillGroup
               class={row}
               behavior="tabs"
-              ariaLabel="Debug lab tabs"
+              ariaLabel={appText("debugLab.nav.aria")}
               items={[
                 {
                   id: "overview",
-                  label: "Overview",
+                  label: appText("debugLab.nav.overview"),
                   active: activeTab === "overview",
                   onSelect: () => setActiveTab("overview"),
                 },
                 {
                   id: "advanced",
-                  label: "Advanced",
+                  label: appText("debugLab.nav.advanced"),
                   active: activeTab === "advanced",
                   onSelect: () => setActiveTab("advanced"),
                 },
@@ -126,13 +125,13 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Form Controls</h2>
-          <p class={sectionDescription}>Preview field alignment and interaction behavior in one place.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.forms.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.forms.body")}</p>
           <div class={row}>
             <div class={fieldWrap}>
               <TextField
                 value={searchQuery}
-                placeholder="Search mock apps"
+                placeholder={appText("debugLab.forms.searchPlaceholder")}
                 onInput={setSearchQuery}
                 type="search"
               />
@@ -149,45 +148,45 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
               checked={showTechnicalMetadata}
               onChange={setShowTechnicalMetadata}
             >
-              Show technical metadata
+              {appText("debugLab.forms.showTechnical")}
             </CheckboxField>
           </div>
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Message Panels</h2>
-          <p class={sectionDescription}>Validate semantic tones and text contrast at a glance.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.messages.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.messages.body")}</p>
           <div class={stack}>
-            <MessagePanel tone="info" title="Info">Background checks are running.</MessagePanel>
-            <MessagePanel tone="success" title="Success">Install plan validated and ready.</MessagePanel>
-            <MessagePanel tone="warning" title="Warning">Desktop session details are incomplete.</MessagePanel>
-            <MessagePanel tone="error" title="Error">Package validation failed in mock mode.</MessagePanel>
+            <MessagePanel tone="info" title={appText("debugLab.messages.info")}>{appText("debugLab.messages.infoBody")}</MessagePanel>
+            <MessagePanel tone="success" title={appText("debugLab.messages.success")}>{appText("debugLab.messages.successBody")}</MessagePanel>
+            <MessagePanel tone="warning" title={appText("debugLab.messages.warning")}>{appText("debugLab.messages.warningBody")}</MessagePanel>
+            <MessagePanel tone="error" title={appText("debugLab.messages.error")}>{appText("debugLab.messages.errorBody")}</MessagePanel>
           </div>
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Section Toggle</h2>
-          <p class={sectionDescription}>Used for technical details sections in package/review pages.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.sectionToggle.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.sectionToggle.body")}</p>
           <SectionToggleButton
             expanded={showAdvancedCard}
             onToggle={() => setShowAdvancedCard((value) => !value)}
-            showLabel="Show technical details"
-            hideLabel="Hide technical details"
+            showLabel={appText("package.technical.show")}
+            hideLabel={appText("package.technical.hide")}
             controlsId="debug-lab-expanded-preview"
           />
           {showAdvancedCard ? (
             <div id="debug-lab-expanded-preview">
-              <MessagePanel tone="info" title="Expanded" class={sectionTogglePreview}>
-                Advanced content is visible. Collapse to test the default state.
+              <MessagePanel tone="info" title={appText("debugLab.sectionToggle.expanded")} class={sectionTogglePreview}>
+                {appText("debugLab.sectionToggle.expandedBody")}
               </MessagePanel>
             </div>
           ) : null}
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Progress</h2>
-          <p class={sectionDescription}>Replicates installer progress visuals and value states.</p>
-          <ProgressBar value={progress} class={progressPreview} ariaLabel="Debug progress preview" />
+          <h2 class={sectionTitle}>{appText("debugLab.progress.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.progress.body")}</p>
+          <ProgressBar value={progress} class={progressPreview} ariaLabel={appText("debugLab.progress.aria")} />
           <div class={progressActions}>
             <Button onClick={() => setProgress(0)}>0%</Button>
             <Button onClick={() => setProgress(25)}>25%</Button>
@@ -198,8 +197,8 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Installer Stepper</h2>
-          <p class={sectionDescription}>Matches the step-by-step orientation used across installer states.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.stepper.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.stepper.body")}</p>
           <WizardStepper steps={installerSteps} currentStepId={activeInstallerStep} align="center" />
           <div class={stepperPreview}>
             <SelectField
@@ -212,24 +211,24 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Scope Choice Cards</h2>
-          <p class={sectionDescription}>Matches the install scope selector card component.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.scope.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.scope.body")}</p>
           <ScopeChoiceCards
             value={installScope}
             options={scopeChoices}
             onValueChange={setInstallScope}
             name="ui-debug-scope"
-            ariaLabel="Debug install scope"
+            ariaLabel={appText("debugLab.scope.aria")}
             class={scopeChoicePreview}
           />
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>List Row Affordance</h2>
-          <p class={sectionDescription}>Preview the chevron-style row affordance used in Installed Apps.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.list.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.list.body")}</p>
           <div class={listRowPreview}>
             <div>
-              <div class={listRowTitle}>Example App</div>
+              <div class={listRowTitle}>{appText("debugLab.list.exampleName")}</div>
               <div class={listRowSubtitle}>com.example.app</div>
             </div>
             <TableRowAction />
@@ -237,71 +236,71 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Toast Triggers</h2>
-          <p class={sectionDescription}>Fire each toast tone so notification styling can be tuned in context.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.toasts.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.toasts.body")}</p>
           <div class={toastRow}>
-            <Button onClick={() => onToast("info", "Info toast from UI Debugging Lab.")}>Show info toast</Button>
-            <Button onClick={() => onToast("success", "Success toast from UI Debugging Lab.")}>Show success toast</Button>
-            <Button onClick={() => onToast("warning", "Warning toast from UI Debugging Lab.")}>Show warning toast</Button>
-            <Button onClick={() => onToast("error", "Error toast from UI Debugging Lab.")}>Show error toast</Button>
+            <Button onClick={() => onToast("info", appText("debugLab.toasts.info"))}>{appText("debugLab.toasts.showInfo")}</Button>
+            <Button onClick={() => onToast("success", appText("debugLab.toasts.success"))}>{appText("debugLab.toasts.showSuccess")}</Button>
+            <Button onClick={() => onToast("warning", appText("debugLab.toasts.warning"))}>{appText("debugLab.toasts.showWarning")}</Button>
+            <Button onClick={() => onToast("error", appText("debugLab.toasts.error"))}>{appText("debugLab.toasts.showError")}</Button>
           </div>
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Metadata Fields</h2>
-          <p class={sectionDescription}>Exercise copy affordances and long-value wrapping.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.meta.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.meta.body")}</p>
           <MetaCardGrid>
               <MetaField
-                label="Current Query"
-                tooltip="Current value from the search field above."
-                value={searchQuery || "(empty)"}
+                label={appText("debugLab.meta.currentQuery")}
+                tooltip={appText("debugLab.meta.currentQueryTip")}
+                value={searchQuery || appText("debugLab.meta.empty")}
                 copyValue={searchQuery}
-                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+                onCopySuccess={(label) => onToast("info", appText("toast.metaCopied", { label }))}
               />
               <MetaField
-                label="Density"
-                tooltip="Current selected layout density for this debug page."
+                label={appText("debugLab.meta.density")}
+                tooltip={appText("debugLab.meta.densityTip")}
                 value={layoutDensity}
-                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+                onCopySuccess={(label) => onToast("info", appText("toast.metaCopied", { label }))}
               />
               <MetaField
-                label="Technical Details"
-                tooltip="Whether technical metadata rows are visible during this preview session."
-                value={showTechnicalMetadata ? "visible" : "hidden"}
-                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+                label={appText("debugLab.meta.technical")}
+                tooltip={appText("debugLab.meta.technicalTip")}
+                value={showTechnicalMetadata ? appText("debugLab.meta.visible") : appText("debugLab.meta.hidden")}
+                onCopySuccess={(label) => onToast("info", appText("toast.metaCopied", { label }))}
               />
           </MetaCardGrid>
         </section>
 
         <section class={section}>
-          <h2 class={sectionTitle}>Technical Detail Cards</h2>
-          <p class={sectionDescription}>Simulates the package details grid used across install and review flows.</p>
+          <h2 class={sectionTitle}>{appText("debugLab.techCards.title")}</h2>
+          <p class={sectionDescription}>{appText("debugLab.techCards.body")}</p>
           <MetaCardGrid class={technicalCardsPreview}>
             <MetaField
-              label="App ID"
-              tooltip="Stable app identifier used for ownership and updates."
+              label={appText("meta.appId.label")}
+              tooltip={appText("debugLab.techCards.appIdTip")}
               value="com.example.app"
-              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+              onCopySuccess={(label) => onToast("info", appText("toast.metaCopied", { label }))}
             />
             <MetaField
-              label="App UUID"
-              tooltip="Immutable app identity UUID declared by the publisher."
+              label={appText("meta.appUuid.label")}
+              tooltip={appText("debugLab.techCards.appUuidTip")}
               value="6b61815c-66c5-4cc6-85ba-ec0736ecef4c"
-              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+              onCopySuccess={(label) => onToast("info", appText("toast.metaCopied", { label }))}
             />
             <MetaField
-              label="Entrypoint"
-              tooltip="Launch command path from package metadata."
+              label={appText("meta.entrypoint.label")}
+              tooltip={appText("debugLab.techCards.entrypointTip")}
               copyValue="app/bin/example-app"
               value={<code>app/bin/example-app</code>}
-              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+              onCopySuccess={(label) => onToast("info", appText("toast.metaCopied", { label }))}
             />
             <MetaField
-              label="Install Path"
-              tooltip="Destination path where package payload is installed."
+              label={appText("debugLab.techCards.installPath")}
+              tooltip={appText("debugLab.techCards.installPathTip")}
               copyValue="~/.local/share/yambuck/apps/com.example.app"
               value={<code>~/.local/share/yambuck/apps/com.example.app</code>}
-              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+              onCopySuccess={(label) => onToast("info", appText("toast.metaCopied", { label }))}
             />
           </MetaCardGrid>
         </section>

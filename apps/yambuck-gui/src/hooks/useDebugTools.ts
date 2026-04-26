@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { appText } from "../i18n/app";
 import { clearLogs as clearLogsApi, getRecentLogs, getSystemInfo } from "../lib/tauri/api";
 import { logUiAction, logUiError } from "../lib/ui-log";
 import { copyPlainText } from "../utils/clipboard";
@@ -23,7 +24,7 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
       logUiAction("debug-load-success");
     } catch {
       logUiError("debug-load-failed");
-      onToast("error", "Unable to load debug data.");
+      onToast("error", appText("toast.debugLoadFailed"));
     } finally {
       setLoadingDebug(false);
     }
@@ -31,7 +32,7 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
 
   const copyText = async (value: string, successMessage: string) => {
     if (!value.trim()) {
-      onToast("warning", "Nothing to copy yet.");
+      onToast("warning", appText("toast.nothingToCopy"));
       return;
     }
 
@@ -41,13 +42,13 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
       logUiAction("debug-copy", { message: successMessage });
     } catch {
       logUiError("debug-copy-failed", { message: successMessage });
-      onToast("error", "Copy failed.");
+      onToast("error", appText("toast.copyFailed"));
     }
   };
 
   const copySystemInfo = async () => {
     if (!systemInfo) {
-      onToast("warning", "System info not loaded yet.");
+      onToast("warning", appText("toast.systemInfoNotLoaded"));
       return;
     }
 
@@ -63,11 +64,11 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
       `Update feed: ${systemInfo.updateFeedUrl}`,
     ];
 
-    await copyText(lines.join("\n"), "System info copied.");
+    await copyText(lines.join("\n"), appText("toast.systemInfoCopied"));
   };
 
   const copyLogs = async () => {
-    await copyText(logText, "Logs copied.");
+    await copyText(logText, appText("toast.logsCopied"));
   };
 
   const clearLogs = async () => {
@@ -75,10 +76,10 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
       await clearLogsApi();
       setLogText("");
       logUiAction("debug-clear-logs");
-      onToast("info", "Logs cleared.");
+      onToast("info", appText("toast.logsCleared"));
     } catch {
       logUiError("debug-clear-logs-failed");
-      onToast("error", "Unable to clear logs.");
+      onToast("error", appText("toast.logsClearFailed"));
     }
   };
 

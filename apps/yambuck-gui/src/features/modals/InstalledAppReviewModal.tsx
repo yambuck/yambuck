@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { Button } from "../../components/ui/Button";
 import { MetaField } from "../../components/ui/MetaField";
 import { inlineActions, licenseActions, licenseLabel } from "../../components/ui/metaField.css";
+import { appText } from "../../i18n/app";
 import { ModalShell } from "../../components/ui/ModalShell";
 import type { InstalledAppDetails } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
@@ -42,13 +43,13 @@ export const InstalledAppReviewModal = ({
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   return (
-    <ModalShell onClose={onClose} cardClass={`installed-review-modal ${installedReviewCard}`} closeTitle="Close review">
+    <ModalShell onClose={onClose} cardClass={`installed-review-modal ${installedReviewCard}`} closeTitle={appText("review.close.modal")}>
       <section class={`modal-section ${section}`}>
         <div class={`details-header ${detailsHeader}`}>
           <h1>{details.displayName}</h1>
           <div class={`details-actions ${detailsActions}`} data-no-drag="true">
-            <Button class={detailsActionButton} variant="danger" onClick={onUninstall}>Uninstall</Button>
-            <Button class={detailsActionButton} variant="primary" onClick={onLaunch}>Launch app</Button>
+            <Button class={detailsActionButton} variant="danger" onClick={onUninstall}>{appText("review.actions.uninstall")}</Button>
+            <Button class={detailsActionButton} variant="primary" onClick={onLaunch}>{appText("review.actions.launch")}</Button>
           </div>
         </div>
         <PackageDetailsSections
@@ -60,62 +61,62 @@ export const InstalledAppReviewModal = ({
           longDescriptionClassName={installedReviewLongDescription}
           appDetailsContent={(
             <>
-              <MetaField label="Publisher" tooltip="The team or company that published this app." value={details.packageInfo.publisher} />
-              <MetaField label="Version" tooltip="The app version from the archived package manifest." value={details.version} />
+              <MetaField label={appText("meta.publisher.label")} tooltip={appText("meta.publisher.tooltip")} value={details.packageInfo.publisher} />
+              <MetaField label={appText("meta.version.label")} tooltip={appText("meta.version.tooltip")} value={details.version} />
               <MetaField
-                label="Installed"
-                tooltip="Timestamp when Yambuck registered this installation (ISO 8601)."
+                label={appText("meta.installed.label")}
+                tooltip={appText("meta.installed.tooltip")}
                 value={formatCanonicalTimestampForDisplay(details.installedAt)}
               />
-              <MetaField label="Scope" tooltip="Install scope used for this app." value={formatInstallScopeLabel(details.installScope)} />
+              <MetaField label={appText("meta.scope.label")} tooltip={appText("meta.scope.tooltip")} value={formatInstallScopeLabel(details.installScope)} />
               <MetaField
-                label="License"
-                tooltip="The legal terms bundled in the archived package copy."
+                label={appText("meta.license.label")}
+                tooltip={appText("meta.license.tooltip")}
                 value={(
                   <span class={`meta-inline-actions ${inlineActions} license-actions ${licenseActions}`}>
                     <span class={`license-action-label ${licenseLabel}`}>{displayOrFallback(details.packageInfo.license)}</span>
                     {details.packageInfo.licenseText ? (
                       <Button
-                        onClick={() => onOpenLicense(`${details.displayName} License`, details.packageInfo.licenseText!)}
+                        onClick={() => onOpenLicense(appText("review.licenseTitle", { appName: details.displayName }), details.packageInfo.licenseText!)}
                       >
-                        View license
+                        {appText("review.actions.viewLicense")}
                       </Button>
                     ) : null}
                   </span>
                 )}
               />
-              <MetaField label="Trust" tooltip="Trust status captured from the archived manifest." value={details.packageInfo.trustStatus} />
+              <MetaField label={appText("meta.trust.label")} tooltip={appText("meta.trust.tooltip")} value={details.packageInfo.trustStatus} />
             </>
           )}
           technicalDetailsContent={(
             <>
               <MetaField
-                label="Install location"
-                tooltip="Installed payload root managed by Yambuck."
+                label={appText("meta.installLocation.label")}
+                tooltip={appText("meta.installLocation.tooltip")}
                 copyValue={details.destinationPath}
                 value={<code>{details.destinationPath}</code>}
                 onCopySuccess={onMetaFieldCopied}
               />
-              <MetaField label="Package" tooltip="Archived .yambuck file name stored by Yambuck." value={details.packageInfo.fileName} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Manifest" tooltip="Manifest schema version from the archived package." value={details.packageInfo.manifestVersion} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="App ID" tooltip="Stable app identifier used by Yambuck." value={details.appId} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="App UUID" tooltip="Publisher-defined immutable app identity UUID." value={details.packageInfo.appUuid} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Package UUID" tooltip="Immutable UUID for this archived package build." value={details.packageInfo.packageUuid} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.package.label")} tooltip={appText("meta.package.tooltip")} value={details.packageInfo.fileName} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.manifest.label")} tooltip={appText("meta.manifest.tooltip")} value={details.packageInfo.manifestVersion} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.appId.label")} tooltip={appText("meta.appId.tooltip")} value={details.appId} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.appUuid.label")} tooltip={appText("meta.appUuid.tooltip")} value={details.packageInfo.appUuid} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.packageUuid.label")} tooltip={appText("meta.packageUuid.tooltip")} value={details.packageInfo.packageUuid} onCopySuccess={onMetaFieldCopied} />
               <MetaField
-                label="Entrypoint"
-                tooltip="Launch command path declared by the package manifest."
+                label={appText("meta.entrypoint.label")}
+                tooltip={appText("meta.entrypoint.tooltip")}
                 copyValue={details.packageInfo.entrypoint}
                 value={<code>{details.packageInfo.entrypoint}</code>}
                 onCopySuccess={onMetaFieldCopied}
               />
-              <MetaField label="Config location" tooltip="Optional config location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.configPath)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Cache location" tooltip="Optional cache location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.cachePath)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Temp location" tooltip="Optional temp location from manifest. Not inferred by Yambuck." value={displayOrFallback(details.packageInfo.tempPath)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Icon asset" tooltip="Manifest icon path relative to package root." value={displayOrFallback(details.packageInfo.iconPath)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="License file" tooltip="Manifest license file path if provided by publisher." value={displayOrFallback(details.packageInfo.licenseFile)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Support URL" tooltip="Publisher support URL from package metadata." value={displayOrFallback(details.packageInfo.supportUrl)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Homepage URL" tooltip="Publisher homepage URL from package metadata." value={displayOrFallback(details.packageInfo.homepageUrl)} onCopySuccess={onMetaFieldCopied} />
-              <MetaField label="Screenshots" tooltip="Screenshot assets declared in the manifest." value={details.packageInfo.screenshots.length} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.configLocation.label")} tooltip={appText("meta.configLocation.tooltip")} value={displayOrFallback(details.packageInfo.configPath)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.cacheLocation.label")} tooltip={appText("meta.cacheLocation.tooltip")} value={displayOrFallback(details.packageInfo.cachePath)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.tempLocation.label")} tooltip={appText("meta.tempLocation.tooltip")} value={displayOrFallback(details.packageInfo.tempPath)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.iconAsset.label")} tooltip={appText("meta.iconAsset.tooltip")} value={displayOrFallback(details.packageInfo.iconPath)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.licenseFile.label")} tooltip={appText("meta.licenseFile.tooltip")} value={displayOrFallback(details.packageInfo.licenseFile)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.supportUrl.label")} tooltip={appText("meta.supportUrl.tooltip")} value={displayOrFallback(details.packageInfo.supportUrl)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.homepageUrl.label")} tooltip={appText("meta.homepageUrl.tooltip")} value={displayOrFallback(details.packageInfo.homepageUrl)} onCopySuccess={onMetaFieldCopied} />
+              <MetaField label={appText("meta.screenshots.label")} tooltip={appText("meta.screenshots.tooltip")} value={details.packageInfo.screenshots.length} onCopySuccess={onMetaFieldCopied} />
             </>
           )}
         />
