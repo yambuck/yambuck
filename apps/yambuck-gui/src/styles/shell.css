@@ -55,6 +55,14 @@ body {
   pointer-events: none;
 }
 
+.modal-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 0.85rem;
+  flex-wrap: wrap;
+}
+
 .resize-overlay {
   position: absolute;
   inset: 0;

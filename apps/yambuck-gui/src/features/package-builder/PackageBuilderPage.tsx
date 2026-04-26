@@ -42,13 +42,29 @@ import {
   stepButton,
   stepButtonActive,
   stepList,
+  targetList,
+  targetListActions,
+  targetListItem,
+  targetListItemActive,
   workspace,
+  wipBanner,
 } from "./packageBuilderPage.css";
 
 type ToastTone = "info" | "success" | "warning" | "error";
 
 type BuilderStep = "identity" | "metadata" | "interfaces" | "targets" | "assets" | "review";
 type BuilderMode = "start" | "new";
+
+type BuilderArch = "x86_64" | "aarch64" | "riscv64";
+
+type BuilderTarget = {
+  id: string;
+  arch: BuilderArch;
+  variant: string;
+  payloadRoot: string;
+  guiEntrypoint: string;
+  cliEntrypoint: string;
+};
 
 type BuilderFormState = {
   appId: string;
@@ -61,29 +77,43 @@ type BuilderFormState = {
   publisher: string;
   homepageUrl: string;
   supportUrl: string;
+  license: string;
+  licenseFile: string;
+  requiresLicenseAcceptance: boolean;
   hasGui: boolean;
   hasCli: boolean;
   commandName: string;
   usageHint: string;
-  targetId: string;
-  arch: "x86_64" | "aarch64" | "riscv64";
-  variant: string;
-  payloadRoot: string;
-  guiEntrypoint: string;
-  cliEntrypoint: string;
   iconPath: string;
   screenshotsText: string;
+  targets: BuilderTarget[];
 };
 
 type StagedAsset = {
   id: string;
-  kind: "icon" | "screenshot" | "binary";
+  kind: "icon" | "screenshot" | "binary" | "license";
   sourceName: string;
   targetPath: string;
   arch?: string;
 };
 
+type PackageBuilderPageProps = {
+  onToast: (tone: ToastTone, message: string, durationMs?: number) => void;
+};
+
 const builderSteps: BuilderStep[] = ["identity", "metadata", "interfaces", "targets", "assets", "review"];
+
+const defaultTarget = (arch: BuilderArch, index = 0): BuilderTarget => {
+  const variant = "default";
+  return {
+    id: `linux-${arch}-${variant}-${index + 1}`,
+    arch,
+    variant,
+    payloadRoot: `payloads/linux/${arch}/${variant}`,
+    guiEntrypoint: "app/bin/example-app",
+    cliEntrypoint: "app/bin/example-app",
+  };
+};
 
 const defaultBuilderForm = (): BuilderFormState => ({
   appId: "com.example.app",
@@ -96,18 +126,16 @@ const defaultBuilderForm = (): BuilderFormState => ({
   publisher: "Example Publisher",
   homepageUrl: "",
   supportUrl: "",
+  license: "",
+  licenseFile: "",
+  requiresLicenseAcceptance: false,
   hasGui: true,
   hasCli: false,
   commandName: "",
   usageHint: "",
-  targetId: "linux-x86_64-default",
-  arch: "x86_64",
-  variant: "default",
-  payloadRoot: "payloads/linux/x86_64/default",
-  guiEntrypoint: "app/bin/example-app",
-  cliEntrypoint: "app/bin/example-app",
   iconPath: "assets/icon.png",
   screenshotsText: "assets/screenshots/screenshot-a.png",
+  targets: [defaultTarget("x86_64")],
 });
 
 const asText = (value: unknown): string => (typeof value === "string" ? value : "");
@@ -132,7 +160,7 @@ const normalizeScreenshots = (value: unknown): string[] => {
     .filter(Boolean);
 };
 
-const normalizeArch = (value: unknown): BuilderFormState["arch"] => {
+const normalizeArch = (value: unknown): BuilderArch => {
   if (value === "aarch64" || value === "riscv64") {
     return value;
   }
@@ -162,13 +190,39 @@ const toPathList = (value: string | string[] | null): string[] => {
   return [value];
 };
 
+const normalizeTargets = (value: unknown): BuilderTarget[] => {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [defaultTarget("x86_64")];
+  }
+
+  const next = value
+    .map((entry, index) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return defaultTarget("x86_64", index);
+      }
+      const target = entry as Record<string, unknown>;
+      const entrypoints = (target.entrypoints ?? {}) as Record<string, unknown>;
+      const arch = normalizeArch(target.arch);
+      const variant = firstNonEmpty(target.variant, "default");
+
+      return {
+        id: asText(target.id) || `linux-${arch}-${variant}-${index + 1}`,
+        arch,
+        variant,
+        payloadRoot: asText(target.payloadRoot) || `payloads/linux/${arch}/${variant}`,
+        guiEntrypoint: firstNonEmpty(entrypoints.gui, "app/bin/example-app"),
+        cliEntrypoint: firstNonEmpty(entrypoints.cli, "app/bin/example-app"),
+      };
+    })
+    .filter(Boolean);
+
+  return next.length > 0 ? next : [defaultTarget("x86_64")];
+};
+
 const formFromManifest = (manifest: Record<string, unknown>): BuilderFormState => {
   const interfaces = (manifest.interfaces ?? {}) as Record<string, unknown>;
   const gui = (interfaces.gui ?? {}) as Record<string, unknown>;
   const cli = (interfaces.cli ?? {}) as Record<string, unknown>;
-  const targets = Array.isArray(manifest.targets) ? manifest.targets : [];
-  const firstTarget = (targets[0] ?? {}) as Record<string, unknown>;
-  const entrypoints = (firstTarget.entrypoints ?? {}) as Record<string, unknown>;
   const screenshots = normalizeScreenshots(manifest.screenshots);
 
   return {
@@ -182,35 +236,32 @@ const formFromManifest = (manifest: Record<string, unknown>): BuilderFormState =
     publisher: asText(manifest.publisher),
     homepageUrl: asText(manifest.homepageUrl),
     supportUrl: asText(manifest.supportUrl),
+    license: asText(manifest.license),
+    licenseFile: asText(manifest.licenseFile),
+    requiresLicenseAcceptance: asBoolean(manifest.requiresLicenseAcceptance, false),
     hasGui: asBoolean(gui.enabled, true),
     hasCli: asBoolean(cli.enabled, false),
     commandName: asText(cli.commandName),
     usageHint: asText(cli.usageHint),
-    targetId: asText(firstTarget.id) || "linux-x86_64-default",
-    arch: normalizeArch(firstTarget.arch),
-    variant: firstNonEmpty(firstTarget.variant, "default"),
-    payloadRoot: asText(firstTarget.payloadRoot) || "payloads/linux/x86_64/default",
-    guiEntrypoint: firstNonEmpty(entrypoints.gui, manifest.entrypoint),
-    cliEntrypoint: firstNonEmpty(entrypoints.cli, manifest.entrypoint),
     iconPath: asText(manifest.iconPath),
     screenshotsText: screenshots.join("\n"),
+    targets: normalizeTargets(manifest.targets),
   };
-};
-
-type PackageBuilderPageProps = {
-  onToast: (tone: ToastTone, message: string, durationMs?: number) => void;
 };
 
 export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
   const [step, setStep] = useState<BuilderStep>("identity");
   const [form, setForm] = useState<BuilderFormState>(() => defaultBuilderForm());
+  const [activeTargetIndex, setActiveTargetIndex] = useState(0);
   const [stagedAssets, setStagedAssets] = useState<StagedAsset[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [openedPackageFile, setOpenedPackageFile] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+
+  const activeTarget = form.targets[activeTargetIndex] ?? null;
 
   const notify = (tone: ToastTone, key: string, params?: Record<string, string | number>) => {
     const message = appText(key, params);
@@ -226,13 +277,22 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     };
   }, [sessionId]);
 
+  useEffect(() => {
+    if (form.targets.length === 0) {
+      setActiveTargetIndex(0);
+      return;
+    }
+    if (activeTargetIndex >= form.targets.length) {
+      setActiveTargetIndex(form.targets.length - 1);
+    }
+  }, [form.targets.length, activeTargetIndex]);
+
   const screenshots = useMemo(
     () => form.screenshotsText.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean),
     [form.screenshotsText],
   );
 
   const manifestPreview = useMemo(() => {
-    const variant = form.variant.trim() || "default";
     const nextManifest: Record<string, unknown> = {
       manifestVersion: "1.0.0",
       packageUuid: form.packageUuid,
@@ -253,22 +313,20 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           usageHint: form.usageHint,
         },
       },
-      targets: [
-        {
-          id: form.targetId,
-          os: "linux",
-          arch: form.arch,
-          variant,
-          payloadRoot: form.payloadRoot,
-          entrypoints: {
-            gui: form.guiEntrypoint,
-            cli: form.cliEntrypoint,
-          },
-          linux: {
-            desktopEnvironments: ["x11", "wayland"],
-          },
+      targets: form.targets.map((target) => ({
+        id: target.id,
+        os: "linux",
+        arch: target.arch,
+        variant: target.variant.trim() || "default",
+        payloadRoot: target.payloadRoot,
+        entrypoints: {
+          gui: target.guiEntrypoint,
+          cli: target.cliEntrypoint,
         },
-      ],
+        linux: {
+          desktopEnvironments: ["x11", "wayland"],
+        },
+      })),
     };
 
     if (form.homepageUrl.trim()) {
@@ -276,6 +334,15 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     }
     if (form.supportUrl.trim()) {
       nextManifest.supportUrl = form.supportUrl;
+    }
+    if (form.license.trim()) {
+      nextManifest.license = form.license;
+    }
+    if (form.licenseFile.trim()) {
+      nextManifest.licenseFile = form.licenseFile;
+    }
+    if (form.requiresLicenseAcceptance || form.licenseFile.trim()) {
+      nextManifest.requiresLicenseAcceptance = form.requiresLicenseAcceptance;
     }
 
     return JSON.stringify(nextManifest, null, 2);
@@ -286,6 +353,41 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     logUiAction("builder-field-change", { field: key, valueMetric: detailValue });
     setStatusMessage(null);
     setForm((current) => ({ ...current, [key]: value }));
+    setIsDirty(true);
+  };
+
+  const setTargetField = <Key extends keyof BuilderTarget>(index: number, key: Key, value: BuilderTarget[Key]) => {
+    logUiAction("builder-target-field-change", { index, field: key });
+    setStatusMessage(null);
+    setForm((current) => ({
+      ...current,
+      targets: current.targets.map((target, targetIndex) => (targetIndex === index ? { ...target, [key]: value } : target)),
+    }));
+    setIsDirty(true);
+  };
+
+  const addTarget = () => {
+    const nextIndex = form.targets.length;
+    const nextTarget = defaultTarget("x86_64", nextIndex);
+    logUiAction("builder-target-add", { countBefore: form.targets.length });
+    setForm((current) => ({ ...current, targets: [...current.targets, nextTarget] }));
+    setActiveTargetIndex(nextIndex);
+    setIsDirty(true);
+  };
+
+  const removeTarget = (index: number) => {
+    if (form.targets.length <= 1) {
+      onToast("warning", appText("builder.targets.empty"));
+      return;
+    }
+    logUiAction("builder-target-remove", { index, countBefore: form.targets.length });
+    setForm((current) => ({
+      ...current,
+      targets: current.targets.filter((_, targetIndex) => targetIndex !== index),
+    }));
+    if (activeTargetIndex >= index && activeTargetIndex > 0) {
+      setActiveTargetIndex(activeTargetIndex - 1);
+    }
     setIsDirty(true);
   };
 
@@ -302,7 +404,11 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     setStagedAssets((current) => [...current.filter((item) => !predicate(item)), ...nextItems]);
   };
 
-  const stageSelectedFiles = async (files: BuilderStagedFile[], assets: StagedAsset[], replace: (item: StagedAsset) => boolean) => {
+  const stageSelectedFiles = async (
+    files: BuilderStagedFile[],
+    assets: StagedAsset[],
+    replace: (item: StagedAsset) => boolean,
+  ) => {
     const activeSessionId = ensureSessionId();
     if (!activeSessionId) {
       return;
@@ -341,6 +447,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       setSessionId(session.sessionId);
       setOpenedPackageFile(null);
       setForm(defaultBuilderForm());
+      setActiveTargetIndex(0);
       setStagedAssets([]);
       setStep("identity");
       setMode("new");
@@ -385,9 +492,11 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         throw new Error("invalid manifest");
       }
 
+      const nextForm = formFromManifest(parsed as Record<string, unknown>);
       setSessionId(session.sessionId);
       setOpenedPackageFile(session.packageFile ?? packagePath);
-      setForm(formFromManifest(parsed as Record<string, unknown>));
+      setForm(nextForm);
+      setActiveTargetIndex(0);
       setStagedAssets([]);
       setStep("identity");
       setMode("new");
@@ -462,7 +571,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     try {
       await saveBuilderSession(activeSessionId, manifestPreview);
       setIsDirty(false);
-      logUiAction("builder-save-success", { file: openedPackageFile ? fileBaseName(openedPackageFile) : "none" });
+      logUiAction("builder-save-success", { file: fileBaseName(openedPackageFile) });
       notify("success", "builder.saveSuccess");
     } catch (error) {
       logUiError("builder-save-failed", {
@@ -495,13 +604,14 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return;
     }
 
-    const baseName = fileBaseName(sourcePath);
-    const extension = baseName.includes(".") ? baseName.slice(baseName.lastIndexOf(".")).toLowerCase() : ".png";
+    const sourceName = fileBaseName(sourcePath);
+    const extension = sourceName.includes(".") ? sourceName.slice(sourceName.lastIndexOf(".")).toLowerCase() : ".png";
     const targetPath = `assets/icon${extension}`;
     setField("iconPath", targetPath);
+
     await stageSelectedFiles(
       [{ sourcePath, targetPath }],
-      [{ id: "icon", kind: "icon", sourceName: baseName, targetPath }],
+      [{ id: "icon", kind: "icon", sourceName, targetPath }],
       (item) => item.kind === "icon",
     );
   };
@@ -550,7 +660,12 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   };
 
   const browseBinary = async () => {
-    logUiAction("builder-browse-binary-clicked", { arch: form.arch });
+    if (!activeTarget) {
+      notify("warning", "builder.targets.empty");
+      return;
+    }
+
+    logUiAction("builder-browse-binary-clicked", { arch: activeTarget.arch, target: activeTarget.id });
     let sourcePath: string | undefined;
     try {
       const selected = await open({ multiple: false });
@@ -567,32 +682,135 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return;
     }
 
-    const variant = form.variant.trim() || "default";
-    const payloadRoot = `payloads/linux/${form.arch}/${variant}`;
     const sourceName = fileBaseName(sourcePath);
     const binaryName = sanitizeFileName(sourceName);
     const entrypoint = `app/bin/${binaryName}`;
+    const payloadRoot = activeTarget.payloadRoot || `payloads/linux/${activeTarget.arch}/${activeTarget.variant || "default"}`;
     const targetPath = `${payloadRoot}/${entrypoint}`;
 
-    setField("payloadRoot", payloadRoot);
-    setField("targetId", `linux-${form.arch}-${variant}`);
+    setTargetField(activeTargetIndex, "payloadRoot", payloadRoot);
+    setTargetField(activeTargetIndex, "id", activeTarget.id || `linux-${activeTarget.arch}-${activeTarget.variant || "default"}`);
     if (form.hasGui) {
-      setField("guiEntrypoint", entrypoint);
+      setTargetField(activeTargetIndex, "guiEntrypoint", entrypoint);
     }
     if (form.hasCli) {
-      setField("cliEntrypoint", entrypoint);
+      setTargetField(activeTargetIndex, "cliEntrypoint", entrypoint);
     }
 
     await stageSelectedFiles(
       [{ sourcePath, targetPath }],
       [{
-        id: `binary-${form.arch}-${variant}`,
+        id: `binary-${activeTargetIndex}`,
         kind: "binary",
         sourceName,
         targetPath,
-        arch: form.arch,
+        arch: activeTarget.arch,
       }],
-      (item) => item.kind === "binary" && item.id === `binary-${form.arch}-${variant}`,
+      (item) => item.kind === "binary" && item.id === `binary-${activeTargetIndex}`,
+    );
+  };
+
+  const browseLicenseFile = async () => {
+    logUiAction("builder-browse-license-clicked");
+    let sourcePath: string | undefined;
+    try {
+      const selected = await open({ multiple: false });
+      sourcePath = toPathList(selected)[0];
+    } catch (error) {
+      logUiError("builder-browse-license-dialog-failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      notify("error", "builder.files.stageError");
+      return;
+    }
+    if (!sourcePath) {
+      logUiAction("builder-browse-license-cancelled");
+      return;
+    }
+
+    const sourceName = fileBaseName(sourcePath);
+    const normalizedName = sanitizeFileName(sourceName);
+    const targetPath = `assets/licenses/${normalizedName}`;
+    if (!form.license.trim()) {
+      setField("license", "Custom");
+    }
+    setField("licenseFile", targetPath);
+
+    await stageSelectedFiles(
+      [{ sourcePath, targetPath }],
+      [{ id: "license", kind: "license", sourceName, targetPath }],
+      (item) => item.kind === "license",
+    );
+  };
+
+  const renderTargetsEditor = () => {
+    if (!activeTarget) {
+      return <p class={sectionBody}>{appText("builder.targets.empty")}</p>;
+    }
+
+    return (
+      <>
+        <div class={targetListActions}>
+          <h3 class={previewTitle}>{appText("builder.targets.title")}</h3>
+          <Button onClick={addTarget} disabled={isBusy}>{appText("builder.targets.add")}</Button>
+        </div>
+        <div class={targetList} role="tablist" aria-label={appText("builder.targets.listAria")}>
+          {form.targets.map((target, index) => (
+            <div key={`${target.id}-${index}`} class={targetListItem}>
+              <button
+                type="button"
+                class={`${stepButton}${index === activeTargetIndex ? ` ${targetListItemActive}` : ""}`}
+                onClick={() => {
+                  logUiAction("builder-target-select", { index, target: target.id });
+                  setActiveTargetIndex(index);
+                }}
+              >
+                {appText("builder.targets.item", { index: index + 1 })} - {target.arch}
+              </button>
+              <Button onClick={() => removeTarget(index)} disabled={isBusy || form.targets.length <= 1}>
+                {appText("builder.targets.remove")}
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <label class={fieldStack}>
+          <span class={fieldLabel}>{appText("builder.fields.targetId")}</span>
+          <TextField value={activeTarget.id} onInput={(value) => setTargetField(activeTargetIndex, "id", value)} />
+        </label>
+        <label class={fieldStack}>
+          <span class={fieldLabel}>{appText("builder.fields.arch")}</span>
+          <SelectField
+            value={activeTarget.arch}
+            onValueChange={(value) => setTargetField(activeTargetIndex, "arch", value as BuilderArch)}
+            options={[
+              { value: "x86_64", label: "x86_64" },
+              { value: "aarch64", label: "aarch64" },
+              { value: "riscv64", label: "riscv64" },
+            ]}
+          />
+        </label>
+        <label class={fieldStack}>
+          <span class={fieldLabel}>{appText("builder.fields.variant")}</span>
+          <TextField value={activeTarget.variant} onInput={(value) => setTargetField(activeTargetIndex, "variant", value)} />
+        </label>
+        <label class={fieldStack}>
+          <span class={fieldLabel}>{appText("builder.fields.payloadRoot")}</span>
+          <TextField value={activeTarget.payloadRoot} onInput={(value) => setTargetField(activeTargetIndex, "payloadRoot", value)} />
+        </label>
+        <label class={fieldStack}>
+          <span class={fieldLabel}>{appText("builder.fields.guiEntrypoint")}</span>
+          <TextField value={activeTarget.guiEntrypoint} onInput={(value) => setTargetField(activeTargetIndex, "guiEntrypoint", value)} />
+        </label>
+        <label class={fieldStack}>
+          <span class={fieldLabel}>{appText("builder.fields.cliEntrypoint")}</span>
+          <TextField value={activeTarget.cliEntrypoint} onInput={(value) => setTargetField(activeTargetIndex, "cliEntrypoint", value)} />
+        </label>
+        <div class={fieldStack}>
+          <span class={fieldLabel}>{appText("builder.fields.binaryUpload")}</span>
+          <Button onClick={() => void browseBinary()} disabled={isBusy}>{appText("builder.files.browseBinary")}</Button>
+        </div>
+      </>
     );
   };
 
@@ -653,6 +871,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
             <span class={fieldLabel}>{appText("builder.fields.supportUrl")}</span>
             <TextField value={form.supportUrl} onInput={(value) => setField("supportUrl", value)} />
           </label>
+          <label class={fieldStack}>
+            <span class={fieldLabel}>{appText("builder.fields.license")}</span>
+            <TextField value={form.license} onInput={(value) => setField("license", value)} />
+          </label>
         </div>
       );
     }
@@ -679,42 +901,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.targets")}</p>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.targetId")}</span>
-            <TextField value={form.targetId} onInput={(value) => setField("targetId", value)} />
-          </label>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.arch")}</span>
-            <SelectField
-              value={form.arch}
-              onValueChange={(value) => setField("arch", value as BuilderFormState["arch"])}
-              options={[
-                { value: "x86_64", label: "x86_64" },
-                { value: "aarch64", label: "aarch64" },
-                { value: "riscv64", label: "riscv64" },
-              ]}
-            />
-          </label>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.variant")}</span>
-            <TextField value={form.variant} onInput={(value) => setField("variant", value)} />
-          </label>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.payloadRoot")}</span>
-            <TextField value={form.payloadRoot} onInput={(value) => setField("payloadRoot", value)} />
-          </label>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.guiEntrypoint")}</span>
-            <TextField value={form.guiEntrypoint} onInput={(value) => setField("guiEntrypoint", value)} />
-          </label>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.cliEntrypoint")}</span>
-            <TextField value={form.cliEntrypoint} onInput={(value) => setField("cliEntrypoint", value)} />
-          </label>
-          <div class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.binaryUpload")}</span>
-            <Button onClick={() => void browseBinary()} disabled={isBusy}>{appText("builder.files.browseBinary")}</Button>
-          </div>
+          {renderTargetsEditor()}
         </div>
       );
     }
@@ -743,6 +930,20 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
             <span class={fieldLabel}>{appText("builder.fields.screenshotUpload")}</span>
             <Button onClick={() => void browseScreenshots()} disabled={isBusy}>{appText("builder.files.browseScreenshots")}</Button>
           </div>
+          <label class={fieldStack}>
+            <span class={fieldLabel}>{appText("builder.fields.licenseFile")}</span>
+            <TextField value={form.licenseFile} onInput={(value) => setField("licenseFile", value)} />
+          </label>
+          <div class={fieldStack}>
+            <span class={fieldLabel}>{appText("builder.fields.licenseUpload")}</span>
+            <Button onClick={() => void browseLicenseFile()} disabled={isBusy}>{appText("builder.files.browseLicense")}</Button>
+          </div>
+          <CheckboxField
+            checked={form.requiresLicenseAcceptance}
+            onChange={(checked) => setField("requiresLicenseAcceptance", checked)}
+          >
+            {appText("builder.fields.requiresLicenseAcceptance")}
+          </CheckboxField>
         </div>
       );
     }
@@ -759,6 +960,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     return (
       <Panel class={pagePanel}>
         <PanelHeader title={appText("builder.title")}>{appText("builder.subtitle")}</PanelHeader>
+        <section class={wipBanner}>
+          <h2>{appText("builder.wip.title")}</h2>
+          <p>{appText("builder.wip.body")}</p>
+        </section>
         <section class={startCard}>
           <h2>{appText("builder.startTitle")}</h2>
           <p>{appText("builder.startBody")}</p>
@@ -775,6 +980,11 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   return (
     <Panel class={pagePanel}>
       <PanelHeader title={appText("builder.title")}>{appText("builder.subtitle")}</PanelHeader>
+
+      <section class={wipBanner}>
+        <h2>{appText("builder.wip.title")}</h2>
+        <p>{appText("builder.wip.body")}</p>
+      </section>
 
       <div class={actionBar}>
         <span class={statusBadge}>{isDirty ? appText("builder.dirty") : appText("builder.clean")}</span>

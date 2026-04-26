@@ -2,6 +2,9 @@ import { IconBrandGithub } from "@tabler/icons-preact";
 import { useEffect, useState } from "preact/hooks";
 import { ToastHost } from "./components/ui/ToastHost";
 import { WindowControls } from "./components/ui/WindowControls";
+import { Button } from "./components/ui/Button";
+import { CheckboxField } from "./components/ui/CheckboxField";
+import { ModalShell } from "./components/ui/ModalShell";
 import { Panel } from "./components/ui/Panel";
 import { PanelHeader } from "./components/ui/PanelHeader";
 import { TogglePillGroup } from "./components/ui/TogglePillGroup";
@@ -47,6 +50,16 @@ type RouteState = {
   settingsTab: SettingsTab;
   installedReviewTarget: string | null;
   mockInstalledReviewAppId: string | null;
+};
+
+const BUILDER_GATE_DISMISS_KEY = "yambuck.builderGateDismissed";
+
+const loadBuilderGateDismissed = (): boolean => {
+  try {
+    return window.localStorage.getItem(BUILDER_GATE_DISMISS_KEY) === "1";
+  } catch {
+    return false;
+  }
 };
 
 const makeInstalledReviewTarget = (appId: string, installScope: InstallScope): string => `${appId}::${installScope}`;
@@ -196,6 +209,9 @@ function App() {
   const [debugInstallScenario, setDebugInstallScenario] = useState<DebugInstallScenario>("update");
   const [debugExistingVersion, setDebugExistingVersion] = useState("1.3.8");
   const [debugIncomingVersion, setDebugIncomingVersion] = useState(mockPackageInfo.version);
+  const [builderGateDismissed, setBuilderGateDismissed] = useState(() => loadBuilderGateDismissed());
+  const [showBuilderGate, setShowBuilderGate] = useState(false);
+  const [rememberBuilderGateDismissal, setRememberBuilderGateDismissal] = useState(false);
 
   const handleSetDebugInstallScenario = (scenario: DebugInstallScenario) => {
     setDebugInstallScenario(scenario);
@@ -393,6 +409,15 @@ function App() {
   }, [page, settingsTab, installedReviewTarget, mockInstalledReviewAppId]);
 
   useEffect(() => {
+    if (page !== "packageBuilder" || builderGateDismissed) {
+      setShowBuilderGate(false);
+      return;
+    }
+    logUiAction("builder-gate-show");
+    setShowBuilderGate(true);
+  }, [page, builderGateDismissed]);
+
+  useEffect(() => {
     if (page !== "installedReview" || !installedReviewTarget) {
       return;
     }
@@ -470,6 +495,26 @@ function App() {
     } catch {
       // toast copy is a convenience action; ignore clipboard failures
     }
+  };
+
+  const handleBuilderGateContinue = () => {
+    logUiAction("builder-gate-continue", { remember: rememberBuilderGateDismissal });
+    if (rememberBuilderGateDismissal) {
+      try {
+        window.localStorage.setItem(BUILDER_GATE_DISMISS_KEY, "1");
+      } catch {
+        // ignore localStorage failures
+      }
+      setBuilderGateDismissed(true);
+    }
+    setShowBuilderGate(false);
+  };
+
+  const handleBuilderGateCancel = () => {
+    logUiAction("builder-gate-cancel");
+    setShowBuilderGate(false);
+    setRememberBuilderGateDismissal(false);
+    setPage("installer");
   };
 
   const navigateToInstalledList = () => {
@@ -1007,6 +1052,25 @@ function App() {
             onPrevious={() => cycleScreenshot(-1)}
             onNext={() => cycleScreenshot(1)}
           />
+        ) : null}
+
+        {showBuilderGate ? (
+          <ModalShell onClose={handleBuilderGateCancel} closeTitle={appText("builderGate.cancel")}>
+            <section>
+              <h2>{appText("builderGate.title")}</h2>
+              <p>{appText("builderGate.body")}</p>
+              <CheckboxField
+                checked={rememberBuilderGateDismissal}
+                onChange={setRememberBuilderGateDismissal}
+              >
+                {appText("builderGate.remember")}
+              </CheckboxField>
+              <div class="modal-actions">
+                <Button onClick={handleBuilderGateCancel}>{appText("builderGate.cancel")}</Button>
+                <Button variant="primary" onClick={handleBuilderGateContinue}>{appText("builderGate.continue")}</Button>
+              </div>
+            </section>
+          </ModalShell>
         ) : null}
       </div>
     </main>

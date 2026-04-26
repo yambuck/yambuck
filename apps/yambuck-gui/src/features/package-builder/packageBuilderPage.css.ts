@@ -38,6 +38,15 @@ export const statusBadge = style({
   padding: "0.2rem 0.55rem",
 });
 
+export const wipBanner = style({
+  border: "1px solid var(--colors-style-color075)",
+  borderRadius: "12px",
+  background: "var(--colors-style-color005)",
+  padding: "0.75rem",
+  display: "grid",
+  gap: "0.35rem",
+});
+
 export const workspace = style({
   display: "grid",
   gridTemplateColumns: "190px minmax(0, 1fr) minmax(0, 1fr)",
@@ -81,6 +90,32 @@ export const stepButton = style({
 });
 
 export const stepButtonActive = style({
+  background: "linear-gradient(135deg, var(--colors-style-color077), var(--colors-style-color078))",
+  borderColor: "var(--colors-style-color079)",
+  color: "var(--colors-style-color080)",
+});
+
+export const targetListActions = style({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "0.55rem",
+  flexWrap: "wrap",
+});
+
+export const targetList = style({
+  display: "grid",
+  gap: "0.45rem",
+});
+
+export const targetListItem = style({
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: "0.45rem",
+  alignItems: "center",
+});
+
+export const targetListItemActive = style({
   background: "linear-gradient(135deg, var(--colors-style-color077), var(--colors-style-color078))",
   borderColor: "var(--colors-style-color079)",
   color: "var(--colors-style-color080)",
