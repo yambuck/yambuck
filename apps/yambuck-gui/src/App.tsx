@@ -1,9 +1,6 @@
 import { IconBrandGithub } from "@tabler/icons-preact";
 import { useEffect, useState } from "preact/hooks";
 import { ToastHost } from "./components/ui/ToastHost";
-import { Button } from "./components/ui/Button";
-import { CheckboxField } from "./components/ui/CheckboxField";
-import { ModalShell } from "./components/ui/ModalShell";
 import { Panel } from "./components/ui/Panel";
 import { PanelHeader } from "./components/ui/PanelHeader";
 import { InstalledAppReviewPage } from "./features/installed/InstalledAppReviewPage";
@@ -17,11 +14,11 @@ import { MockInstalledAppsPage } from "./features/mock-preview/MockInstalledApps
 import { MockPreviewPage } from "./features/mock-preview/MockPreviewPage";
 import { MockUninstallFlowPage } from "./features/mock-preview/MockUninstallFlowPage";
 import { UiDebugLabPage } from "./features/mock-preview/UiDebugLabPage";
-import { LicenseViewerModal } from "./features/modals/LicenseViewerModal";
-import { ScreenshotModal } from "./features/modals/ScreenshotModal";
-import { UpdateModal } from "./features/modals/UpdateModal";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { useBuilderGate } from "./hooks/useBuilderGate";
 import { AppTopBar } from "./layout/AppTopBar";
+import { AppPageRenderer } from "./layout/AppPageRenderer";
+import { AppModalHost } from "./layout/AppModalHost";
 import { useDebugTools } from "./hooks/useDebugTools";
 import { useInstalledAppsManager } from "./hooks/useInstalledAppsManager";
 import { useInstallerFlow } from "./hooks/useInstallerFlow";
@@ -42,16 +39,6 @@ import type {
 import { hashFromRoute, makeInstalledReviewTarget, parseInstalledReviewTarget, routeFromHash } from "./routes/appRoutes";
 import { useEscapeKey } from "./useEscapeKey";
 import "./App.css";
-
-const BUILDER_GATE_DISMISS_KEY = "yambuck.builderGateDismissed";
-
-const loadBuilderGateDismissed = (): boolean => {
-  try {
-    return window.localStorage.getItem(BUILDER_GATE_DISMISS_KEY) === "1";
-  } catch {
-    return false;
-  }
-};
 
 const getInteractionLabel = (element: HTMLElement): string => {
   const ariaLabel = element.getAttribute("aria-label")?.trim();
@@ -85,9 +72,13 @@ function App() {
   const [debugInstallScenario, setDebugInstallScenario] = useState<DebugInstallScenario>("update");
   const [debugExistingVersion, setDebugExistingVersion] = useState("1.3.8");
   const [debugIncomingVersion, setDebugIncomingVersion] = useState(mockPackageInfo.version);
-  const [builderGateDismissed, setBuilderGateDismissed] = useState(() => loadBuilderGateDismissed());
-  const [showBuilderGate, setShowBuilderGate] = useState(false);
-  const [rememberBuilderGateDismissal, setRememberBuilderGateDismissal] = useState(false);
+  const {
+    showBuilderGate,
+    rememberBuilderGateDismissal,
+    setRememberBuilderGateDismissal,
+    handleBuilderGateContinue,
+    handleBuilderGateCancel,
+  } = useBuilderGate({ page, setPage });
 
   const handleSetDebugInstallScenario = (scenario: DebugInstallScenario) => {
     setDebugInstallScenario(scenario);
@@ -285,15 +276,6 @@ function App() {
   }, [page, settingsTab, installedReviewTarget, mockInstalledReviewAppId]);
 
   useEffect(() => {
-    if (page !== "packageBuilder" || builderGateDismissed) {
-      setShowBuilderGate(false);
-      return;
-    }
-    logUiAction("builder-gate-show");
-    setShowBuilderGate(true);
-  }, [page, builderGateDismissed]);
-
-  useEffect(() => {
     if (page !== "installedReview" || !installedReviewTarget) {
       return;
     }
@@ -400,26 +382,6 @@ function App() {
     } catch {
       // toast copy is a convenience action; ignore clipboard failures
     }
-  };
-
-  const handleBuilderGateContinue = () => {
-    logUiAction("builder-gate-continue", { remember: rememberBuilderGateDismissal });
-    if (rememberBuilderGateDismissal) {
-      try {
-        window.localStorage.setItem(BUILDER_GATE_DISMISS_KEY, "1");
-      } catch {
-        // ignore localStorage failures
-      }
-      setBuilderGateDismissed(true);
-    }
-    setShowBuilderGate(false);
-  };
-
-  const handleBuilderGateCancel = () => {
-    logUiAction("builder-gate-cancel");
-    setShowBuilderGate(false);
-    setRememberBuilderGateDismissal(false);
-    setPage("installer");
   };
 
   const navigateToInstalledList = () => {
@@ -768,43 +730,6 @@ function App() {
     />
   );
 
-  const renderCurrentPage = () => {
-    if (page === "installer") {
-      return renderInstallStep();
-    }
-    if (page === "installed") {
-      return renderInstalledApps();
-    }
-    if (page === "installedReview") {
-      return renderInstalledReviewPage();
-    }
-    if (page === "installedUninstall") {
-      return renderInstalledUninstallPage();
-    }
-    if (page === "packageBuilder") {
-      return renderPackageBuilderPage();
-    }
-    if (page === "settings") {
-      return renderSettingsPage();
-    }
-    if (page === "uiDebugLab") {
-      return renderUiDebugLabPage();
-    }
-    if (page === "mockInstalled") {
-      return renderMockInstalledAppsPage();
-    }
-    if (page === "mockInstalledReview") {
-      return renderMockInstalledReviewPage();
-    }
-    if (page === "mockInstalledUninstall") {
-      return renderMockInstalledUninstallPage();
-    }
-    if (page === "mockInstallFlow") {
-      return renderMockInstallFlowPage();
-    }
-    return renderMockPreviewPage();
-  };
-
   const showDebugToolbar = page === "uiDebugLab"
     || page === "mockPreview"
     || page === "mockInstallFlow"
@@ -874,7 +799,21 @@ function App() {
       <div class="workspace-stage" data-no-drag="true">
         <div class="workspace-content-shell">
           <section class="content-scroll">
-            {renderCurrentPage()}
+            <AppPageRenderer
+              page={page}
+              renderInstaller={renderInstallStep}
+              renderInstalled={renderInstalledApps}
+              renderInstalledReview={renderInstalledReviewPage}
+              renderInstalledUninstall={renderInstalledUninstallPage}
+              renderPackageBuilder={renderPackageBuilderPage}
+              renderSettings={renderSettingsPage}
+              renderUiDebugLab={renderUiDebugLabPage}
+              renderMockInstalled={renderMockInstalledAppsPage}
+              renderMockInstalledReview={renderMockInstalledReviewPage}
+              renderMockInstalledUninstall={renderMockInstalledUninstallPage}
+              renderMockInstallFlow={renderMockInstallFlowPage}
+              renderMockPreview={renderMockPreviewPage}
+            />
           </section>
           <div id="app-modal-host" class="modal-host" data-no-drag="true" />
         </div>
@@ -915,48 +854,26 @@ function App() {
           </a>
         </footer>
 
-        {isUpdateModalOpen && updateResult ? (
-          <UpdateModal
-            updateResult={updateResult}
-            applyingUpdate={applyingUpdate}
-            lastCheckedLabel={relativeLastChecked()}
-            onClose={closeUpdateModal}
-            onUpdateAndRestart={() => void handleUpdateAndRestart()}
-          />
-        ) : null}
-
-        {licenseViewer ? (
-          <LicenseViewerModal title={licenseViewer.title} text={licenseViewer.text} onClose={closeLicenseViewer} />
-        ) : null}
-
-        {activeScreenshotIndex !== null && screenshotGallery.length > 0 ? (
-          <ScreenshotModal
-            activeIndex={activeScreenshotIndex}
-            gallery={screenshotGallery}
-            onClose={closeScreenshotModal}
-            onPrevious={() => cycleScreenshot(-1)}
-            onNext={() => cycleScreenshot(1)}
-          />
-        ) : null}
-
-        {showBuilderGate ? (
-          <ModalShell onClose={handleBuilderGateCancel} closeTitle={appText("builderGate.cancel")}>
-            <section>
-              <h2>{appText("builderGate.title")}</h2>
-              <p>{appText("builderGate.body")}</p>
-              <CheckboxField
-                checked={rememberBuilderGateDismissal}
-                onChange={setRememberBuilderGateDismissal}
-              >
-                {appText("builderGate.remember")}
-              </CheckboxField>
-              <div class="modal-actions">
-                <Button onClick={handleBuilderGateCancel}>{appText("builderGate.cancel")}</Button>
-                <Button variant="primary" onClick={handleBuilderGateContinue}>{appText("builderGate.continue")}</Button>
-              </div>
-            </section>
-          </ModalShell>
-        ) : null}
+        <AppModalHost
+          isUpdateModalOpen={isUpdateModalOpen}
+          updateResult={updateResult}
+          applyingUpdate={applyingUpdate}
+          lastCheckedLabel={relativeLastChecked()}
+          onCloseUpdateModal={closeUpdateModal}
+          onUpdateAndRestart={() => void handleUpdateAndRestart()}
+          licenseViewer={licenseViewer}
+          onCloseLicenseViewer={closeLicenseViewer}
+          activeScreenshotIndex={activeScreenshotIndex}
+          screenshotGallery={screenshotGallery}
+          onCloseScreenshotModal={closeScreenshotModal}
+          onPreviousScreenshot={() => cycleScreenshot(-1)}
+          onNextScreenshot={() => cycleScreenshot(1)}
+          showBuilderGate={showBuilderGate}
+          rememberBuilderGateDismissal={rememberBuilderGateDismissal}
+          onSetRememberBuilderGateDismissal={setRememberBuilderGateDismissal}
+          onBuilderGateCancel={handleBuilderGateCancel}
+          onBuilderGateContinue={handleBuilderGateContinue}
+        />
       </div>
     </main>
   );
