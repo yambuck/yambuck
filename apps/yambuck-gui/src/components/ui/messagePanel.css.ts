@@ -3,26 +3,30 @@ import { globalStyle, style, styleVariants } from "@vanilla-extract/css";
 export const panel = style({
   borderRadius: "14px",
   padding: "0.95rem",
-  border: "1px solid",
-  color: "var(--colors-text-primary)",
+  border: 0,
+  boxShadow: "0 14px 28px var(--colors-toast-shadow)",
 });
 
 export const tone = styleVariants({
   info: {
-    borderColor: "var(--colors-toast-info-border)",
-    background: "var(--colors-toast-info-bg)",
+    borderColor: "var(--colors-feedback-info-border)",
+    background: "var(--colors-feedback-info-bg)",
+    color: "var(--colors-feedback-info-text)",
   },
   success: {
-    borderColor: "var(--colors-toast-success-border)",
-    background: "var(--colors-toast-success-bg)",
+    borderColor: "var(--colors-feedback-success-border)",
+    background: "var(--colors-feedback-success-bg)",
+    color: "var(--colors-feedback-success-text)",
   },
   warning: {
-    borderColor: "var(--colors-toast-warning-border)",
-    background: "var(--colors-toast-warning-bg)",
+    borderColor: "var(--colors-feedback-warning-border)",
+    background: "var(--colors-feedback-warning-bg)",
+    color: "var(--colors-feedback-warning-text)",
   },
   error: {
-    borderColor: "var(--colors-toast-error-border)",
-    background: "var(--colors-toast-error-bg)",
+    borderColor: "var(--colors-feedback-error-border)",
+    background: "var(--colors-feedback-error-bg)",
+    color: "var(--colors-feedback-error-text)",
   },
 });
 
@@ -30,7 +34,7 @@ export const title = style({
   margin: "0 0 0.4rem",
   fontSize: "0.95rem",
   fontWeight: 750,
-  color: "var(--colors-text-primary)",
+  color: "inherit",
 });
 
 globalStyle(`${panel} p`, {
@@ -51,5 +55,5 @@ globalStyle(`${panel} li + li`, {
 });
 
 globalStyle(`${panel} code`, {
-  color: "var(--colors-text-primary)",
+  color: "inherit",
 });

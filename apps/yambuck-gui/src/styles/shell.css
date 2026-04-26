@@ -189,7 +189,7 @@ body {
   min-width: 0;
   max-width: none;
   border-radius: 12px;
-  border: 1px solid;
+  border: 0;
   padding: 0.58rem 0.7rem;
   box-shadow: 0 12px 28px var(--colors-toast-shadow);
   font-size: 0.86rem;
@@ -197,27 +197,23 @@ body {
 }
 
 .toast.info {
-  border-color: var(--colors-toast-info-border);
-  background: var(--colors-toast-info-bg);
-  color: var(--colors-toast-info-text);
+  background: var(--colors-feedback-info-bg);
+  color: var(--colors-feedback-info-text);
 }
 
 .toast.success {
-  border-color: var(--colors-toast-success-border);
-  background: var(--colors-toast-success-bg);
-  color: var(--colors-toast-success-text);
+  background: var(--colors-feedback-success-bg);
+  color: var(--colors-feedback-success-text);
 }
 
 .toast.warning {
-  border-color: var(--colors-toast-warning-border);
-  background: var(--colors-toast-warning-bg);
-  color: var(--colors-toast-warning-text);
+  background: var(--colors-feedback-warning-bg);
+  color: var(--colors-feedback-warning-text);
 }
 
 .toast.error {
-  border-color: var(--colors-toast-error-border);
-  background: var(--colors-toast-error-bg);
-  color: var(--colors-toast-error-text);
+  background: var(--colors-feedback-error-bg);
+  color: var(--colors-feedback-error-text);
 }
 
 .toast-close {
