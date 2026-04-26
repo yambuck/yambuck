@@ -160,6 +160,14 @@ pub(crate) fn uninstall_with_elevation_if_needed(
 }
 
 fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 {
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Elevated install helper started requestPath={} responsePath={}",
+            request_path, response_path
+        ),
+    );
+
     let request_content = match fs::read_to_string(request_path) {
         Ok(content) => content,
         Err(error) => {
@@ -197,6 +205,15 @@ fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 
         request.allow_downgrade,
     );
 
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Elevated install helper finished core install appId={} success={}",
+            request.package_info.app_id,
+            result.is_ok()
+        ),
+    );
+
     let response = match result {
         Ok(installed_app) => ElevatedInstallResponse {
             success: true,
@@ -227,6 +244,14 @@ fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 
 }
 
 fn run_elevated_uninstall_command(request_path: &str, response_path: &str) -> i32 {
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Elevated uninstall helper started requestPath={} responsePath={}",
+            request_path, response_path
+        ),
+    );
+
     let request_content = match fs::read_to_string(request_path) {
         Ok(content) => content,
         Err(error) => {
@@ -261,6 +286,15 @@ fn run_elevated_uninstall_command(request_path: &str, response_path: &str) -> i3
         &request.app_id,
         InstallScope::System,
         request.remove_user_data,
+    );
+
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Elevated uninstall helper finished core uninstall appId={} success={}",
+            request.app_id,
+            result.is_ok()
+        ),
     );
 
     let response = match result {
@@ -349,6 +383,16 @@ fn run_native_elevated_install(
         &response_path,
         context,
     )?;
+
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Elevation install command returned success={} code={} responsePathExists={}",
+            status.success(),
+            status.code().map_or_else(|| "none".to_string(), |code| code.to_string()),
+            response_path.exists(),
+        ),
+    );
 
     let output = if response_path.exists() {
         Some(read_response::<ElevatedInstallResponse>(&response_path)?)
@@ -476,6 +520,16 @@ fn run_native_elevated_uninstall(
         context,
     )?;
 
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Elevation uninstall command returned success={} code={} responsePathExists={}",
+            status.success(),
+            status.code().map_or_else(|| "none".to_string(), |code| code.to_string()),
+            response_path.exists(),
+        ),
+    );
+
     let output = if response_path.exists() {
         Some(read_response::<ElevatedUninstallResponse>(&response_path)?)
     } else {
@@ -551,7 +605,7 @@ fn run_elevation_command(
     mode_arg: &str,
     request_path: &PathBuf,
     response_path: &PathBuf,
-    _context: &ElevationRuntimeContext,
+    context: &ElevationRuntimeContext,
 ) -> Result<std::process::ExitStatus, String> {
     let mut command = match strategy {
         ElevationStrategy::PkexecDirect => {
@@ -576,9 +630,36 @@ fn run_elevation_command(
         }
     };
 
-    command
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Launching elevation command strategy={} modeArg={} exe={} requestPath={} responsePath={} session={} desktop={}",
+            strategy.label(),
+            mode_arg,
+            current_exe.display(),
+            request_path.display(),
+            response_path.display(),
+            context.session_type,
+            context.desktop_environment,
+        ),
+    );
+
+    let status = command
         .status()
-        .map_err(|error| format!("Could not start elevation prompt: {error}"))
+        .map_err(|error| format!("Could not start elevation prompt: {error}"))?;
+
+    let _ = append_log(
+        "INFO",
+        &format!(
+            "Elevation command finished strategy={} modeArg={} success={} code={}",
+            strategy.label(),
+            mode_arg,
+            status.success(),
+            status.code().map_or_else(|| "none".to_string(), |code| code.to_string()),
+        ),
+    );
+
+    Ok(status)
 }
 
 fn select_strategy(context: &ElevationRuntimeContext) -> Option<ElevationStrategy> {

@@ -526,17 +526,47 @@ pub(crate) fn create_install_preview_impl(
     scope: &str,
     verified_publisher: bool,
 ) -> Result<InstallPreview, String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "create_install_preview command received workflowId={} scope={} verifiedPublisher={}",
+            workflow_id, scope, verified_publisher
+        ),
+    );
+
     let workflow = get_workflow_from_session(workflow_id)?;
     let package_info = workflow.package_info;
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    yambuck_core::create_install_preview(
+    let preview_result = yambuck_core::create_install_preview(
         &package_info.package_file,
         &package_info.app_id,
         install_scope,
         verified_publisher,
     )
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string());
+
+    if let Ok(preview) = &preview_result {
+        let _ = support::logging::append_log(
+            "INFO",
+            &format!(
+                "create_install_preview succeeded appId={} scope={} destination={}",
+                package_info.app_id, scope, preview.destination_path
+            ),
+        );
+    }
+
+    if let Err(error) = &preview_result {
+        let _ = support::logging::append_log(
+            "ERROR",
+            &format!(
+                "create_install_preview failed appId={} scope={}: {error}",
+                package_info.app_id, scope
+            ),
+        );
+    }
+
+    preview_result
 }
 
 pub(crate) fn list_installed_apps_impl() -> Vec<InstalledApp> {
@@ -610,6 +640,17 @@ pub(crate) fn complete_install_impl(
     submissions: Vec<InstallOptionSubmission>,
     allow_downgrade: bool,
 ) -> Result<InstalledApp, String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "complete_install command received workflowId={} scope={} allowDowngrade={} submissions={}",
+            workflow_id,
+            scope,
+            allow_downgrade,
+            submissions.len()
+        ),
+    );
+
     let workflow = get_workflow_from_session(workflow_id)?;
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
@@ -620,9 +661,29 @@ pub(crate) fn complete_install_impl(
             workflow.package_info.app_id
         ),
     );
+
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "Validating install options for appId={} scope={} submissions={}",
+            workflow.package_info.app_id,
+            scope,
+            submissions.len()
+        ),
+    );
+
     yambuck_core::validate_install_options(&workflow.install_options, submissions)
         .map_err(|error| error.to_string())?;
     let package_info = workflow.package_info;
+
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "Re-inspecting package before install appId={} packageFile={}",
+            package_info.app_id,
+            package_info.package_file
+        ),
+    );
 
     let verified_package = yambuck_core::inspect_package(&package_info.package_file)
         .map_err(|error| error.to_string())?;
@@ -635,6 +696,14 @@ pub(crate) fn complete_install_impl(
                 .to_string(),
         );
     }
+
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "Install dispatch selected path appId={} scope={}",
+            package_info.app_id, scope
+        ),
+    );
 
     let install_result = match install_scope {
         yambuck_core::InstallScope::User => yambuck_core::install_and_register(
@@ -697,6 +766,14 @@ pub(crate) fn preflight_install_check_impl(app_id: &str) -> Result<PreflightChec
 pub(crate) fn evaluate_install_preflight_impl(
     workflow_id: &str,
 ) -> Result<InstallPreflightResult, String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "evaluate_install_preflight command received workflowId={}",
+            workflow_id
+        ),
+    );
+
     let workflow = get_workflow_from_session(workflow_id)?;
     let package_info = workflow.package_info;
     let ownership_preflight = yambuck_core::preflight_install_check(&package_info.app_id)
@@ -741,7 +818,7 @@ pub(crate) fn evaluate_install_preflight_impl(
         "No compatibility or ownership blockers were detected.".to_string()
     };
 
-    Ok(InstallPreflightResult {
+    let result = InstallPreflightResult {
         status,
         message,
         reasons,
@@ -753,7 +830,19 @@ pub(crate) fn evaluate_install_preflight_impl(
             package_uuid: package_info.package_uuid,
             selected_target_id: package_info.selected_target_id,
         },
-    })
+    };
+
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "evaluate_install_preflight result appId={} status={} reasons={}",
+            result.package.app_id,
+            result.status,
+            result.reasons.len()
+        ),
+    );
+
+    Ok(result)
 }
 
 pub(crate) fn get_startup_package_arg_impl() -> Option<String> {

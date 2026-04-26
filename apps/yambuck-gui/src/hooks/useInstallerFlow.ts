@@ -655,7 +655,11 @@ export const useInstallerFlow = ({
   };
 
   const continueFromScopeStep = () => {
-    logUiAction("installer-continue-scope", { scope });
+    logUiAction("installer-continue-scope", {
+      scope,
+      nextStep: getStepNext("scope", "decision"),
+      workflowReady: Boolean(workflowId),
+    });
     setStep(getStepNext("scope", "decision"));
   };
 
@@ -753,6 +757,14 @@ export const useInstallerFlow = ({
         throw new Error("Missing workflow session");
       }
 
+      logUiAction("install-complete-request-start", {
+        appId: selectedPackage.appId,
+        scope: installScope,
+        workflowId,
+        destinationPath: installPreview.destinationPath,
+        submissionCount: Object.keys(installOptionValues).length,
+      });
+
       await completeInstallApi(
         workflowId,
         installScope,
@@ -760,6 +772,12 @@ export const useInstallerFlow = ({
         serializeInstallOptions(installOptionValues),
         allowDowngrade,
       );
+
+      logUiAction("install-complete-request-success", {
+        appId: selectedPackage.appId,
+        scope: installScope,
+      });
+
       logUiAction("install-attempt-success", {
         appId: selectedPackage.appId,
         scope: installScope,
@@ -772,12 +790,24 @@ export const useInstallerFlow = ({
       }
       return true;
     } catch (error) {
+      logUiError("install-complete-request-failed", {
+        appId: selectedPackage.appId,
+        scope: installScope,
+      });
       await handleInstallFailure(selectedPackage, installScope, error);
       return false;
     }
   };
 
   const startInstall = async () => {
+    logUiAction("install-start-clicked", {
+      step,
+      scope,
+      hasPackage: Boolean(packageInfo),
+      hasWorkflow: Boolean(workflowId),
+      isBusy,
+    });
+
     if (!packageInfo || !workflowId) {
       logUiAction("install-attempt-blocked", { reason: "no-package-or-workflow" });
       onToast("warning", installerText("toast.choosePackageBeforeInstall"));
@@ -869,6 +899,13 @@ export const useInstallerFlow = ({
       if (!workflowId) {
         throw new Error("Missing workflow session");
       }
+
+      logUiAction("install-preflight-start", {
+        appId: selectedPackage.appId,
+        scope,
+        workflowId,
+      });
+
       const preflight = await runInstallPreflight(workflowId);
       if (preflight.status === "blocked") {
         logUiError("install-attempt-blocked", {
@@ -878,6 +915,11 @@ export const useInstallerFlow = ({
         onToast("error", preflight.message, 5600);
         return;
       }
+
+      logUiAction("install-preflight-passed", {
+        appId: selectedPackage.appId,
+        scope,
+      });
     } catch {
       logUiError("install-attempt-blocked", {
         appId: selectedPackage.appId,
@@ -909,11 +951,24 @@ export const useInstallerFlow = ({
     let installPreview: InstallPreview;
 
     try {
+      logUiAction("install-preview-request-start", {
+        appId: selectedPackage.appId,
+        scope,
+        workflowId,
+      });
+
       installPreview = await createInstallPreviewApi(
         workflowId,
         scope,
         verifiedPublisher,
       );
+
+      logUiAction("install-preview-request-success", {
+        appId: selectedPackage.appId,
+        scope,
+        destinationPath: installPreview.destinationPath,
+      });
+
       setPreview(installPreview);
       setInstallLifecycleState("validating");
       setProgress(30);
