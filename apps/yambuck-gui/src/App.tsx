@@ -62,6 +62,25 @@ const loadBuilderGateDismissed = (): boolean => {
   }
 };
 
+const getInteractionLabel = (element: HTMLElement): string => {
+  const ariaLabel = element.getAttribute("aria-label")?.trim();
+  if (ariaLabel) {
+    return ariaLabel;
+  }
+
+  const title = element.getAttribute("title")?.trim();
+  if (title) {
+    return title;
+  }
+
+  const text = element.textContent?.replace(/\s+/g, " ").trim();
+  if (text) {
+    return text.slice(0, 120);
+  }
+
+  return element.tagName.toLowerCase();
+};
+
 const makeInstalledReviewTarget = (appId: string, installScope: InstallScope): string => `${appId}::${installScope}`;
 
 const parseInstalledReviewTarget = (
@@ -480,6 +499,35 @@ function App() {
       window.removeEventListener("yambuck:meta-field-copied", handleMetaFieldCopiedEvent as EventListener);
     };
   }, [pushToast]);
+
+  useEffect(() => {
+    const handleGlobalClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      const button = target.closest("button");
+      if (!button) {
+        return;
+      }
+
+      const label = getInteractionLabel(button as HTMLElement);
+      const buttonType = (button as HTMLButtonElement).type || "button";
+      const disabled = (button as HTMLButtonElement).disabled;
+
+      logUiAction("ui-button-press", {
+        label,
+        buttonType,
+        disabled,
+      });
+    };
+
+    window.addEventListener("click", handleGlobalClick, true);
+    return () => {
+      window.removeEventListener("click", handleGlobalClick, true);
+    };
+  }, []);
 
   useEscapeKey(page === "installer" && step === "complete" && packageInfo !== null, closeInstallComplete);
 
