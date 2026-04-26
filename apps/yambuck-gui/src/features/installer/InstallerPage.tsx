@@ -196,7 +196,7 @@ export const InstallerPage = ({
     return (
       <Panel
         class={`package-panel ${packagePanel}`}
-        showCornerClose
+        showCornerClose={packageInfo !== null}
         cornerCloseTitle="Close package"
         onCornerClose={onClearSelectedPackage}
       >

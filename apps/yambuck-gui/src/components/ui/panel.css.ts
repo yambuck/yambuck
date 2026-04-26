@@ -6,7 +6,7 @@ export const panel = style({
   width: "min(var(--layout-primary-panel-max-width), 100%)",
   margin: "0 auto",
   borderRadius: "24px",
-  border: "1px solid var(--colors-panel-border)",
+  border: "1px solid var(--colors-panel-chrome-border)",
   padding: "1.5rem",
   background: "var(--colors-panel-background)",
   boxShadow: "0 22px 45px var(--colors-panel-shadow)",

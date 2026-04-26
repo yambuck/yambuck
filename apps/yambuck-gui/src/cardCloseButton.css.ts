@@ -9,7 +9,7 @@ export const closeButton = style({
   width: "var(--panel-close-size)",
   height: "var(--panel-close-size)",
   borderRadius: "999px",
-  border: "1px solid var(--colors-style-color006)",
+  border: "1px solid var(--colors-panel-chrome-border)",
   background: "var(--colors-style-color007)",
   color: "var(--colors-style-color008)",
   fontSize: "1.25rem",
