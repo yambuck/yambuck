@@ -7,7 +7,7 @@ import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
 import { formatCanonicalTimestampForDisplay } from "../../utils/time";
 import { PackageDetailsSections } from "../shared/PackageDetailsSections";
-import { detailsActions, detailsHeader, packagePanel } from "../shared/packageUi.css";
+import { detailsActionButton, detailsActions, detailsHeader, packagePanel } from "../shared/packageUi.css";
 
 type InstalledAppReviewPageProps = {
   details: InstalledAppDetails;
@@ -38,13 +38,13 @@ export const InstalledAppReviewPage = ({
     cornerCloseTitle="Back to installed apps"
     onCornerClose={onBack}
   >
-    <div class={`details-header ${detailsHeader}`}>
-      <h1>{details.displayName}</h1>
-      <div class={`details-actions ${detailsActions}`} data-no-drag="true">
-        <Button variant="danger" onClick={onUninstall}>Uninstall</Button>
-        <Button variant="primary" onClick={onLaunch}>Launch app</Button>
+      <div class={`details-header ${detailsHeader}`}>
+        <h1>{details.displayName}</h1>
+        <div class={`details-actions ${detailsActions}`} data-no-drag="true">
+          <Button class={detailsActionButton} variant="danger" onClick={onUninstall}>Uninstall</Button>
+          <Button class={detailsActionButton} variant="primary" onClick={onLaunch}>Launch app</Button>
+        </div>
       </div>
-    </div>
 
     <PackageDetailsSections
       packageInfo={details.packageInfo}

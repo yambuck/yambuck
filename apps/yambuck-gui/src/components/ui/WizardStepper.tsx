@@ -1,5 +1,5 @@
 import { Fragment } from "preact";
-import { item, label, list, marker, separator } from "./wizardStepper.css";
+import { item, label, list, listAlign, marker, separator } from "./wizardStepper.css";
 
 type WizardStepperStep = {
   id: string;
@@ -9,13 +9,14 @@ type WizardStepperStep = {
 type WizardStepperProps = {
   steps: WizardStepperStep[];
   currentStepId: string;
+  align?: "start" | "center";
 };
 
-export const WizardStepper = ({ steps, currentStepId }: WizardStepperProps) => {
+export const WizardStepper = ({ steps, currentStepId, align = "start" }: WizardStepperProps) => {
   const currentIndex = Math.max(0, steps.findIndex((step) => step.id === currentStepId));
 
   return (
-    <ol class={list} aria-label="Installer steps">
+    <ol class={`${list} ${listAlign[align]}`} aria-label="Installer steps">
       {steps.map((step, index) => {
         const state = index < currentIndex ? "complete" : index === currentIndex ? "active" : "pending";
         return (

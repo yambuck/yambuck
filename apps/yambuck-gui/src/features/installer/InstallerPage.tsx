@@ -208,7 +208,7 @@ export const InstallerPage = ({
   const currentStepId = step === "failed" ? "progress" : step;
 
   const renderStepper = () => (
-    <WizardStepper steps={installerSteps} currentStepId={currentStepId} />
+    <WizardStepper steps={installerSteps} currentStepId={currentStepId} align="center" />
   );
 
   if (step === "details") {
@@ -227,7 +227,7 @@ export const InstallerPage = ({
         cornerCloseTitle="Close package"
         onCornerClose={onClearSelectedPackage}
       >
-        {renderStepper()}
+        {packageInfo || packageOpenError ? renderStepper() : null}
         {packageInfo ? (
           <>
             <div class={`details-header ${detailsHeader}`}>

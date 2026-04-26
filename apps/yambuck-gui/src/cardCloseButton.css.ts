@@ -10,7 +10,7 @@ export const closeButton = style({
   height: "var(--panel-close-size)",
   borderRadius: "var(--radius-pill)",
   border: "1px solid var(--colors-control-border)",
-  background: "var(--colors-style-color007)",
+  background: "var(--colors-select-menu-background)",
   color: "var(--colors-style-color008)",
   fontSize: "1.25rem",
   lineHeight: 1,
@@ -18,6 +18,7 @@ export const closeButton = style({
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+  boxShadow: "0 6px 14px var(--colors-panel-shadow), 0 0 0 1px var(--colors-style-color091)",
   transition: "background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
   '@media': {
     '(max-width: 720px)': {
@@ -26,7 +27,9 @@ export const closeButton = style({
   },
   selectors: {
     '&:hover': {
-      background: "var(--colors-style-color009)",
+      background: "var(--colors-style-color007)",
+      borderColor: "var(--colors-select-border-hover)",
+      boxShadow: "0 8px 18px var(--colors-panel-shadow), 0 0 0 1px var(--colors-style-color091)",
     },
     '&:focus-visible': {
       outline: "none",

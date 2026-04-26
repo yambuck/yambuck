@@ -1,4 +1,4 @@
-import { style } from "@vanilla-extract/css";
+import { style, styleVariants } from "@vanilla-extract/css";
 
 export const list = style({
   margin: "0 0 1rem",
@@ -8,6 +8,20 @@ export const list = style({
   gap: "0.35rem",
   alignItems: "center",
   overflowX: "auto",
+});
+
+export const listAlign = styleVariants({
+  start: {
+    justifyContent: "flex-start",
+  },
+  center: {
+    justifyContent: "center",
+    '@media': {
+      '(max-width: 720px)': {
+        justifyContent: "flex-start",
+      },
+    },
+  },
 });
 
 export const item = style({

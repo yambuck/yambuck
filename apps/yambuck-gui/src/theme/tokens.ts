@@ -18,7 +18,7 @@ export const tokens = {
     textPrimary: "#ffffff",
     topbarTitle: "#9ed7ff",
     surfaceBorder: "rgba(151, 195, 227, 0.24)",
-    shellBackground: "radial-gradient(circle at 20% 0%, #154067 0%, #0c1724 45%, #070d16 100%)",
+    shellBackground: "radial-gradient(circle at 28% -6%, #1a4f7f 0%, #123a61 52%, #0a1523 84%, #070d16 100%)",
     topbarBackground: "linear-gradient(120deg, rgba(19, 42, 69, 0.93), rgba(10, 22, 38, 0.9))",
     controlBackground: "rgba(17, 34, 52, 0.72)",
     controlBorder: "rgba(143, 185, 216, 0.45)",

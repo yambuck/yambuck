@@ -44,12 +44,18 @@ export const detailsActions = style({
   display: "inline-flex",
   alignItems: "center",
   gap: "0.5rem",
+  flexShrink: 0,
   '@media': {
     '(max-width: 720px)': {
       width: "100%",
       justifyContent: "flex-end",
     },
   },
+});
+
+export const detailsActionButton = style({
+  minWidth: "8.75rem",
+  whiteSpace: "nowrap",
 });
 
 export const packageIcon = style({
@@ -93,11 +99,24 @@ export const screenshotTile = style({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  border: "1px solid var(--colors-style-color004)",
-  borderRadius: "10px",
-  background: "var(--colors-style-color005)",
+  border: 0,
+  borderRadius: "12px",
+  background: "var(--colors-style-color015)",
+  boxShadow: "0 8px 18px var(--colors-panel-shadow)",
   padding: "0.35rem",
   cursor: "zoom-in",
+  transition: "background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease",
+  selectors: {
+    '&:hover': {
+      background: "var(--colors-style-color023)",
+      boxShadow: "0 10px 22px var(--colors-panel-shadow)",
+      transform: "translateY(-1px)",
+    },
+    '&:focus-visible': {
+      outline: "none",
+      boxShadow: "0 0 0 3px var(--colors-select-focus-ring), 0 10px 22px var(--colors-panel-shadow)",
+    },
+  },
 });
 
 globalStyle(`${screenshotStrip} img`, {

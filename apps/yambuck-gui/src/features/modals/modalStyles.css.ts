@@ -42,9 +42,10 @@ export const licenseText = style({
   minHeight: 0,
   flex: 1,
   overflow: "auto",
-  borderRadius: "10px",
-  border: "1px solid var(--colors-style-color091)",
-  background: "var(--colors-style-color092)",
+  borderRadius: "12px",
+  border: 0,
+  background: "var(--colors-style-color015)",
+  boxShadow: "0 8px 18px var(--colors-panel-shadow)",
   padding: "0.85rem",
   color: "var(--colors-style-color093)",
   lineHeight: 1.4,
@@ -59,12 +60,7 @@ export const screenshotOverlay = style({
 });
 
 export const screenshotCard = style({
-  width: "min(var(--layout-primary-panel-max-width), 100%)",
   height: "100%",
-  borderRadius: "16px",
-  border: "1px solid var(--colors-style-color087)",
-  background: "linear-gradient(160deg, var(--colors-style-color088), var(--colors-style-color089))",
-  boxShadow: "0 25px 50px var(--colors-style-color090)",
   padding: "0.75rem",
   display: "flex",
   flexDirection: "column",

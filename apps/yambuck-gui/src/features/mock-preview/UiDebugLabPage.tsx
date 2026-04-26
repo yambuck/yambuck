@@ -200,7 +200,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
         <section class={section}>
           <h2 class={sectionTitle}>Installer Stepper</h2>
           <p class={sectionDescription}>Matches the step-by-step orientation used across installer states.</p>
-          <WizardStepper steps={installerSteps} currentStepId={activeInstallerStep} />
+          <WizardStepper steps={installerSteps} currentStepId={activeInstallerStep} align="center" />
           <div class={stepperPreview}>
             <SelectField
               value={activeInstallerStep}
@@ -277,40 +277,32 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
           <h2 class={sectionTitle}>Technical Detail Cards</h2>
           <p class={sectionDescription}>Simulates the package details grid used across install and review flows.</p>
           <MetaCardGrid class={technicalCardsPreview}>
-            <div>
-              <MetaField
-                label="App ID"
-                tooltip="Stable app identifier used for ownership and updates."
-                value="com.voquill.app"
-                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
-              />
-            </div>
-            <div>
-              <MetaField
-                label="App UUID"
-                tooltip="Immutable app identity UUID declared by the publisher."
-                value="6b61815c-66c5-4cc6-85ba-ec0736ecef4c"
-                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
-              />
-            </div>
-            <div>
-              <MetaField
-                label="Entrypoint"
-                tooltip="Launch command path from package metadata."
-                copyValue="app/bin/voquill"
-                value={<code>app/bin/voquill</code>}
-                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
-              />
-            </div>
-            <div>
-              <MetaField
-                label="Install Path"
-                tooltip="Destination path where package payload is installed."
-                copyValue="~/.local/share/yambuck/apps/com.voquill.app"
-                value={<code>~/.local/share/yambuck/apps/com.voquill.app</code>}
-                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
-              />
-            </div>
+            <MetaField
+              label="App ID"
+              tooltip="Stable app identifier used for ownership and updates."
+              value="com.voquill.app"
+              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+            />
+            <MetaField
+              label="App UUID"
+              tooltip="Immutable app identity UUID declared by the publisher."
+              value="6b61815c-66c5-4cc6-85ba-ec0736ecef4c"
+              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+            />
+            <MetaField
+              label="Entrypoint"
+              tooltip="Launch command path from package metadata."
+              copyValue="app/bin/voquill"
+              value={<code>app/bin/voquill</code>}
+              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+            />
+            <MetaField
+              label="Install Path"
+              tooltip="Destination path where package payload is installed."
+              copyValue="~/.local/share/yambuck/apps/com.voquill.app"
+              value={<code>~/.local/share/yambuck/apps/com.voquill.app</code>}
+              onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+            />
           </MetaCardGrid>
         </section>
       </div>
