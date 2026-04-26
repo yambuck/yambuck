@@ -46,7 +46,7 @@
   "ui.close": "Close",
   "ui.copyDetails": "Copy details",
   "ui.choosePackageTitle": "Choose package",
-  "ui.choosePackageSubtitle": "Open a package file to start.",
+  "ui.choosePackageSubtitle": "Open a .yambuck package file to begin. Yambuck will guide you through the installation process step by step.",
   "ui.openPackageButton": "Open .yambuck file",
   "ui.trustTitle": "Publisher trust",
   "ui.trustSubtitle": "Review publisher verification before you continue.",
