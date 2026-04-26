@@ -22,56 +22,6 @@ dd {
   word-break: break-word;
 }
 
-.license-acceptance,
-.checkbox-row,
-.checkbox-field {
-  margin-top: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  color: var(--colors-style-color032);
-}
-
-.checkbox-field {
-  cursor: pointer;
-}
-
-.license-acceptance input[type="checkbox"],
-.checkbox-field input[type="checkbox"],
-.checkbox-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  border: 1px solid var(--colors-checkbox-border);
-  background: var(--colors-checkbox-background);
-  accent-color: var(--colors-style-color033);
-  cursor: pointer;
-}
-
-.license-acceptance input[type="checkbox"]:checked,
-.checkbox-field input[type="checkbox"]:checked,
-.checkbox-row input[type="checkbox"]:checked {
-  background: var(--colors-checkbox-checked-background);
-}
-
-.license-acceptance input[type="checkbox"]:focus-visible,
-.checkbox-field input[type="checkbox"]:focus-visible,
-.checkbox-row input[type="checkbox"]:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--colors-focus-ring);
-}
-
-.license-acceptance input[type="checkbox"]:disabled,
-.checkbox-field input[type="checkbox"]:disabled,
-.checkbox-row input[type="checkbox"]:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.checkbox-field > span {
-  line-height: 1.35;
-}
-
 .toggle-pill:focus-visible,
 .window-btn:focus-visible,
 .footer-action:focus-visible {
