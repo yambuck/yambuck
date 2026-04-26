@@ -17,6 +17,7 @@ import {
 } from "../lib/tauri/api";
 import { logUiAction, logUiError } from "../lib/ui-log";
 import { copyPlainText } from "../utils/clipboard";
+import { installerDecisionMessage, installerText } from "../i18n/installer";
 import { toIso8601WithOffset, toReadableLocalTimeWithOffset } from "../utils/time";
 import type {
   AppPage,
@@ -99,7 +100,7 @@ export const useInstallerFlow = ({
   const [step, setStep] = useState<WizardStep>("details");
   const [scope, setScope] = useState<InstallScope>("user");
   const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState("Ready to install package");
+  const [statusText, setStatusText] = useState(installerText("status.queued"));
   const [installLifecycleState, setInstallLifecycleState] = useState<InstallLifecycleState>("queued");
   const [packageInfo, setPackageInfo] = useState<PackageInfo | null>(null);
   const [installWorkflow, setInstallWorkflow] = useState<InstallWorkflow | null>(null);
@@ -322,7 +323,7 @@ export const useInstallerFlow = ({
         packageFile,
         reason: message,
       });
-      onToast("error", "We couldn't open this package.");
+      onToast("error", installerText("toast.packageOpenFailed"));
     }
   };
 
@@ -341,9 +342,9 @@ export const useInstallerFlow = ({
     try {
       await copyPlainText(details);
 
-      onToast("success", "Error details copied.");
+      onToast("success", installerText("toast.errorDetailsCopied"));
     } catch {
-      onToast("error", "Could not copy error details.");
+      onToast("error", installerText("toast.errorDetailsCopyFailed"));
     }
   };
 
@@ -366,15 +367,15 @@ export const useInstallerFlow = ({
 
     try {
       await copyPlainText(details);
-      onToast("success", "Install failure details copied.");
+      onToast("success", installerText("toast.installFailureDetailsCopied"));
     } catch {
-      onToast("error", "Could not copy install failure details.");
+      onToast("error", installerText("toast.installFailureDetailsCopyFailed"));
     }
   };
 
   const copyInstallPreflightDetails = async () => {
     if (!installPreflight) {
-      onToast("warning", "No preflight report is available yet.");
+      onToast("warning", installerText("toast.noPreflightReport"));
       return;
     }
 
@@ -415,9 +416,9 @@ export const useInstallerFlow = ({
 
     try {
       await copyPlainText(details);
-      onToast("success", "Compatibility report copied.");
+      onToast("success", installerText("toast.compatibilityReportCopied"));
     } catch {
-      onToast("error", "Could not copy compatibility report.");
+      onToast("error", installerText("toast.compatibilityReportCopyFailed"));
     }
   };
 
@@ -436,7 +437,7 @@ export const useInstallerFlow = ({
       }
     } catch {
       logUiError("installer-choose-package-dialog-failed");
-      onToast("error", "Unable to open file picker. Check app permissions and try again.");
+      onToast("error", installerText("toast.filePickerUnavailable"));
       return;
     }
 
@@ -458,7 +459,7 @@ export const useInstallerFlow = ({
         await loadPackageFromPath(startupPath);
       } catch {
         logUiError("installer-open-startup-package-failed");
-        onToast("error", "Could not open startup package argument.");
+        onToast("error", installerText("toast.startupPackageOpenFailed"));
       }
     };
 
@@ -476,7 +477,7 @@ export const useInstallerFlow = ({
 
       if (isInstallFlowLocked()) {
         logUiAction("installer-external-open-blocked", { reason: "install-flow-locked" });
-        onToast("warning", "Finish or cancel the current install before opening another package.");
+        onToast("warning", installerText("toast.finishCurrentInstallFirst"));
         return;
       }
 
@@ -495,7 +496,7 @@ export const useInstallerFlow = ({
   const handleContinueFromDetails = async () => {
     if (!packageInfo) {
       logUiAction("installer-continue-from-details-blocked", { reason: "no-package" });
-      onToast("warning", "Choose a .yambuck package first.");
+      onToast("warning", installerText("toast.choosePackageFirst"));
       return;
     }
 
@@ -507,7 +508,7 @@ export const useInstallerFlow = ({
           appId: packageInfo.appId,
           reason: "missing-workflow-session",
         });
-        onToast("error", "Install workflow session missing. Reopen the package and try again.");
+        onToast("error", installerText("toast.workflowMissing"));
         return;
       }
 
@@ -534,7 +535,7 @@ export const useInstallerFlow = ({
           action: decision.action,
         });
         setPreflightBlockedMessage(decision.message);
-        onToast("error", decision.message, 6200);
+        onToast("error", installerDecisionMessage(decision), 6200);
         return;
       }
 
@@ -544,9 +545,9 @@ export const useInstallerFlow = ({
         || decision.action === "downgrade";
       setManagedExistingInstall(isScopedExisting);
       if (decision.action === "downgrade") {
-        onToast("warning", decision.message, 6200);
+        onToast("warning", installerDecisionMessage(decision), 6200);
       } else if (isScopedExisting) {
-        onToast("info", decision.message);
+        onToast("info", installerDecisionMessage(decision));
       }
 
       setStep("trust");
@@ -560,7 +561,7 @@ export const useInstallerFlow = ({
         appId: packageInfo.appId,
         reason: "exception",
       });
-      onToast("error", "Could not run install safety checks.");
+      onToast("error", installerText("toast.safetyChecksFailed"));
     } finally {
       setCheckingPreflight(false);
     }
@@ -624,7 +625,7 @@ export const useInstallerFlow = ({
       });
       setStep(getStepNext("options", "scope"));
     } catch {
-      const message = "Installer options are invalid. Review values and try again.";
+      const message = installerText("toast.invalidOptions");
       setInstallOptionError(message);
       logUiError("installer-options-invalid");
       onToast("error", message);
@@ -721,7 +722,7 @@ export const useInstallerFlow = ({
     });
     setIsBusy(false);
     setInstallLifecycleState("failed");
-    setStatusText("Install failed");
+    setStatusText(installerText("status.failed"));
     setProgress(100);
     setStep("failed");
     logUiError("install-attempt-failed", {
@@ -729,7 +730,7 @@ export const useInstallerFlow = ({
       scope: installScope,
       reason: summary,
     });
-    onToast("error", "Install failed. Review details and try again.", 5200);
+    onToast("error", installerText("toast.installFailed"), 5200);
   };
 
   const completeInstall = async (
@@ -753,11 +754,11 @@ export const useInstallerFlow = ({
         appId: selectedPackage.appId,
         scope: installScope,
       });
-      onToast("success", `${selectedPackage.displayName} installed.`);
+      onToast("success", installerText("toast.installSucceeded", { appName: selectedPackage.displayName }));
       try {
         await onRefreshInstalledApps();
       } catch {
-        onToast("warning", "Install succeeded, but the app list could not refresh yet.");
+        onToast("warning", installerText("toast.installSucceededRefreshWarning"));
       }
       return true;
     } catch (error) {
@@ -769,7 +770,7 @@ export const useInstallerFlow = ({
   const startInstall = async () => {
     if (!packageInfo || !workflowId) {
       logUiAction("install-attempt-blocked", { reason: "no-package-or-workflow" });
-      onToast("warning", "Choose a .yambuck package before installing.");
+      onToast("warning", installerText("toast.choosePackageBeforeInstall"));
       return;
     }
 
@@ -780,7 +781,7 @@ export const useInstallerFlow = ({
         appId: selectedPackage.appId,
         reason: "license-not-accepted",
       });
-      onToast("warning", "You must accept the license before installing.");
+      onToast("warning", installerText("toast.acceptLicenseToContinue"));
       setStep("license");
       return;
     }
@@ -792,7 +793,7 @@ export const useInstallerFlow = ({
         appId: selectedPackage.appId,
         reason: "downgrade-not-confirmed",
       });
-      onToast("warning", "Downgrade requires explicit confirmation before install.");
+      onToast("warning", installerText("toast.confirmDowngradeToContinue"));
       setStep("scope");
       return;
     }
@@ -803,7 +804,7 @@ export const useInstallerFlow = ({
           appId: selectedPackage.appId,
           reason: "wipe-not-confirmed",
         });
-        onToast("warning", "Confirm data wipe before reinstalling.");
+        onToast("warning", installerText("toast.confirmDataRemovalToContinue"));
         setStep("scope");
         return;
       }
@@ -823,14 +824,14 @@ export const useInstallerFlow = ({
             appId: existing.appId,
             scope: existing.installScope,
           });
-          onToast("info", "Existing install and app data removed. Continuing reinstall.");
+          onToast("info", installerText("toast.existingInstallRemoved"));
         }
       } catch {
         logUiError("install-reinstall-uninstall-failed", {
           appId: selectedPackage.appId,
           scope,
         });
-        onToast("error", "Could not remove existing install before reinstall.");
+        onToast("error", installerText("toast.removeExistingFailed"));
         return;
       }
     }
@@ -842,7 +843,7 @@ export const useInstallerFlow = ({
         }
         await validateInstallOptions(workflowId, serializeInstallOptions(installOptionValues));
       } catch {
-        const message = "Installer options are invalid. Review values and try again.";
+        const message = installerText("toast.invalidOptions");
         setInstallOptionError(message);
         logUiError("install-attempt-blocked", {
           appId: selectedPackage.appId,
@@ -872,7 +873,7 @@ export const useInstallerFlow = ({
         appId: selectedPackage.appId,
         reason: "preflight-check-failed",
       });
-      onToast("error", "Could not verify install ownership safety.");
+      onToast("error", installerText("toast.verifyOwnershipFailed"));
       return;
     }
 
@@ -889,10 +890,10 @@ export const useInstallerFlow = ({
     setStep("progress");
     setProgress(0);
     setInstallFailure(null);
-    setStatusText("Queued install task");
+    setStatusText(installerText("status.queued"));
 
     setInstallLifecycleState("downloading");
-    setStatusText("Loading package payload");
+    setStatusText(installerText("status.loadingPayload"));
 
     const verifiedPublisher = packageInfo.trustStatus === "verified";
     let installPreview: InstallPreview;
@@ -906,13 +907,13 @@ export const useInstallerFlow = ({
       setPreview(installPreview);
       setInstallLifecycleState("validating");
       setProgress(30);
-      setStatusText("Validating package integrity");
+      setStatusText(installerText("status.validating"));
     } catch {
       logUiError("install-preview-failed", {
         appId: selectedPackage.appId,
         scope,
       });
-      onToast("error", "Failed to generate install preview.");
+      onToast("error", installerText("toast.installPreviewFailed"));
       setIsBusy(false);
       setStep("scope");
       return;
@@ -920,11 +921,11 @@ export const useInstallerFlow = ({
 
     setInstallLifecycleState("installing");
     setProgress(58);
-    setStatusText("Installing application files");
+    setStatusText(installerText("status.installing"));
 
     setInstallLifecycleState("verifying");
     setProgress(84);
-    setStatusText("Verifying installed payload");
+    setStatusText(installerText("status.verifying"));
 
     const completed = await completeInstall(selectedPackage, installPreview, scope);
     if (!completed) {
@@ -937,7 +938,7 @@ export const useInstallerFlow = ({
     });
 
     setInstallLifecycleState("success");
-    setStatusText("Install complete");
+    setStatusText(installerText("status.complete"));
     setProgress(100);
     setIsBusy(false);
     setStep("complete");
@@ -946,7 +947,7 @@ export const useInstallerFlow = ({
   const launchCurrentPackage = async () => {
     if (!packageInfo) {
       logUiAction("installer-launch-current-blocked", { reason: "no-package" });
-      onToast("warning", "No package selected to launch.");
+      onToast("warning", installerText("toast.noPackageToLaunch"));
       return;
     }
 
@@ -969,7 +970,7 @@ export const useInstallerFlow = ({
       logUiAction("installer-open-logs-directory");
     } catch {
       logUiError("installer-open-logs-directory-failed");
-      onToast("error", "Could not open logs directory.");
+      onToast("error", installerText("toast.openLogsFailed"));
     }
   };
 

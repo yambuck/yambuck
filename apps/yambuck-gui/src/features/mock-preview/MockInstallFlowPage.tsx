@@ -5,6 +5,7 @@ import {
   mockPackageInfo,
   mockPreviewForScope,
 } from "../../mocks/mockData";
+import { installerText } from "../../i18n/installer";
 import type {
   InstallDecision,
   InstallOptionValue,
@@ -47,16 +48,16 @@ export const MockInstallFlowPage = ({
   const [installOptionError, setInstallOptionError] = useState("");
   const [validatingInstallOptions, setValidatingInstallOptions] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState("Preparing install...");
+  const [statusText, setStatusText] = useState(installerText("mock.preparingInstall"));
   const [installLifecycleState, setInstallLifecycleState] = useState<"queued" | "downloading" | "validating" | "installing" | "verifying" | "success" | "failed">("queued");
   const [isBusy, setIsBusy] = useState(false);
 
   const installDecision: InstallDecision | null = useMemo(() => ({
     action: "update",
-    message: "Mock flow: this package will update an existing install.",
+    message: installerText("mock.decisionUpdate"),
     existingVersion: "1.3.8",
     incomingVersion: mockPackageInfo.version,
-  }), []);
+  }), [mockPackageInfo.version]);
 
   const mockWizardSteps: WizardStep[] = [
     "details",
@@ -76,26 +77,26 @@ export const MockInstallFlowPage = ({
     setIsBusy(true);
     setProgress(0);
     setInstallLifecycleState("downloading");
-    setStatusText("Downloading package payload...");
+    setStatusText(installerText("mock.downloading"));
 
     const timer = window.setInterval(() => {
       setProgress((current) => {
         const next = Math.min(current + 14, 100);
         if (next >= 85) {
           setInstallLifecycleState("verifying");
-          setStatusText("Verifying install metadata...");
+          setStatusText(installerText("mock.verifying"));
         } else if (next >= 60) {
           setInstallLifecycleState("installing");
-          setStatusText("Installing app files...");
+          setStatusText(installerText("mock.installing"));
         } else if (next >= 35) {
           setInstallLifecycleState("validating");
-          setStatusText("Validating package contents...");
+          setStatusText(installerText("mock.validating"));
         }
 
         if (next >= 100) {
           window.clearInterval(timer);
           setInstallLifecycleState("success");
-          setStatusText("Install complete.");
+          setStatusText(installerText("mock.complete"));
           setIsBusy(false);
           setStep("complete");
         }
@@ -126,7 +127,7 @@ export const MockInstallFlowPage = ({
       progress={progress}
       isBusy={isBusy}
       preview={mockPreviewForScope(scope)}
-      onChoosePackage={() => onToast("info", "Mock package picker disabled in UI Lab.")}
+      onChoosePackage={() => onToast("info", installerText("mock.packagePickerDisabled"))}
       onContinueFromDetails={() => setStep("trust")}
       onClearSelectedPackage={onExitToDebug}
       onOpenScreenshotModal={onOpenScreenshot}
@@ -142,7 +143,7 @@ export const MockInstallFlowPage = ({
         setValidatingInstallOptions(true);
         const channel = installOptionValues.channel;
         if (!channel || channel.type !== "select" || !channel.value) {
-          setInstallOptionError("Release channel is required in this mock flow.");
+          setInstallOptionError(installerText("mock.releaseChannelRequired"));
           setValidatingInstallOptions(false);
           return;
         }
@@ -165,22 +166,22 @@ export const MockInstallFlowPage = ({
       validatingInstallOptions={validatingInstallOptions}
       onSetInstallOptionValue={(id, value) => setInstallOptionValues((current) => ({ ...current, [id]: value }))}
       packageOpenError={null}
-      onCopyPackageOpenErrorDetails={() => onToast("info", "Mock package error details copied.")}
+      onCopyPackageOpenErrorDetails={() => onToast("info", installerText("mock.copyPackageErrorDetails"))}
       installFailure={{
         summary: "Mock install failed at validation stage.",
         details: "This is mock-only failure output for UI verification.",
         capturedAtIso8601: "2026-04-20T11:02:31.502+01:00",
         capturedAtDisplay: "Apr 20, 2026, 11:02:31 (+01:00)",
       }}
-      onCopyInstallFailureDetails={() => onToast("info", "Mock failure details copied.")}
-      onCopyInstallPreflightDetails={() => onToast("info", "Mock compatibility report copied.")}
-      onOpenInstallLogsDirectory={() => onToast("info", "Mock logs directory action.")}
+      onCopyInstallFailureDetails={() => onToast("info", installerText("mock.copyFailureDetails"))}
+      onCopyInstallPreflightDetails={() => onToast("info", installerText("mock.copyCompatibilityReport"))}
+      onOpenInstallLogsDirectory={() => onToast("info", installerText("mock.openLogs"))}
       onSetLicenseAccepted={setLicenseAccepted}
       onSetScope={setScope}
       onStartInstall={() => setStep("progress")}
       onCloseInstallComplete={onExitToDebug}
       onToggleCompleteTechnicalDetails={() => setShowCompleteTechnicalDetails((prev) => !prev)}
-      onLaunchCurrentPackage={() => onToast("success", "Mock launch from complete state.")}
+      onLaunchCurrentPackage={() => onToast("success", installerText("mock.launchComplete"))}
       onMetaFieldCopied={(label) => onToast("info", `${label} copied to clipboard.`)}
       onViewInstalledDetails={() => onViewInstalledDetails(mockPackageInfo.appId)}
     />

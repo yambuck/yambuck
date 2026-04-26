@@ -1,5 +1,16 @@
 import { style } from "@vanilla-extract/css";
 
+export const installerPanel = style({
+  minHeight: "100%",
+  display: "flex",
+  flexDirection: "column",
+});
+
+export const installerActionRow = style({
+  marginTop: "auto",
+  paddingTop: "1.2rem",
+});
+
 export const scopeChoicesWrap = style({
   marginTop: "1rem",
 });

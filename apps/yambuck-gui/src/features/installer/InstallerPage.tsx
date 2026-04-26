@@ -27,6 +27,8 @@ import {
   technicalToggleOnly,
 } from "../shared/packageUi.css";
 import {
+  installerActionRow,
+  installerPanel,
   licenseRequirementNote,
   openPackageErrorBoxText,
   openPackageErrorPre,
@@ -47,6 +49,7 @@ import type {
 } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
+import { installerDecisionMessage, installerDecisionTitle, installerText } from "../../i18n/installer";
 
 const scopeChoices = [
   {
@@ -235,7 +238,7 @@ export const InstallerPage = ({
 
     return (
       <Panel
-        class={`package-panel ${packagePanel}`}
+        class={`package-panel ${packagePanel} ${installerPanel}`}
         showCornerClose={packageInfo !== null}
         cornerCloseTitle="Close package"
         onCornerClose={onClearSelectedPackage}
@@ -246,7 +249,7 @@ export const InstallerPage = ({
             <div class={`details-header ${detailsHeader}`}>
               <div>
                 <h1>{packageInfo.displayName}</h1>
-                <p class={`subtitle ${subtitle}`}>Review package details and install when ready</p>
+                <p class={`subtitle ${subtitle}`}>{installerText("ui.reviewSubtitle")}</p>
               </div>
               <div class={`details-actions ${detailsActions}`} data-no-drag="true">
                 <Button variant="primary" onClick={onContinueFromDetails} disabled={checkingPreflight}>
@@ -255,7 +258,7 @@ export const InstallerPage = ({
               </div>
             </div>
             {preflightBlockedMessage ? (
-              <MessagePanel tone="error" title="Install blocked">
+              <MessagePanel tone="error" title={installerText("ui.installBlockedTitle")}>
                 <p>{preflightBlockedMessage}</p>
                 {installPreflight?.reasons.length ? (
                   <ul>
@@ -269,11 +272,8 @@ export const InstallerPage = ({
             ) : null}
 
             {packageInfo.appInterface.hasCli && !packageInfo.appInterface.hasGui ? (
-              <MessagePanel tone="warning" title="Terminal app">
-                <p>
-                  This package installs a command-line app. It does not open a desktop window.
-                  Open Terminal and run the command shown below after install.
-                </p>
+              <MessagePanel tone="warning" title={installerText("ui.terminalAppTitle")}>
+                <p>{installerText("ui.terminalAppBody")}</p>
               </MessagePanel>
             ) : null}
 
@@ -416,12 +416,12 @@ export const InstallerPage = ({
           </>
         ) : packageOpenError ? (
           <>
-            <h1>We couldn't open this package</h1>
-            <p class={`subtitle ${subtitle}`}>Looks like there was an issue opening this .yambuck file.</p>
-            <p class={`subtitle ${subtitle}`}>The package may be missing required information or contains invalid files. Please contact the developer or publisher and share the error details below.</p>
+            <h1>{installerText("ui.openPackageTitle")}</h1>
+            <p class={`subtitle ${subtitle}`}>{installerText("ui.openPackageSubtitlePrimary")}</p>
+            <p class={`subtitle ${subtitle}`}>{installerText("ui.openPackageSubtitleSecondary")}</p>
             <section class={`meta-section technical open-package-error-section ${openPackageErrorSection}`}>
               <div class={`meta-section-header ${metaSectionHeader}`}>
-                <h2>Error details</h2>
+                <h2>{installerText("ui.errorDetailsHeading")}</h2>
               </div>
               <MessagePanel tone="error" class="open-package-error-box">
                 <p class={openPackageErrorBoxText}>
@@ -433,18 +433,18 @@ export const InstallerPage = ({
                 <pre class={`open-package-error-pre ${openPackageErrorPre}`}><code>Error: {packageOpenError.message}</code></pre>
               </MessagePanel>
             </section>
-            <div class={`actions ${actions}`}>
+            <div class={`actions ${actions} ${installerActionRow}`}>
               <Button onClick={onClearSelectedPackage}>Close</Button>
               <Button variant="primary" onClick={onCopyPackageOpenErrorDetails}>Copy details</Button>
             </div>
           </>
         ) : (
           <>
-            <h1>Choose package</h1>
-            <p class={`subtitle ${subtitle}`}>Open a package file to start guided installation</p>
-            <div class={`actions start ${actions} ${actionsStart}`}>
+            <h1>{installerText("ui.choosePackageTitle")}</h1>
+            <p class={`subtitle ${subtitle}`}>{installerText("ui.choosePackageSubtitle")}</p>
+            <div class={`actions start ${actions} ${actionsStart} ${installerActionRow}`}>
               <Button variant="primary" onClick={onChoosePackage}>
-                Open .yambuck file
+                {installerText("ui.openPackageButton")}
               </Button>
             </div>
           </>
@@ -460,13 +460,16 @@ export const InstallerPage = ({
   if (step === "trust") {
     const isVerified = packageInfo.trustStatus === "verified";
     return (
-      <Panel>
+      <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>Trust and verification</h1>
-        <MessagePanel tone={isVerified ? "success" : "warning"} title={isVerified ? "Verified publisher" : "Publisher not verified"}>
-          <p>{isVerified ? "This package is signed by a trusted publisher key." : "Only install if you trust this source."}</p>
+        <h1>{installerText("ui.trustTitle")}</h1>
+        <MessagePanel
+          tone={isVerified ? "success" : "warning"}
+          title={isVerified ? installerText("ui.verifiedPublisherTitle") : installerText("ui.unverifiedPublisherTitle")}
+        >
+          <p>{isVerified ? installerText("ui.verifiedPublisherBody") : installerText("ui.unverifiedPublisherBody")}</p>
         </MessagePanel>
-        <div class={`actions ${actions}`}>
+        <div class={`actions ${actions} ${installerActionRow}`}>
           <Button onClick={onGoBackFromTrustStep}>Back</Button>
           <Button variant="primary" onClick={onContinueFromTrustStep}>
             {isVerified ? "Next" : "Install anyway"}
@@ -479,17 +482,17 @@ export const InstallerPage = ({
   if (step === "license") {
     const licenseText = packageInfo.licenseText?.trim() ?? "";
     return (
-      <Panel>
+      <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>License agreement</h1>
-        <p class={`subtitle ${subtitle}`}>Review and accept the package license before continuing.</p>
+        <h1>{installerText("ui.licenseTitle")}</h1>
+        <p class={`subtitle ${subtitle}`}>{installerText("ui.licenseSubtitle")}</p>
         <div class={`actions start ${actions} ${actionsStart}`}>
           {licenseText ? (
             <Button onClick={() => onOpenLicenseViewer(`${packageInfo.displayName} License`, licenseText)}>
               View license
             </Button>
           ) : (
-            <p class={`subtitle ${subtitle}`}>License content is missing. This package cannot be installed.</p>
+            <p class={`subtitle ${subtitle}`}>{installerText("ui.licenseMissingBody")}</p>
           )}
         </div>
         <CheckboxField checked={licenseAccepted} disabled={!licenseText} onChange={onSetLicenseAccepted} class="license-acceptance">
@@ -498,7 +501,7 @@ export const InstallerPage = ({
         {!licenseAccepted ? (
           <p class={licenseRequirementNote}>The publisher requires license acceptance before install can continue.</p>
         ) : null}
-        <div class={`actions ${actions}`}>
+        <div class={`actions ${actions} ${installerActionRow}`}>
           <Button onClick={onGoBackFromLicenseStep}>Back</Button>
           <Button variant="primary" onClick={onContinueFromLicenseStep} disabled={!licenseText || !licenseAccepted}>
             Continue
@@ -510,13 +513,13 @@ export const InstallerPage = ({
 
   if (step === "scope") {
     return (
-      <Panel>
+      <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>{managedExistingInstall ? "Reinstall scope" : "Install scope"}</h1>
+        <h1>{managedExistingInstall ? installerText("ui.reinstallScopeTitle") : installerText("ui.installScopeTitle")}</h1>
         <p class={`subtitle ${subtitle}`}>
           {managedExistingInstall
-            ? "Choose reinstall behavior and who can use this application"
-            : "Choose who can use this application"}
+            ? installerText("ui.reinstallScopeSubtitle")
+            : installerText("ui.installScopeSubtitle")}
         </p>
         <ScopeChoiceCards
           value={scope}
@@ -527,24 +530,26 @@ export const InstallerPage = ({
           class={scopeChoicesWrap}
         />
         {installDecision?.otherScope && installDecision.otherScopeExistingVersion ? (
-          <MessagePanel tone="info" title="Also installed in another scope" class={scopeNotice}>
+          <MessagePanel tone="info" title={installerText("ui.otherScopeTitle")} class={scopeNotice}>
             <p>
-              You already have version <code>{installDecision.otherScopeExistingVersion}</code> installed in {" "}
-              <strong>{formatInstallScopeLabel(installDecision.otherScope)}</strong>.
+              {installerText("ui.otherScopeBody", {
+                version: installDecision.otherScopeExistingVersion,
+                scope: formatInstallScopeLabel(installDecision.otherScope),
+              })}
             </p>
           </MessagePanel>
         ) : null}
         {managedExistingInstall ? (
           <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
             <div class={`meta-section-header ${metaSectionHeader}`}>
-              <h2>Reinstall options</h2>
+              <h2>{installerText("ui.reinstallOptionsTitle")}</h2>
             </div>
             {installDecision ? (
               <MessagePanel
                 tone={installDecision.action === "downgrade" ? "warning" : "info"}
-                title={installDecision.action === "update" ? "Update" : installDecision.action === "reinstall" ? "Reinstall" : installDecision.action === "downgrade" ? "Downgrade" : "Install"}
+                title={installerDecisionTitle(installDecision)}
               >
-                <p>{installDecision.message}</p>
+                <p>{installerDecisionMessage(installDecision)}</p>
                 {installDecision.existingVersion ? (
                   <p>
                     Installed: <code>{installDecision.existingVersion}</code> {"->"} Package: <code>{installDecision.incomingVersion}</code>
@@ -567,7 +572,7 @@ export const InstallerPage = ({
             ) : null}
           </section>
         ) : null}
-        <div class={`actions ${actions}`}>
+        <div class={`actions ${actions} ${installerActionRow}`}>
           <Button onClick={onGoBackFromScopeStep}>Back</Button>
           <Button
             variant="primary"
@@ -586,13 +591,13 @@ export const InstallerPage = ({
 
   if (step === "options") {
     return (
-      <Panel>
+      <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>Installer options</h1>
-        <p class={`subtitle ${subtitle}`}>Choose any package-defined options before continuing.</p>
+        <h1>{installerText("ui.optionsTitle")}</h1>
+        <p class={`subtitle ${subtitle}`}>{installerText("ui.optionsSubtitle")}</p>
         {installOptions.length === 0 ? (
-          <MessagePanel tone="info" title="No options defined">
-            <p>This step is present in the workflow but the package provided no option schema.</p>
+          <MessagePanel tone="info" title={installerText("ui.noOptionsTitle")}>
+            <p>{installerText("ui.noOptionsBody")}</p>
           </MessagePanel>
         ) : (
           <MetaCardGrid>
@@ -662,11 +667,11 @@ export const InstallerPage = ({
           </MetaCardGrid>
         )}
         {installOptionError ? (
-          <MessagePanel tone="error" title="Invalid options">
-            <p>{installOptionError}</p>
+          <MessagePanel tone="error" title={installerText("ui.invalidOptionsTitle")}>
+            <p>{installerText("ui.invalidOptionsBody")}</p>
           </MessagePanel>
         ) : null}
-        <div class={`actions ${actions}`}>
+        <div class={`actions ${actions} ${installerActionRow}`}>
           <Button onClick={onGoBackFromOptionsStep}>Back</Button>
           <Button variant="primary" onClick={onContinueFromOptionsStep} disabled={validatingInstallOptions}>
             {validatingInstallOptions ? "Validating..." : "Continue"}
@@ -678,13 +683,17 @@ export const InstallerPage = ({
 
   if (step === "progress") {
     return (
-      <Panel>
+      <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>Installing {packageInfo.displayName}</h1>
+        <h1>{installerText("ui.installingTitle", { appName: packageInfo.displayName })}</h1>
         <p class={`subtitle ${subtitle}`}>{statusText}</p>
-        <p class={`subtitle ${subtitle}`}>{`State: ${installLifecycleState}`}</p>
-        <ProgressBar value={progress} class={progressWrap} ariaLabel="Install progress" />
-        <div class={`actions ${actions}`}>
+        <p class={`subtitle ${subtitle}`}>{installerText("ui.installingStateLine")}</p>
+        <ProgressBar
+          value={progress}
+          class={progressWrap}
+          ariaLabel={installerText("ui.installProgressAria", { state: installLifecycleState })}
+        />
+        <div class={`actions ${actions} ${installerActionRow}`}>
           <Button disabled={isBusy}>Cancel</Button>
         </div>
       </Panel>
@@ -693,16 +702,16 @@ export const InstallerPage = ({
 
   if (step === "failed") {
     return (
-      <Panel class={`package-panel ${packagePanel}`}>
+      <Panel class={`package-panel ${packagePanel} ${installerPanel}`}>
         {renderStepper()}
-        <h1>Install failed</h1>
-        <p class={`subtitle ${subtitle}`}>{installFailure?.summary ?? "Yambuck could not complete this install."}</p>
-        <p class={`subtitle ${subtitle}`}>Root cause summary: {installFailure?.summary ?? "Unknown failure"}</p>
+        <h1>{installerText("ui.installFailedTitle")}</h1>
+        <p class={`subtitle ${subtitle}`}>{installerText("ui.installFailedSubtitle")}</p>
+        <p class={`subtitle ${subtitle}`}>{installerText("ui.installFailedDetailsSubtitle")}</p>
 
         {installFailure ? (
           <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
             <div class={`meta-section-header ${metaSectionHeader}`}>
-              <h2>Failure details</h2>
+              <h2>{installerText("ui.failureDetailsHeading")}</h2>
             </div>
             <MessagePanel tone="error" class="open-package-error-box">
               <p class={openPackageErrorBoxText}>
@@ -713,7 +722,7 @@ export const InstallerPage = ({
           </section>
         ) : null}
 
-        <div class={`actions ${actions}`}>
+        <div class={`actions ${actions} ${installerActionRow}`}>
           <Button onClick={() => onSetStep("scope")}>Retry</Button>
           <Button onClick={onCopyInstallFailureDetails} disabled={!installFailure}>Copy details</Button>
           <Button onClick={onOpenInstallLogsDirectory}>Open logs</Button>
@@ -725,14 +734,14 @@ export const InstallerPage = ({
 
   return (
     <Panel
-      class={`package-panel ${packagePanel}`}
+      class={`package-panel ${packagePanel} ${installerPanel}`}
       showCornerClose
       cornerCloseTitle="Back to installed apps"
       onCornerClose={onCloseInstallComplete}
     >
       {renderStepper()}
-      <h1>Install complete</h1>
-      <p class={`subtitle ${subtitle}`}>{packageInfo.displayName} is ready to launch.</p>
+      <h1>{installerText("ui.installCompleteTitle")}</h1>
+      <p class={`subtitle ${subtitle}`}>{installerText("ui.installCompleteSubtitle", { appName: packageInfo.displayName })}</p>
 
       {preview ? (
         <MetaCardGrid compact>
@@ -795,7 +804,7 @@ export const InstallerPage = ({
         </section>
       ) : null}
 
-      <div class={`actions ${actions}`}>
+      <div class={`actions ${actions} ${installerActionRow}`}>
         {onViewInstalledDetails ? <Button onClick={onViewInstalledDetails}>Show installed details</Button> : null}
         <Button variant="primary" onClick={onLaunchCurrentPackage}>Launch app</Button>
       </div>
