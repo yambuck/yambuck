@@ -24,6 +24,7 @@ Completed items should be removed from this file.
 - [ ] Design and prototype GUI-first `Build Package` tab flow (new package + open/edit existing package) from `docs/PACKAGE_BUILDER_GUI_DRAFT.md`.
 - [ ] Define interruption resilience policy (power loss/crash during install) with resume-or-rollback guarantees.
 - [ ] Fix title-bar window controls so maximize and close glyphs are visually centered in circular buttons.
+- [ ] Add double-click title-bar behavior to toggle maximize/restore (fullscreen-style window expansion).
 - [ ] Add lightweight release-gate checklist for spec/code alignment before release (package conformance, reliability checks, desktop validation sign-off).
 - [ ] Revisit uninstall CLI flag model after logging/elevation stabilization (consider reintroducing scoped purge flags with clear UX contract).
 
