@@ -90,6 +90,10 @@ export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
       return;
     }
 
+    if (isMaximized) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 

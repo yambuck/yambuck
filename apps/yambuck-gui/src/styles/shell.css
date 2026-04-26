@@ -22,6 +22,7 @@ body {
 }
 
 .app-shell {
+  position: relative;
   height: 100vh;
   width: 100%;
   display: flex;
@@ -54,49 +55,50 @@ body {
   pointer-events: none;
 }
 
+.resize-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+
 .resize-corner {
   position: absolute;
-  width: 18px;
-  height: 18px;
-  z-index: 22;
+  width: 20px;
+  height: 20px;
+  z-index: 1;
   user-select: none;
+  pointer-events: auto;
+  touch-action: none;
+  background: transparent;
 }
 
 .resize-corner-nw {
   top: 0;
   left: 0;
   cursor: nwse-resize;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
 .resize-corner-ne {
   top: 0;
   right: 0;
   cursor: nesw-resize;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 
 .resize-corner-sw {
   left: 0;
   bottom: 0;
   cursor: nesw-resize;
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
 }
 
 .resize-corner-se {
   right: 0;
   bottom: 0;
   cursor: nwse-resize;
-}
-
-.resize-corner-se::after {
-  content: "";
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 11px;
-  height: 11px;
-  background: linear-gradient(135deg, var(--colors-style-color077), var(--colors-style-color078));
   clip-path: polygon(100% 0, 0 100%, 100% 100%);
-  opacity: 0.95;
-  pointer-events: none;
 }
 
 .content-scroll {
