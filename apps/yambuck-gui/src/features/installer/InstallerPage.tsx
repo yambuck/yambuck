@@ -77,7 +77,11 @@ const stepLabels: Record<WizardStep, string> = {
   failed: installerText("step.failed"),
 };
 
-const buildInstallerSteps = (wizardSteps: WizardStep[] | null, includeLicense: boolean): WizardStepperStep[] => {
+const buildInstallerSteps = (
+  wizardSteps: WizardStep[] | null,
+  includeLicense: boolean,
+  includeDecision: boolean,
+): WizardStepperStep[] => {
   const defaultSteps: WizardStep[] = [
     "details",
     "trust",
@@ -90,7 +94,17 @@ const buildInstallerSteps = (wizardSteps: WizardStep[] | null, includeLicense: b
   ];
 
   const sourceSteps = wizardSteps && wizardSteps.length > 0 ? wizardSteps : defaultSteps;
-  return sourceSteps
+  const normalizedSteps = [...sourceSteps];
+  if (includeDecision && !normalizedSteps.includes("decision")) {
+    const progressIndex = normalizedSteps.indexOf("progress");
+    if (progressIndex >= 0) {
+      normalizedSteps.splice(progressIndex, 0, "decision");
+    } else {
+      normalizedSteps.push("decision");
+    }
+  }
+
+  return normalizedSteps
     .filter((step) => step !== "failed")
     .map((step) => ({ id: step, label: stepLabels[step] }));
 };
@@ -125,7 +139,7 @@ type InstallerPageProps = {
   onGoBackFromOptionsStep: () => void;
   onContinueFromOptionsStep: () => void;
   onGoBackFromScopeStep: () => void;
-  onContinueFromScopeStep: () => void;
+  onScopePrimaryAction: () => void;
   onGoBackFromDecisionStep: () => void;
   installOptions: InstallOptionDefinition[];
   managedExistingInstall: boolean;
@@ -196,7 +210,7 @@ export const InstallerPage = ({
   onGoBackFromOptionsStep,
   onContinueFromOptionsStep,
   onGoBackFromScopeStep,
-  onContinueFromScopeStep,
+  onScopePrimaryAction,
   onGoBackFromDecisionStep,
   installOptions,
   managedExistingInstall,
@@ -227,7 +241,7 @@ export const InstallerPage = ({
   onViewInstalledDetails,
 }: InstallerPageProps) => {
   const includeLicenseStep = packageInfo?.requiresLicenseAcceptance ?? false;
-  const installerSteps = buildInstallerSteps(installerWizardSteps, includeLicenseStep);
+  const installerSteps = buildInstallerSteps(installerWizardSteps, includeLicenseStep, managedExistingInstall);
   const currentStepId = step === "failed" ? "progress" : step;
 
   const renderStepper = () => (
@@ -587,10 +601,7 @@ export const InstallerPage = ({
         ) : null}
         <div class={`actions ${actions} ${installerActionRow}`}>
           <Button onClick={onGoBackFromScopeStep}>{installerText("ui.back")}</Button>
-          <Button
-            variant="primary"
-            onClick={managedExistingInstall ? onContinueFromScopeStep : onStartInstall}
-          >
+          <Button variant="primary" onClick={onScopePrimaryAction}>
             {managedExistingInstall ? installerText("ui.continue") : installerText("ui.install")}
           </Button>
         </div>

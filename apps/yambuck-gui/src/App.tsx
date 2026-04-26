@@ -477,7 +477,7 @@ function App() {
         onGoBackFromOptionsStep={goBackFromOptionsStep}
         onContinueFromOptionsStep={() => void continueFromOptionsStep()}
         onGoBackFromScopeStep={goBackFromScopeStep}
-        onContinueFromScopeStep={continueFromScopeStep}
+        onScopePrimaryAction={continueFromScopeStep}
         onGoBackFromDecisionStep={goBackFromDecisionStep}
         installOptions={installOptions}
         managedExistingInstall={managedExistingInstall}

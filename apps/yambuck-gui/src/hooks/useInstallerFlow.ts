@@ -655,12 +655,23 @@ export const useInstallerFlow = ({
   };
 
   const continueFromScopeStep = () => {
+    const hasDecisionStep = installWorkflow?.wizardSteps.includes("decision") ?? false;
+    const routeToDecision = managedExistingInstall;
+
     logUiAction("installer-continue-scope", {
       scope,
-      nextStep: getStepNext("scope", "decision"),
       workflowReady: Boolean(workflowId),
+      hasDecisionStep,
+      managedExistingInstall,
+      route: routeToDecision ? "decision" : "start-install",
     });
-    setStep(getStepNext("scope", "decision"));
+
+    if (routeToDecision) {
+      setStep("decision");
+      return;
+    }
+
+    void startInstall();
   };
 
   const goBackFromDecisionStep = () => {
@@ -799,7 +810,7 @@ export const useInstallerFlow = ({
     }
   };
 
-  const startInstall = async () => {
+  async function startInstall() {
     logUiAction("install-start-clicked", {
       step,
       scope,
@@ -1007,7 +1018,7 @@ export const useInstallerFlow = ({
     setProgress(100);
     setIsBusy(false);
     setStep("complete");
-  };
+  }
 
   const launchCurrentPackage = async () => {
     if (!packageInfo) {

@@ -191,7 +191,7 @@ export const MockInstallFlowPage = ({
         setStep("scope");
       }}
       onGoBackFromScopeStep={() => setStep("options")}
-      onContinueFromScopeStep={() => setStep("decision")}
+      onScopePrimaryAction={() => setStep(managedExistingInstall ? "decision" : "progress")}
       onGoBackFromDecisionStep={() => setStep("scope")}
       installOptions={mockInstallOptions}
       managedExistingInstall={managedExistingInstall}
