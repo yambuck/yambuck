@@ -17,7 +17,6 @@ import {
   installedReviewLongDescription,
   installedReviewOverview,
   section,
-  uninstallButton,
 } from "./modalStyles.css";
 
 type InstalledAppReviewModalProps = {
@@ -47,7 +46,7 @@ export const InstalledAppReviewModal = ({
         <div class={`details-header ${detailsHeader}`}>
           <h1>{details.displayName}</h1>
           <div class={`details-actions ${detailsActions}`} data-no-drag="true">
-            <Button class={uninstallButton} onClick={onUninstall}>Uninstall</Button>
+            <Button variant="danger" onClick={onUninstall}>Uninstall</Button>
             <Button variant="primary" onClick={onLaunch}>Launch app</Button>
           </div>
         </div>

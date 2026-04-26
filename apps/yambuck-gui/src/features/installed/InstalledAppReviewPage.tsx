@@ -8,7 +8,6 @@ import { displayOrFallback } from "../../utils/text";
 import { formatCanonicalTimestampForDisplay } from "../../utils/time";
 import { PackageDetailsSections } from "../shared/PackageDetailsSections";
 import { detailsActions, detailsHeader, packagePanel } from "../shared/packageUi.css";
-import { uninstallButton } from "../modals/modalStyles.css";
 
 type InstalledAppReviewPageProps = {
   details: InstalledAppDetails;
@@ -42,7 +41,7 @@ export const InstalledAppReviewPage = ({
     <div class={`details-header ${detailsHeader}`}>
       <h1>{details.displayName}</h1>
       <div class={`details-actions ${detailsActions}`} data-no-drag="true">
-        <Button class={uninstallButton} onClick={onUninstall}>Uninstall</Button>
+        <Button variant="danger" onClick={onUninstall}>Uninstall</Button>
         <Button variant="primary" onClick={onLaunch}>Launch app</Button>
       </div>
     </div>

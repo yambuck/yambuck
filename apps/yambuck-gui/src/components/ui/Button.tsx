@@ -2,7 +2,7 @@ import type { ComponentChildren, JSX, VNode } from "preact";
 import { logUiAction } from "../../lib/ui-log";
 import { base, fullWidthOnSmall, variant as variantClass } from "./button.css";
 
-type ButtonVariant = "primary" | "ghost";
+type ButtonVariant = "primary" | "ghost" | "danger";
 
 type ButtonProps = {
   children: ComponentChildren;

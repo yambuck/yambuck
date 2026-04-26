@@ -1,3 +1,4 @@
+import { TableRowAction } from "../../components/ui/TableRowAction";
 import type { InstalledApp } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { formatCanonicalTimestampForDisplay, formatCompactTimestampForTable } from "../../utils/time";
@@ -6,6 +7,7 @@ import {
   appCopy,
   appId,
   appName,
+  colAction,
   chip,
   colInstalled,
   colScope,
@@ -62,6 +64,7 @@ export const InstalledAppsTable = ({
               </span>
             </button>
           </th>
+          <th class={`${colAction} col-action`} aria-label="Open app details" />
         </tr>
       </thead>
       <tbody>
@@ -84,6 +87,9 @@ export const InstalledAppsTable = ({
             <td class={`${colScope} col-scope`}><span class={`${chip} installed-meta-chip`}>{formatInstallScopeLabel(app.installScope)}</span></td>
             <td class={`${colInstalled} col-installed`} title={formatCanonicalTimestampForDisplay(app.installedAt)}>
               {formatCompactTimestampForTable(app.installedAt)}
+            </td>
+            <td class={`${colAction} col-action`}>
+              <TableRowAction />
             </td>
           </tr>
         ))}

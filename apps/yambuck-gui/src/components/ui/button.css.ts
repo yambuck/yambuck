@@ -48,6 +48,17 @@ export const variant = styleVariants({
       },
     },
   },
+  danger: {
+    color: "var(--colors-button-danger-text)",
+    borderColor: "var(--colors-button-danger-border)",
+    background: "var(--colors-button-danger-background)",
+    selectors: {
+      '&:not(:disabled):hover': {
+        background: "var(--colors-button-danger-hover-background)",
+        boxShadow: "0 8px 18px var(--colors-panel-shadow)",
+      },
+    },
+  },
 });
 
 export const fullWidthOnSmall = style({

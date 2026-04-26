@@ -153,6 +153,17 @@ export const colInstalled = style({
   },
 });
 
+export const colAction = style({
+  textAlign: "right",
+  width: "1%",
+  whiteSpace: "nowrap",
+  '@media': {
+    '(max-width: 640px)': {
+      display: "none",
+    },
+  },
+});
+
 export const sortButton = style({
   border: 0,
   background: "transparent",
@@ -194,4 +205,8 @@ globalStyle(`${table} th.${colScope}, ${table} td.${colScope}`, {
 
 globalStyle(`${table} th.${colInstalled}, ${table} td.${colInstalled}`, {
   textAlign: "center",
+});
+
+globalStyle(`${table} th.${colAction}, ${table} td.${colAction}`, {
+  textAlign: "right",
 });

@@ -21,17 +21,6 @@ export const toolbarLabel = style({
   overflowWrap: "anywhere",
 });
 
-export const uninstallButton = style({
-  borderColor: "var(--colors-toast-error-border)",
-  background: "var(--colors-toast-error-bg)",
-  color: "var(--colors-toast-error-text)",
-  selectors: {
-    '&:not(:disabled):hover': {
-      background: "var(--colors-close-control-hover-background)",
-    },
-  },
-});
-
 export const updateActions = style({
   display: "inline-flex",
   alignItems: "center",

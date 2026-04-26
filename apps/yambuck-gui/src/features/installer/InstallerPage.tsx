@@ -8,6 +8,8 @@ import { ProgressBar } from "../../components/ui/ProgressBar";
 import { ScopeChoiceCards } from "../../components/ui/ScopeChoiceCards";
 import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
 import { TextField } from "../../components/ui/TextField";
+import { WizardStepper } from "../../components/ui/WizardStepper";
+import type { WizardStepperStep } from "../../components/ui/WizardStepper";
 import { SelectField } from "../../components/ui/SelectField";
 import type { SelectFieldOption } from "../../components/ui/SelectField";
 import { MetaCardGrid } from "../shared/MetaCardGrid";
@@ -58,6 +60,23 @@ const scopeChoices = [
     description: "May require admin permissions.",
   },
 ];
+
+const buildInstallerSteps = (includeLicense: boolean): WizardStepperStep[] => {
+  const steps: WizardStepperStep[] = [
+    { id: "details", label: "Details" },
+    { id: "trust", label: "Trust" },
+  ];
+  if (includeLicense) {
+    steps.push({ id: "license", label: "License" });
+  }
+  steps.push(
+    { id: "options", label: "Options" },
+    { id: "scope", label: "Scope" },
+    { id: "progress", label: "Install" },
+    { id: "complete", label: "Done" },
+  );
+  return steps;
+};
 
 type InstallerPageProps = {
   step: WizardStep;
@@ -184,6 +203,14 @@ export const InstallerPage = ({
   onMetaFieldCopied,
   onViewInstalledDetails,
 }: InstallerPageProps) => {
+  const includeLicenseStep = packageInfo?.requiresLicenseAcceptance ?? false;
+  const installerSteps = buildInstallerSteps(includeLicenseStep);
+  const currentStepId = step === "failed" ? "progress" : step;
+
+  const renderStepper = () => (
+    <WizardStepper steps={installerSteps} currentStepId={currentStepId} />
+  );
+
   if (step === "details") {
     const interfaceLabel = packageInfo
       ? packageInfo.appInterface.hasGui && packageInfo.appInterface.hasCli
@@ -200,6 +227,7 @@ export const InstallerPage = ({
         cornerCloseTitle="Close package"
         onCornerClose={onClearSelectedPackage}
       >
+        {renderStepper()}
         {packageInfo ? (
           <>
             <div class={`details-header ${detailsHeader}`}>
@@ -420,6 +448,7 @@ export const InstallerPage = ({
     const isVerified = packageInfo.trustStatus === "verified";
     return (
       <Panel>
+        {renderStepper()}
         <h1>Trust and verification</h1>
         <MessagePanel tone={isVerified ? "success" : "warning"} title={isVerified ? "Verified publisher" : "Publisher not verified"}>
           <p>{isVerified ? "This package is signed by a trusted publisher key." : "Only install if you trust this source."}</p>
@@ -438,6 +467,7 @@ export const InstallerPage = ({
     const licenseText = packageInfo.licenseText?.trim() ?? "";
     return (
       <Panel>
+        {renderStepper()}
         <h1>License agreement</h1>
         <p class={`subtitle ${subtitle}`}>Review and accept the package license before continuing.</p>
         <div class={`actions start ${actions} ${actionsStart}`}>
@@ -468,6 +498,7 @@ export const InstallerPage = ({
   if (step === "scope") {
     return (
       <Panel>
+        {renderStepper()}
         <h1>{managedExistingInstall ? "Reinstall scope" : "Install scope"}</h1>
         <p class={`subtitle ${subtitle}`}>
           {managedExistingInstall
@@ -543,6 +574,7 @@ export const InstallerPage = ({
   if (step === "options") {
     return (
       <Panel>
+        {renderStepper()}
         <h1>Installer options</h1>
         <p class={`subtitle ${subtitle}`}>Choose any package-defined options before continuing.</p>
         {installOptions.length === 0 ? (
@@ -634,6 +666,7 @@ export const InstallerPage = ({
   if (step === "progress") {
     return (
       <Panel>
+        {renderStepper()}
         <h1>Installing {packageInfo.displayName}</h1>
         <p class={`subtitle ${subtitle}`}>{statusText}</p>
         <p class={`subtitle ${subtitle}`}>{`State: ${installLifecycleState}`}</p>
@@ -648,6 +681,7 @@ export const InstallerPage = ({
   if (step === "failed") {
     return (
       <Panel class={`package-panel ${packagePanel}`}>
+        {renderStepper()}
         <h1>Install failed</h1>
         <p class={`subtitle ${subtitle}`}>{installFailure?.summary ?? "Yambuck could not complete this install."}</p>
         <p class={`subtitle ${subtitle}`}>Root cause summary: {installFailure?.summary ?? "Unknown failure"}</p>
@@ -683,6 +717,7 @@ export const InstallerPage = ({
       cornerCloseTitle="Back to installed apps"
       onCornerClose={onCloseInstallComplete}
     >
+      {renderStepper()}
       <h1>Install complete</h1>
       <p class={`subtitle ${subtitle}`}>{packageInfo.displayName} is ready to launch.</p>
 

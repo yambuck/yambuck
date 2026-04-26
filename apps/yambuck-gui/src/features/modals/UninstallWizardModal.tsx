@@ -68,7 +68,7 @@ export const UninstallWizardModal = ({
           ) : null}
           <div class={`update-actions ${updateActions}`}>
             <Button onClick={() => onSetStep("confirm")}>Back</Button>
-            <Button variant="primary" onClick={onRunUninstall}>Uninstall</Button>
+            <Button variant="danger" onClick={onRunUninstall}>Uninstall</Button>
           </div>
         </>
       ) : null}
