@@ -147,7 +147,7 @@ cat > "${STAGE_DIR}/manifest.json" <<EOF
   ],
   "homepageUrl": "https://yambuck.com",
   "supportUrl": "https://github.com/yambuck/yambuck",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "licenseFile": "assets/licenses/LICENSE.txt",
   "requiresLicenseAcceptance": true,
   "trustStatus": "unverified",

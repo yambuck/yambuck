@@ -380,6 +380,11 @@ a {
   margin-top: 0.5rem;
 }
 
+.steps article .step-action {
+  display: flex;
+  justify-content: center;
+}
+
 .step-file-button {
   padding: 0.4rem 0.62rem;
   border-radius: 8px;
@@ -423,6 +428,7 @@ h3 {
 .developer-actions {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
