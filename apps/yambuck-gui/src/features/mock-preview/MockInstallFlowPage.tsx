@@ -154,15 +154,15 @@ export const MockInstallFlowPage = ({
       validatingInstallOptions={validatingInstallOptions}
       onSetInstallOptionValue={(id, value) => setInstallOptionValues((current) => ({ ...current, [id]: value }))}
       packageOpenError={null}
-      onCopyPackageOpenErrorDetails={() => onToast("success", "Mock package error details copied.")}
+      onCopyPackageOpenErrorDetails={() => onToast("info", "Mock package error details copied.")}
       installFailure={{
         summary: "Mock install failed at validation stage.",
         details: "This is mock-only failure output for UI verification.",
         capturedAtIso8601: "2026-04-20T11:02:31.502+01:00",
         capturedAtDisplay: "Apr 20, 2026, 11:02:31 (+01:00)",
       }}
-      onCopyInstallFailureDetails={() => onToast("success", "Mock failure details copied.")}
-      onCopyInstallPreflightDetails={() => onToast("success", "Mock compatibility report copied.")}
+      onCopyInstallFailureDetails={() => onToast("info", "Mock failure details copied.")}
+      onCopyInstallPreflightDetails={() => onToast("info", "Mock compatibility report copied.")}
       onOpenInstallLogsDirectory={() => onToast("info", "Mock logs directory action.")}
       onSetLicenseAccepted={setLicenseAccepted}
       onSetScope={setScope}
@@ -170,7 +170,7 @@ export const MockInstallFlowPage = ({
       onCloseInstallComplete={onExitToDebug}
       onToggleCompleteTechnicalDetails={() => setShowCompleteTechnicalDetails((prev) => !prev)}
       onLaunchCurrentPackage={() => onToast("success", "Mock launch from complete state.")}
-      onMetaFieldCopied={(label) => onToast("success", `${label} copied to clipboard.`)}
+      onMetaFieldCopied={(label) => onToast("info", `${label} copied to clipboard.`)}
       onViewInstalledDetails={() => onViewInstalledDetails(mockPackageInfo.appId)}
     />
   );

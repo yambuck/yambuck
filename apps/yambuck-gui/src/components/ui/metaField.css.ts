@@ -1,6 +1,7 @@
 import { style } from "@vanilla-extract/css";
 
 export const field = style({
+  position: "relative",
   selectors: {
     '&[data-copyable="true"]': {
       cursor: "copy",
@@ -73,10 +74,41 @@ export const tooltip = style({
 
 export const dtText = style({
   margin: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "0.45rem",
   color: "var(--colors-style-color024)",
   fontSize: "0.77rem",
   textTransform: "uppercase",
   letterSpacing: "0.07em",
+});
+
+export const copyAffordance = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: 0,
+  background: "transparent",
+  color: "var(--colors-style-color071)",
+  lineHeight: 1,
+  padding: "0.1rem",
+  minWidth: "1.2rem",
+  minHeight: "1.2rem",
+  pointerEvents: "none",
+  opacity: 0.72,
+  transition: "opacity 120ms ease, color 120ms ease, transform 120ms ease",
+  selectors: {
+    [`${field}[data-copyable=\"true\"]:hover &`]: {
+      opacity: 1,
+      color: "var(--colors-feedback-title-text)",
+      transform: "translateY(-0.5px)",
+    },
+    '&[data-state="copied"]': {
+      color: "var(--colors-feedback-success-icon-color)",
+      opacity: 1,
+    },
+  },
 });
 
 export const ddText = style({

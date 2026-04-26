@@ -9,7 +9,7 @@ export const panel = style({
   border: 0,
   padding: "1.5rem",
   background: "var(--colors-panel-background)",
-  boxShadow: "0 22px 45px var(--colors-panel-shadow)",
+  boxShadow: "0 22px 45px var(--colors-panel-shadow), 0 8px 22px var(--colors-panel-shadow-accent)",
   animation: "fade-up 220ms ease",
   position: "relative",
   overflow: "visible",

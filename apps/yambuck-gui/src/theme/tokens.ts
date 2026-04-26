@@ -31,6 +31,7 @@ export const tokens = {
     panelBorder: "rgba(153, 198, 228, 0.2)",
     panelBackground: "linear-gradient(160deg, rgba(16, 30, 48, 0.95), rgba(10, 20, 32, 0.92))",
     panelShadow: "rgba(0, 0, 0, 0.35)",
+    panelShadowAccent: "rgba(97, 215, 255, 0.14)",
     subtitleText: "#ffffff",
     buttonPrimaryText: "#03111d",
     buttonPrimaryBackground: "linear-gradient(135deg, #61d7ff, #55f0c0)",

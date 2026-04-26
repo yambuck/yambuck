@@ -136,15 +136,16 @@ export const metaGridCompact = style({
 globalStyle(`${metaGrid} > div`, {
   position: "relative",
   borderRadius: "12px",
-  border: "1px solid var(--colors-style-color014)",
+  border: 0,
   padding: "0.7rem",
   background: "var(--colors-style-color015)",
-  transition: "border-color 120ms ease, background-color 120ms ease",
+  boxShadow: "0 8px 18px var(--colors-panel-shadow)",
+  transition: "background-color 120ms ease, box-shadow 120ms ease",
 });
 
 globalStyle(`${metaGrid} > div:hover`, {
-  borderColor: "var(--colors-style-color022)",
   background: "var(--colors-style-color023)",
+  boxShadow: "0 10px 22px var(--colors-panel-shadow)",
 });
 
 export const metaSection = style({
@@ -161,9 +162,10 @@ export const longDescriptionSection = style({
 
 export const longDescriptionCard = style({
   borderRadius: "12px",
-  border: "1px solid var(--colors-style-color014)",
+  border: 0,
   padding: "0.8rem",
   background: "var(--colors-style-color015)",
+  boxShadow: "0 8px 18px var(--colors-panel-shadow)",
   marginTop: "0.65rem",
 });
 

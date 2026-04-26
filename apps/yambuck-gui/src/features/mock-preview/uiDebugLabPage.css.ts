@@ -7,10 +7,11 @@ export const stack = style({
 });
 
 export const section = style({
-  border: "1px solid var(--colors-style-color068)",
+  border: 0,
   borderRadius: "12px",
   padding: "0.8rem",
-  background: "var(--colors-style-color015)",
+  background: "var(--colors-style-color069)",
+  boxShadow: "0 10px 22px var(--colors-panel-shadow)",
 });
 
 export const sectionTitle = style({
@@ -70,4 +71,30 @@ export const progressPreview = style({
 
 export const scopeChoicePreview = style({
   marginTop: "0.85rem",
+});
+
+export const stepperPreview = style({
+  marginTop: "0.45rem",
+});
+
+export const listRowPreview = style({
+  marginTop: "0.6rem",
+  borderRadius: "var(--radius-surface)",
+  background: "var(--colors-style-color015)",
+  boxShadow: "0 8px 18px var(--colors-panel-shadow)",
+  padding: "0.62rem 0.7rem",
+  display: "grid",
+  gridTemplateColumns: "1fr auto",
+  alignItems: "center",
+  gap: "0.6rem",
+});
+
+export const listRowTitle = style({
+  fontWeight: 600,
+});
+
+export const listRowSubtitle = style({
+  marginTop: "0.2rem",
+  color: "var(--colors-style-color070)",
+  fontSize: "0.84rem",
 });

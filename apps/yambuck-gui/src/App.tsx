@@ -391,7 +391,7 @@ function App() {
 
   const handleMetaFieldCopied = (label: string) => {
     logUiAction("meta-field-copied", { label });
-    pushToast("success", `${label} copied to clipboard.`);
+    pushToast("info", `${label} copied to clipboard.`);
   };
 
   const navigateToInstalledList = () => {

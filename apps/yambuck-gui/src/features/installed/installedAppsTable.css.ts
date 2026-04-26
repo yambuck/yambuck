@@ -3,8 +3,9 @@ import { globalStyle, style } from "@vanilla-extract/css";
 export const wrap = style({
   marginTop: "0.8rem",
   borderRadius: "14px",
-  border: "1px solid var(--colors-style-color048)",
+  border: 0,
   background: "var(--colors-style-color049)",
+  boxShadow: "0 10px 22px var(--colors-panel-shadow)",
   overflow: "auto",
 });
 

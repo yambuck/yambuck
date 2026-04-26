@@ -1,6 +1,8 @@
+import { IconCheck, IconCopy } from "@tabler/icons-preact";
 import type { ComponentChildren } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { copyPlainText } from "../../utils/clipboard";
-import { ddText, dtText, field, help, term, tooltip as tooltipClass } from "./metaField.css";
+import { copyAffordance, ddText, dtText, field, help, term, tooltip as tooltipClass } from "./metaField.css";
 
 type MetaFieldProps = {
   label: string;
@@ -19,9 +21,19 @@ export const MetaField = ({
   copyEnabled = true,
   onCopySuccess,
 }: MetaFieldProps) => {
+  const [copied, setCopied] = useState(false);
+  const copiedResetTimer = useRef<number | null>(null);
   const fallbackValue = typeof value === "string" || typeof value === "number" ? String(value) : "";
   const resolvedCopyValue = copyValue ?? fallbackValue;
   const isCopyable = copyEnabled && resolvedCopyValue.trim().length > 0;
+
+  useEffect(() => {
+    return () => {
+      if (copiedResetTimer.current !== null) {
+        window.clearTimeout(copiedResetTimer.current);
+      }
+    };
+  }, []);
 
   const handleCopy = async (event: MouseEvent) => {
     if (!isCopyable) {
@@ -44,6 +56,14 @@ export const MetaField = ({
 
     try {
       await copyPlainText(resolvedCopyValue);
+      setCopied(true);
+      if (copiedResetTimer.current !== null) {
+        window.clearTimeout(copiedResetTimer.current);
+      }
+      copiedResetTimer.current = window.setTimeout(() => {
+        setCopied(false);
+        copiedResetTimer.current = null;
+      }, 1200);
       onCopySuccess?.(label);
     } catch {
       // copy is a hidden convenience feature; silently ignore failures
@@ -58,6 +78,11 @@ export const MetaField = ({
           <span class={`meta-help ${help}`} aria-hidden="true">?</span>
           <span class={`meta-tooltip ${tooltipClass}`} role="tooltip">{tooltip}</span>
         </span>
+        {isCopyable ? (
+          <span class={copyAffordance} data-state={copied ? "copied" : "idle"} aria-hidden="true">
+            {copied ? <IconCheck size={16} stroke={2.2} /> : <IconCopy size={16} stroke={2.2} />}
+          </span>
+        ) : null}
       </dt>
       <dd class={ddText}>{value}</dd>
     </div>

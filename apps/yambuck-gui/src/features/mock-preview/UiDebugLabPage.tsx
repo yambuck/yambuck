@@ -8,11 +8,16 @@ import { ProgressBar } from "../../components/ui/ProgressBar";
 import { ScopeChoiceCards } from "../../components/ui/ScopeChoiceCards";
 import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
 import { SelectField } from "../../components/ui/SelectField";
+import { TableRowAction } from "../../components/ui/TableRowAction";
 import { TextField } from "../../components/ui/TextField";
 import { TogglePillGroup } from "../../components/ui/TogglePillGroup";
+import { WizardStepper } from "../../components/ui/WizardStepper";
 import { MetaCardGrid } from "../shared/MetaCardGrid";
 import {
   fieldWrap,
+  listRowPreview,
+  listRowSubtitle,
+  listRowTitle,
   progressActions,
   progressPreview,
   row,
@@ -21,6 +26,7 @@ import {
   sectionTogglePreview,
   sectionTitle,
   scopeChoicePreview,
+  stepperPreview,
   toggleGroupShell,
   stack,
   technicalCardsPreview,
@@ -51,6 +57,18 @@ const scopeChoices = [
   },
 ];
 
+const installerSteps = [
+  { id: "details", label: "Details" },
+  { id: "trust", label: "Trust" },
+  { id: "license", label: "License" },
+  { id: "options", label: "Options" },
+  { id: "scope", label: "Scope" },
+  { id: "progress", label: "Install" },
+  { id: "complete", label: "Done" },
+];
+
+const installerStepOptions = installerSteps.map((step) => ({ value: step.id, label: step.label }));
+
 export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPageProps) => {
   const [searchQuery, setSearchQuery] = useState("Voice notes");
   const [layoutDensity, setLayoutDensity] = useState("balanced");
@@ -59,6 +77,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const [showAdvancedCard, setShowAdvancedCard] = useState(false);
   const [progress, setProgress] = useState(42);
   const [installScope, setInstallScope] = useState("user");
+  const [activeInstallerStep, setActiveInstallerStep] = useState("options");
 
   return (
     <Panel showCornerClose cornerCloseTitle="Back to debug" onCornerClose={onBackToSettingsDebug}>
@@ -75,6 +94,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
           <div class={row}>
             <Button onClick={() => onToast("success", "Primary button action fired.")} variant="primary">Primary</Button>
             <Button onClick={() => onToast("info", "Ghost button action fired.")}>Ghost</Button>
+            <Button onClick={() => onToast("warning", "Danger button action fired.")} variant="danger">Danger</Button>
             <Button disabled>Disabled</Button>
           </div>
         </section>
@@ -178,6 +198,20 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
         </section>
 
         <section class={section}>
+          <h2 class={sectionTitle}>Installer Stepper</h2>
+          <p class={sectionDescription}>Matches the step-by-step orientation used across installer states.</p>
+          <WizardStepper steps={installerSteps} currentStepId={activeInstallerStep} />
+          <div class={stepperPreview}>
+            <SelectField
+              value={activeInstallerStep}
+              onValueChange={setActiveInstallerStep}
+              options={installerStepOptions}
+              name="debug-installer-step"
+            />
+          </div>
+        </section>
+
+        <section class={section}>
           <h2 class={sectionTitle}>Scope Choice Cards</h2>
           <p class={sectionDescription}>Matches the install scope selector card component.</p>
           <ScopeChoiceCards
@@ -188,6 +222,18 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
             ariaLabel="Debug install scope"
             class={scopeChoicePreview}
           />
+        </section>
+
+        <section class={section}>
+          <h2 class={sectionTitle}>List Row Affordance</h2>
+          <p class={sectionDescription}>Preview the chevron-style row affordance used in Installed Apps.</p>
+          <div class={listRowPreview}>
+            <div>
+              <div class={listRowTitle}>Voquill</div>
+              <div class={listRowSubtitle}>com.voquill.app</div>
+            </div>
+            <TableRowAction />
+          </div>
         </section>
 
         <section class={section}>
@@ -205,25 +251,25 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
           <h2 class={sectionTitle}>Metadata Fields</h2>
           <p class={sectionDescription}>Exercise copy affordances and long-value wrapping.</p>
           <MetaCardGrid>
-            <MetaField
-              label="Current Query"
-              tooltip="Current value from the search field above."
-              value={searchQuery || "(empty)"}
-              copyValue={searchQuery}
-              onCopySuccess={(label) => onToast("success", `${label} copied to clipboard.`)}
-            />
-            <MetaField
-              label="Density"
-              tooltip="Current selected layout density for this debug page."
-              value={layoutDensity}
-              onCopySuccess={(label) => onToast("success", `${label} copied to clipboard.`)}
-            />
-            <MetaField
-              label="Technical Details"
-              tooltip="Whether technical metadata rows are visible during this preview session."
-              value={showTechnicalMetadata ? "visible" : "hidden"}
-              onCopySuccess={(label) => onToast("success", `${label} copied to clipboard.`)}
-            />
+              <MetaField
+                label="Current Query"
+                tooltip="Current value from the search field above."
+                value={searchQuery || "(empty)"}
+                copyValue={searchQuery}
+                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+              />
+              <MetaField
+                label="Density"
+                tooltip="Current selected layout density for this debug page."
+                value={layoutDensity}
+                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+              />
+              <MetaField
+                label="Technical Details"
+                tooltip="Whether technical metadata rows are visible during this preview session."
+                value={showTechnicalMetadata ? "visible" : "hidden"}
+                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
+              />
           </MetaCardGrid>
         </section>
 
@@ -236,7 +282,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                 label="App ID"
                 tooltip="Stable app identifier used for ownership and updates."
                 value="com.voquill.app"
-                onCopySuccess={(label) => onToast("success", `${label} copied to clipboard.`)}
+                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
               />
             </div>
             <div>
@@ -244,7 +290,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                 label="App UUID"
                 tooltip="Immutable app identity UUID declared by the publisher."
                 value="6b61815c-66c5-4cc6-85ba-ec0736ecef4c"
-                onCopySuccess={(label) => onToast("success", `${label} copied to clipboard.`)}
+                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
               />
             </div>
             <div>
@@ -253,7 +299,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                 tooltip="Launch command path from package metadata."
                 copyValue="app/bin/voquill"
                 value={<code>app/bin/voquill</code>}
-                onCopySuccess={(label) => onToast("success", `${label} copied to clipboard.`)}
+                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
               />
             </div>
             <div>
@@ -262,7 +308,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                 tooltip="Destination path where package payload is installed."
                 copyValue="~/.local/share/yambuck/apps/com.voquill.app"
                 value={<code>~/.local/share/yambuck/apps/com.voquill.app</code>}
-                onCopySuccess={(label) => onToast("success", `${label} copied to clipboard.`)}
+                onCopySuccess={(label) => onToast("info", `${label} copied to clipboard.`)}
               />
             </div>
           </MetaCardGrid>
