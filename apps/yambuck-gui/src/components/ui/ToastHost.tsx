@@ -1,3 +1,5 @@
+import { FeedbackToneIcon } from "./FeedbackToneIcon";
+
 export type ToastTone = "info" | "success" | "warning" | "error";
 
 export type ToastItem = {
@@ -15,7 +17,8 @@ export const ToastHost = ({ toasts, onDismiss }: ToastHostProps) => (
   <div class="toast-host" data-no-drag="true">
     {toasts.map((toast) => (
       <div key={toast.id} class={`toast ${toast.tone}`}>
-        <span>{toast.message}</span>
+        <span class="toast-icon" aria-hidden="true"><FeedbackToneIcon tone={toast.tone} size={16} /></span>
+        <span class="toast-copy">{toast.message}</span>
         <button class="toast-close" onClick={() => onDismiss(toast.id)} aria-label="Dismiss toast">
           ×
         </button>

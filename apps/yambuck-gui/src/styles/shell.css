@@ -184,36 +184,60 @@ body {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.62rem;
   width: 100%;
   min-width: 0;
   max-width: none;
   border-radius: 12px;
-  border: 0;
-  padding: 0.58rem 0.7rem;
+  border: 1px solid var(--feedback-accent);
+  background: var(--colors-feedback-surface-bg);
+  color: var(--colors-feedback-body-text);
+  padding: 0.6rem 0.72rem;
   box-shadow: 0 12px 28px var(--colors-toast-shadow);
   font-size: 0.86rem;
   animation: fade-up 180ms ease;
 }
 
 .toast.info {
-  background: var(--colors-feedback-info-bg);
-  color: var(--colors-feedback-info-text);
+  --feedback-accent: var(--colors-feedback-info-accent);
+  --feedback-icon-bg: var(--colors-feedback-info-icon-bg);
+  --feedback-icon-color: var(--colors-feedback-info-icon-color);
 }
 
 .toast.success {
-  background: var(--colors-feedback-success-bg);
-  color: var(--colors-feedback-success-text);
+  --feedback-accent: var(--colors-feedback-success-accent);
+  --feedback-icon-bg: var(--colors-feedback-success-icon-bg);
+  --feedback-icon-color: var(--colors-feedback-success-icon-color);
 }
 
 .toast.warning {
-  background: var(--colors-feedback-warning-bg);
-  color: var(--colors-feedback-warning-text);
+  --feedback-accent: var(--colors-feedback-warning-accent);
+  --feedback-icon-bg: var(--colors-feedback-warning-icon-bg);
+  --feedback-icon-color: var(--colors-feedback-warning-icon-color);
 }
 
 .toast.error {
-  background: var(--colors-feedback-error-bg);
-  color: var(--colors-feedback-error-text);
+  --feedback-accent: var(--colors-feedback-error-accent);
+  --feedback-icon-bg: var(--colors-feedback-error-icon-bg);
+  --feedback-icon-color: var(--colors-feedback-error-icon-color);
+}
+
+.toast-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: var(--feedback-icon-bg);
+  color: var(--feedback-icon-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-copy {
+  min-width: 0;
+  color: var(--colors-feedback-title-text);
+  line-height: 1.35;
 }
 
 .toast-close {
