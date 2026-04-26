@@ -1,5 +1,6 @@
 use crate::InstallWorkflowSession;
 use crate::InstallPreflightResult;
+use crate::{BuilderSessionState, BuilderStagedFile};
 use yambuck_core::{
     InstallDecision, InstallOptionSubmission, InstallPreview, InstalledApp, InstalledAppDetails,
     InstallerContext, PackageInfo, PreflightCheckResult, UninstallResult,
@@ -101,4 +102,38 @@ pub fn evaluate_install_preflight(workflow_id: &str) -> Result<InstallPreflightR
 #[tauri::command]
 pub fn get_startup_package_arg() -> Option<String> {
     crate::get_startup_package_arg_impl()
+}
+
+#[tauri::command]
+pub fn create_builder_session() -> Result<BuilderSessionState, String> {
+    crate::create_builder_session_impl()
+}
+
+#[tauri::command]
+pub fn open_builder_package(package_file: &str) -> Result<BuilderSessionState, String> {
+    crate::open_builder_package_impl(package_file)
+}
+
+#[tauri::command]
+pub fn stage_builder_files(session_id: &str, files: Vec<BuilderStagedFile>) -> Result<(), String> {
+    crate::stage_builder_files_impl(session_id, files)
+}
+
+#[tauri::command]
+pub fn save_builder_session(session_id: &str, manifest_json: &str) -> Result<(), String> {
+    crate::save_builder_session_impl(session_id, manifest_json)
+}
+
+#[tauri::command]
+pub fn save_builder_session_as(
+    session_id: &str,
+    output_path: &str,
+    manifest_json: &str,
+) -> Result<(), String> {
+    crate::save_builder_session_as_impl(session_id, output_path, manifest_json)
+}
+
+#[tauri::command]
+pub fn discard_builder_session(session_id: &str) -> Result<(), String> {
+    crate::discard_builder_session_impl(session_id)
 }

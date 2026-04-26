@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  BuilderSessionState,
+  BuilderStagedFile,
   InstallDecision,
   InstallPreflightResult,
   InstallOptionSubmission,
@@ -72,3 +74,21 @@ export const completeInstall = (
 
 export const applyUpdateAndRestart = (downloadUrl: string, expectedSha256: string) =>
   invoke("apply_update_and_restart", { downloadUrl, expectedSha256 });
+
+export const createBuilderSession = () =>
+  invoke<BuilderSessionState>("create_builder_session");
+
+export const openBuilderPackage = (packageFile: string) =>
+  invoke<BuilderSessionState>("open_builder_package", { packageFile });
+
+export const stageBuilderFiles = (sessionId: string, files: BuilderStagedFile[]) =>
+  invoke("stage_builder_files", { sessionId, files });
+
+export const saveBuilderSession = (sessionId: string, manifestJson: string) =>
+  invoke("save_builder_session", { sessionId, manifestJson });
+
+export const saveBuilderSessionAs = (sessionId: string, outputPath: string, manifestJson: string) =>
+  invoke("save_builder_session_as", { sessionId, outputPath, manifestJson });
+
+export const discardBuilderSession = (sessionId: string) =>
+  invoke("discard_builder_session", { sessionId });

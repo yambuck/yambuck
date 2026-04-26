@@ -9,6 +9,7 @@ import { InstalledAppReviewPage } from "./features/installed/InstalledAppReviewP
 import { InstalledAppsPage } from "./features/installed/InstalledAppsPage";
 import { UninstallFlowPage } from "./features/installed/UninstallFlowPage";
 import { InstallerPage } from "./features/installer/InstallerPage";
+import { PackageBuilderPage } from "./features/package-builder/PackageBuilderPage";
 import { DebugControlToolbar, type DebugInstallScenario } from "./features/mock-preview/DebugControlToolbar";
 import { MockInstallFlowPage } from "./features/mock-preview/MockInstallFlowPage";
 import { MockInstalledAppsPage } from "./features/mock-preview/MockInstalledAppsPage";
@@ -92,6 +93,10 @@ const routeFromHash = (hash: string): RouteState => {
     return { page: "installed", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
   }
 
+  if (segments[0] === "build-package") {
+    return { page: "packageBuilder", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
+  }
+
   if (segments[0] === "settings") {
     if (segments[1] === "debug" && segments[2] === "ui-lab") {
       return {
@@ -150,6 +155,9 @@ const hashFromRoute = ({ page, settingsTab, installedReviewTarget, mockInstalled
   }
   if (page === "installedUninstall") {
     return "#/installed/uninstall";
+  }
+  if (page === "packageBuilder") {
+    return "#/build-package";
   }
   if (page === "settings") {
     return settingsTab === "debug" ? "#/settings/debug" : "#/settings";
@@ -630,6 +638,10 @@ function App() {
     );
   };
 
+  const renderPackageBuilderPage = () => (
+    <PackageBuilderPage onToast={pushToast} />
+  );
+
   const renderInstalledReviewPage = () => {
     const parsedTarget = parseInstalledReviewTarget(installedReviewTarget);
     const isMismatchedTarget = parsedTarget
@@ -819,6 +831,9 @@ function App() {
     if (page === "installedUninstall") {
       return renderInstalledUninstallPage();
     }
+    if (page === "packageBuilder") {
+      return renderPackageBuilderPage();
+    }
     if (page === "settings") {
       return renderSettingsPage();
     }
@@ -876,6 +891,19 @@ function App() {
                 label: appText("app.nav.installedApps"),
                 active: page === "installed" || page === "installedReview" || page === "installedUninstall",
                 onSelect: navigateToInstalledList,
+              },
+              {
+                id: "package-builder",
+                label: appText("app.nav.packageBuilder"),
+                active: page === "packageBuilder",
+                onSelect: () => {
+                  logUiAction("navigate-package-builder");
+                  closeUninstallWizard();
+                  closeInstalledAppDetails();
+                  setInstalledReviewTarget(null);
+                  setMockInstalledReviewAppId(null);
+                  setPage("packageBuilder");
+                },
               },
             ]}
           />

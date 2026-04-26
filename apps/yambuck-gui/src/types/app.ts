@@ -1,7 +1,7 @@
 export type WizardStep = "details" | "trust" | "license" | "scope" | "decision" | "options" | "progress" | "complete" | "failed";
 export type InstallScope = "user" | "system";
 export type UninstallStep = "confirm" | "options" | "running" | "result";
-export type AppPage = "installer" | "installed" | "installedReview" | "installedUninstall" | "settings" | "mockPreview" | "mockInstalled" | "mockInstalledReview" | "mockInstalledUninstall" | "mockInstallFlow" | "uiDebugLab";
+export type AppPage = "installer" | "installed" | "installedReview" | "installedUninstall" | "packageBuilder" | "settings" | "mockPreview" | "mockInstalled" | "mockInstalledReview" | "mockInstalledUninstall" | "mockInstallFlow" | "uiDebugLab";
 export type SettingsTab = "general" | "debug";
 
 export type InstallerContext = {
@@ -194,4 +194,15 @@ export type InstallPreflightResult = {
 
 export type ExternalPackageOpenPayload = {
   packageFile: string;
+};
+
+export type BuilderSessionState = {
+  sessionId: string;
+  packageFile?: string;
+  manifestJson: string;
+};
+
+export type BuilderStagedFile = {
+  sourcePath: string;
+  targetPath: string;
 };

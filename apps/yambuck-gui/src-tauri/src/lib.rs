@@ -1,9 +1,14 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
+use zip::write::SimpleFileOptions;
+use zip::{ZipArchive, ZipWriter};
 use yambuck_core::{
     CompatibilityReason, InstallDecision, InstallOptionSubmission, InstallPreview, InstallWorkflow,
     InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
@@ -16,13 +21,23 @@ mod support;
 pub(crate) const DEFAULT_UPDATE_FEED_URL: &str = "https://yambuck.com/updates/stable.json";
 const OPEN_PACKAGE_EVENT: &str = "yambuck://open-package";
 static WORKFLOW_COUNTER: AtomicU64 = AtomicU64::new(1);
+static BUILDER_SESSION_COUNTER: AtomicU64 = AtomicU64::new(1);
 static INSTALL_WORKFLOW_SESSIONS: LazyLock<Mutex<HashMap<String, WorkflowSessionEntry>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static BUILDER_SESSIONS: LazyLock<Mutex<HashMap<String, BuilderSessionEntry>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 const WORKFLOW_SESSION_TTL: Duration = Duration::from_secs(30 * 60);
 
 #[derive(Clone)]
 struct WorkflowSessionEntry {
     workflow: InstallWorkflow,
+    last_touched: Instant,
+}
+
+#[derive(Clone)]
+struct BuilderSessionEntry {
+    workspace_dir: PathBuf,
+    package_file: Option<String>,
     last_touched: Instant,
 }
 
@@ -37,6 +52,21 @@ struct OpenPackageEventPayload {
 pub(crate) struct InstallWorkflowSession {
     workflow_id: String,
     workflow: InstallWorkflow,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct BuilderSessionState {
+    session_id: String,
+    package_file: Option<String>,
+    manifest_json: String,
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct BuilderStagedFile {
+    source_path: String,
+    target_path: String,
 }
 
 #[derive(Serialize)]
@@ -111,6 +141,202 @@ fn remove_workflow_session(workflow_id: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn next_builder_session_id() -> String {
+    let next = BUILDER_SESSION_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("builder-{next}")
+}
+
+fn purge_expired_builder_sessions(sessions: &mut HashMap<String, BuilderSessionEntry>) {
+    let now = Instant::now();
+    let mut expired_ids = Vec::new();
+
+    for (session_id, entry) in sessions.iter() {
+        if now.duration_since(entry.last_touched) >= WORKFLOW_SESSION_TTL {
+            expired_ids.push(session_id.clone());
+        }
+    }
+
+    for session_id in expired_ids {
+        if let Some(entry) = sessions.remove(&session_id) {
+            let _ = fs::remove_dir_all(entry.workspace_dir);
+        }
+    }
+}
+
+fn create_builder_workspace(session_id: &str) -> Result<PathBuf, String> {
+    let workspace_dir = std::env::temp_dir().join(format!("yambuck-builder-{session_id}"));
+    if workspace_dir.exists() {
+        fs::remove_dir_all(&workspace_dir).map_err(|error| error.to_string())?;
+    }
+    fs::create_dir_all(&workspace_dir).map_err(|error| error.to_string())?;
+    Ok(workspace_dir)
+}
+
+fn read_workspace_manifest(workspace_dir: &Path) -> Result<String, String> {
+    let manifest_path = workspace_dir.join("manifest.json");
+    fs::read_to_string(&manifest_path).map_err(|error| error.to_string())
+}
+
+fn write_workspace_manifest(workspace_dir: &Path, manifest_json: &str) -> Result<(), String> {
+    let manifest_path = workspace_dir.join("manifest.json");
+    fs::write(&manifest_path, manifest_json.as_bytes()).map_err(|error| error.to_string())
+}
+
+fn validate_builder_target_path(path: &str) -> Result<(), String> {
+    let parsed = Path::new(path);
+    if path.trim().is_empty() || parsed.is_absolute() {
+        return Err("target path must be a non-empty relative path".to_string());
+    }
+
+    if parsed
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err("target path must not include parent traversal (`..`)".to_string());
+    }
+
+    Ok(())
+}
+
+fn extract_package_to_workspace(package_file: &Path, workspace_dir: &Path) -> Result<(), String> {
+    let file = fs::File::open(package_file).map_err(|error| error.to_string())?;
+    let mut archive = ZipArchive::new(file).map_err(|error| error.to_string())?;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index).map_err(|error| error.to_string())?;
+        let Some(enclosed_name) = entry.enclosed_name() else {
+            return Err("package contains unsafe archive path".to_string());
+        };
+        let output_path = workspace_dir.join(enclosed_name);
+
+        if entry.name().ends_with('/') {
+            fs::create_dir_all(&output_path).map_err(|error| error.to_string())?;
+            continue;
+        }
+
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+
+        let mut output_file = fs::File::create(&output_path).map_err(|error| error.to_string())?;
+        std::io::copy(&mut entry, &mut output_file).map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+fn collect_workspace_files(root: &Path, current: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
+    for entry in fs::read_dir(current).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_workspace_files(root, &path, files)?;
+            continue;
+        }
+        if path.is_file() {
+            let relative = path
+                .strip_prefix(root)
+                .map_err(|_| "failed to compute workspace relative path".to_string())?
+                .to_path_buf();
+            files.push(relative);
+        }
+    }
+    Ok(())
+}
+
+fn write_workspace_package(workspace_dir: &Path, output_path: &Path) -> Result<(), String> {
+    let parent = output_path
+        .parent()
+        .ok_or_else(|| "invalid output path".to_string())?;
+    fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+
+    let temp_path = output_path.with_extension("yambuck.tmp");
+    if temp_path.exists() {
+        fs::remove_file(&temp_path).map_err(|error| error.to_string())?;
+    }
+
+    let output_file = fs::File::create(&temp_path).map_err(|error| error.to_string())?;
+    let mut zip_writer = ZipWriter::new(output_file);
+
+    let mut files = Vec::new();
+    collect_workspace_files(workspace_dir, workspace_dir, &mut files)?;
+    files.sort();
+
+    let file_options = SimpleFileOptions::default();
+    for relative_path in files {
+        let source_path = workspace_dir.join(&relative_path);
+        let path_in_zip = relative_path.to_string_lossy().replace('\\', "/");
+        zip_writer
+            .start_file(path_in_zip, file_options)
+            .map_err(|error| error.to_string())?;
+
+        let mut source_file = fs::File::open(source_path).map_err(|error| error.to_string())?;
+        let mut buffer = Vec::new();
+        source_file
+            .read_to_end(&mut buffer)
+            .map_err(|error| error.to_string())?;
+        zip_writer
+            .write_all(&buffer)
+            .map_err(|error| error.to_string())?;
+    }
+
+    zip_writer.finish().map_err(|error| error.to_string())?;
+
+    if output_path.exists() {
+        fs::remove_file(output_path).map_err(|error| error.to_string())?;
+    }
+    fs::rename(&temp_path, output_path).map_err(|error| error.to_string())?;
+
+    Ok(())
+}
+
+fn with_builder_session_mut<F, T>(session_id: &str, mut callback: F) -> Result<T, String>
+where
+    F: FnMut(&mut BuilderSessionEntry) -> Result<T, String>,
+{
+    let mut sessions = BUILDER_SESSIONS
+        .lock()
+        .map_err(|_| "failed to lock builder session store".to_string())?;
+    purge_expired_builder_sessions(&mut sessions);
+    let entry = sessions
+        .get_mut(session_id)
+        .ok_or_else(|| format!("builder session not found: {session_id}"))?;
+    entry.last_touched = Instant::now();
+    callback(entry)
+}
+
+fn inspect_package_workflow_with_shared_validation(
+    package_file: &str,
+    context: &str,
+) -> Result<InstallWorkflow, String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "[{context}] validating package with shared install inspection: {package_file}"
+        ),
+    );
+
+    let workflow = yambuck_core::inspect_package_workflow(package_file)
+        .map_err(|error| error.to_string())?;
+
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!(
+            "[{context}] validation passed appId={} version={} target={} compatibility={}",
+            workflow.package_info.app_id.as_str(),
+            workflow.package_info.version.as_str(),
+            workflow
+                .package_info
+                .selected_target_id
+                .clone()
+                .unwrap_or_else(|| "none".to_string()),
+            workflow.package_info.compatibility_status.as_str()
+        ),
+    );
+
+    Ok(workflow)
+}
+
 pub(crate) fn discard_install_workflow_impl(workflow_id: &str) -> Result<(), String> {
     remove_workflow_session(workflow_id)
 }
@@ -127,9 +353,152 @@ pub(crate) fn inspect_package_impl(package_file: &str) -> Result<PackageInfo, St
 pub(crate) fn inspect_package_workflow_impl(
     package_file: &str,
 ) -> Result<InstallWorkflowSession, String> {
-    let workflow =
-        yambuck_core::inspect_package_workflow(package_file).map_err(|error| error.to_string())?;
+    let workflow = inspect_package_workflow_with_shared_validation(package_file, "installer-open")?;
     store_workflow_session(workflow)
+}
+
+pub(crate) fn create_builder_session_impl() -> Result<BuilderSessionState, String> {
+    let _ = support::logging::append_log("INFO", "[builder] creating new builder session");
+    let session_id = next_builder_session_id();
+    let workspace_dir = create_builder_workspace(&session_id)?;
+
+    write_workspace_manifest(&workspace_dir, "{}")?;
+
+    let mut sessions = BUILDER_SESSIONS
+        .lock()
+        .map_err(|_| "failed to lock builder session store".to_string())?;
+    purge_expired_builder_sessions(&mut sessions);
+    sessions.insert(
+        session_id.clone(),
+        BuilderSessionEntry {
+            workspace_dir: workspace_dir.clone(),
+            package_file: None,
+            last_touched: Instant::now(),
+        },
+    );
+
+    Ok(BuilderSessionState {
+        session_id,
+        package_file: None,
+        manifest_json: read_workspace_manifest(&workspace_dir)?,
+    })
+}
+
+pub(crate) fn open_builder_package_impl(package_file: &str) -> Result<BuilderSessionState, String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!("[builder-open] requested package: {package_file}"),
+    );
+    let package_path = Path::new(package_file);
+    if !package_path.exists() {
+        return Err("selected package file does not exist".to_string());
+    }
+
+    let _ = inspect_package_workflow_with_shared_validation(package_file, "builder-open")?;
+
+    let session_id = next_builder_session_id();
+    let workspace_dir = create_builder_workspace(&session_id)?;
+    extract_package_to_workspace(package_path, &workspace_dir)?;
+
+    let manifest_json = read_workspace_manifest(&workspace_dir)?;
+
+    let mut sessions = BUILDER_SESSIONS
+        .lock()
+        .map_err(|_| "failed to lock builder session store".to_string())?;
+    purge_expired_builder_sessions(&mut sessions);
+    sessions.insert(
+        session_id.clone(),
+        BuilderSessionEntry {
+            workspace_dir,
+            package_file: Some(package_file.to_string()),
+            last_touched: Instant::now(),
+        },
+    );
+
+    Ok(BuilderSessionState {
+        session_id,
+        package_file: Some(package_file.to_string()),
+        manifest_json,
+    })
+}
+
+pub(crate) fn stage_builder_files_impl(
+    session_id: &str,
+    files: Vec<BuilderStagedFile>,
+) -> Result<(), String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!("[builder-stage] session={session_id} files={}", files.len()),
+    );
+    with_builder_session_mut(session_id, |entry| {
+        for item in &files {
+            let source_path = Path::new(&item.source_path);
+            if !source_path.exists() || !source_path.is_file() {
+                return Err(format!("source file does not exist: {}", item.source_path));
+            }
+
+            validate_builder_target_path(&item.target_path)?;
+            let target_path = entry.workspace_dir.join(&item.target_path);
+            if let Some(parent) = target_path.parent() {
+                fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+            }
+            fs::copy(source_path, &target_path).map_err(|error| error.to_string())?;
+        }
+        Ok(())
+    })
+}
+
+pub(crate) fn save_builder_session_as_impl(
+    session_id: &str,
+    output_path: &str,
+    manifest_json: &str,
+) -> Result<(), String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!("[builder-save-as] session={session_id} output={output_path}"),
+    );
+    let output = Path::new(output_path).to_path_buf();
+
+    with_builder_session_mut(session_id, |entry| {
+        write_workspace_manifest(&entry.workspace_dir, manifest_json)?;
+        write_workspace_package(&entry.workspace_dir, &output)?;
+        let output_value = output
+            .to_str()
+            .ok_or_else(|| "output path must be valid UTF-8".to_string())?;
+        inspect_package_workflow_with_shared_validation(output_value, "builder-save-validate")
+            .map_err(|error| format!("saved package failed validation: {error}"))?;
+        Ok(())
+    })
+}
+
+pub(crate) fn save_builder_session_impl(session_id: &str, manifest_json: &str) -> Result<(), String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!("[builder-save] session={session_id}"),
+    );
+    let output_path = with_builder_session_mut(session_id, |entry| {
+        entry
+            .package_file
+            .clone()
+            .ok_or_else(|| "session has no original package path; use Save As".to_string())
+    })?;
+
+    save_builder_session_as_impl(session_id, &output_path, manifest_json)
+}
+
+pub(crate) fn discard_builder_session_impl(session_id: &str) -> Result<(), String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!("[builder-discard] session={session_id}"),
+    );
+    let mut sessions = BUILDER_SESSIONS
+        .lock()
+        .map_err(|_| "failed to lock builder session store".to_string())?;
+    purge_expired_builder_sessions(&mut sessions);
+    if let Some(entry) = sessions.remove(session_id) {
+        fs::remove_dir_all(entry.workspace_dir).map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 pub(crate) fn validate_install_options_impl(
@@ -524,7 +893,13 @@ pub fn run() {
             commands::installer::get_installed_app_details,
             commands::installer::uninstall_installed_app,
             commands::installer::complete_install,
-            commands::installer::launch_installed_app
+            commands::installer::launch_installed_app,
+            commands::installer::create_builder_session,
+            commands::installer::open_builder_package,
+            commands::installer::stage_builder_files,
+            commands::installer::save_builder_session,
+            commands::installer::save_builder_session_as,
+            commands::installer::discard_builder_session,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

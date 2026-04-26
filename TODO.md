@@ -20,6 +20,8 @@ Completed items should be removed from this file.
 - [ ] Add lightweight command/script to export `v1` manifest schema artifact from code-defined structs.
 - [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, retries, and policy blocks.
 - [ ] Define dependency/conflict handling rules (missing deps, incompatible versions, duplicate app IDs/names).
+- [ ] Review and ratify runtime dependency draft (`docs/RUNTIME_DEPENDENCIES_DRAFT.md`) before promoting rules into `docs/PACKAGE_SPEC.md`.
+- [ ] Design and prototype GUI-first `Build Package` tab flow (new package + open/edit existing package) from `docs/PACKAGE_BUILDER_GUI_DRAFT.md`.
 - [ ] Define interruption resilience policy (power loss/crash during install) with resume-or-rollback guarantees.
 - [ ] Fix title-bar window controls so maximize and close glyphs are visually centered in circular buttons.
 - [ ] Add lightweight release-gate checklist for spec/code alignment before release (package conformance, reliability checks, desktop validation sign-off).
