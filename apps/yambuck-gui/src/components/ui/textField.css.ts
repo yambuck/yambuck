@@ -4,7 +4,7 @@ export const input = style({
   width: "100%",
   height: "36px",
   minHeight: "36px",
-  borderRadius: "10px",
+  borderRadius: "var(--radius-control)",
   border: "1px solid var(--colors-select-border)",
   background: "var(--colors-select-background)",
   color: "var(--colors-select-text)",

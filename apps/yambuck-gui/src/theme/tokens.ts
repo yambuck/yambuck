@@ -2,6 +2,18 @@ export const tokens = {
   font: {
     familySans: '"Sora", "DM Sans", "Segoe UI", sans-serif',
   },
+  radius: {
+    xs: "8px",
+    sm: "10px",
+    md: "12px",
+    lg: "14px",
+    xl: "24px",
+    pill: "999px",
+    control: "10px",
+    panel: "24px",
+    surface: "14px",
+    toast: "12px",
+  },
   colors: {
     textPrimary: "#ffffff",
     topbarTitle: "#9ed7ff",

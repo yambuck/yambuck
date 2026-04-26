@@ -1,11 +1,11 @@
 import { style } from "@vanilla-extract/css";
 
 export const panel = style({
-  ["--panel-radius" as string]: "24px",
+  ["--panel-radius" as string]: "var(--radius-panel)",
   ["--panel-close-size" as string]: "36px",
   width: "min(var(--layout-primary-panel-max-width), 100%)",
   margin: "0 auto",
-  borderRadius: "24px",
+  borderRadius: "var(--radius-panel)",
   border: "1px solid var(--colors-panel-chrome-border)",
   padding: "1.5rem",
   background: "var(--colors-panel-background)",

@@ -1,7 +1,7 @@
 import { style, styleVariants } from "@vanilla-extract/css";
 
 export const base = style({
-  borderRadius: "10px",
+  borderRadius: "var(--radius-control)",
   border: "1px solid transparent",
   padding: "0.58rem 0.95rem",
   minHeight: "36px",

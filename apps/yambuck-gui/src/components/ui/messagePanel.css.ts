@@ -1,7 +1,7 @@
 import { globalStyle, style, styleVariants } from "@vanilla-extract/css";
 
 export const panel = style({
-  borderRadius: "14px",
+  borderRadius: "var(--radius-surface)",
   padding: "0.85rem 0.9rem",
   border: "1px solid var(--feedback-accent)",
   background: "var(--colors-feedback-surface-bg)",
@@ -47,7 +47,7 @@ export const tone = styleVariants({
 export const iconWrap = style({
   width: "1.9rem",
   height: "1.9rem",
-  borderRadius: "999px",
+  borderRadius: "var(--radius-pill)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",

@@ -4,7 +4,7 @@ export const button = style({
   border: "1px solid var(--colors-style-color018)",
   background: "var(--colors-style-color019)",
   color: "var(--colors-style-color020)",
-  borderRadius: "999px",
+  borderRadius: "var(--radius-pill)",
   padding: "0.28rem 0.72rem",
   fontSize: "0.74rem",
   fontWeight: 600,

@@ -95,7 +95,7 @@ body {
 .window-btn {
   width: 32px;
   height: 32px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--colors-control-border);
   background: var(--colors-control-background);
   color: var(--colors-control-text);
@@ -140,7 +140,7 @@ body {
 
 .toggle-pill {
   min-height: 32px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--colors-style-color081);
   background: var(--colors-control-background);
   color: var(--colors-toggle-text);
@@ -188,7 +188,7 @@ body {
   width: 100%;
   min-width: 0;
   max-width: none;
-  border-radius: 12px;
+  border-radius: var(--radius-toast);
   border: 1px solid var(--feedback-accent);
   background: var(--colors-feedback-surface-bg);
   color: var(--colors-feedback-body-text);
@@ -225,7 +225,7 @@ body {
 .toast-icon {
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--feedback-icon-bg);
   color: var(--feedback-icon-color);
   display: inline-flex;
@@ -243,7 +243,7 @@ body {
 .toast-close {
   margin-left: auto;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   width: 24px;
   height: 24px;
   background: var(--colors-style-color082);
@@ -263,7 +263,7 @@ body {
   flex-shrink: 0;
   border-top: 1px solid var(--colors-style-color096);
   background: linear-gradient(120deg, var(--colors-style-color097), var(--colors-style-color098));
-  border-radius: 12px;
+  border-radius: var(--radius-toast);
   padding: 0.65rem 0.75rem;
   color: var(--colors-style-color099);
   font-size: 0.8rem;
@@ -297,7 +297,7 @@ body {
   border: 1px solid var(--colors-style-color100);
   background: var(--colors-style-color101);
   color: var(--colors-style-color102);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.28rem 0.7rem;
   font-size: 0.75rem;
   font-weight: 600;

@@ -20,7 +20,7 @@ globalStyle(`${group} legend`, {
 
 export const card = style({
   display: "block",
-  borderRadius: "14px",
+  borderRadius: "var(--radius-surface)",
   border: "1px solid var(--colors-style-color038)",
   padding: "0.8rem",
   background: "var(--colors-style-color039)",
