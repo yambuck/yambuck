@@ -3,13 +3,20 @@ import { style } from "@vanilla-extract/css";
 export const overlay = style({
   position: "absolute",
   inset: 0,
-  zIndex: 28,
+  zIndex: 40,
   background: "var(--colors-style-color086)",
   backdropFilter: "blur(2px)",
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "center",
-  padding: "1rem",
+  padding: "var(--layout-page-gutter-y-top, 1.1rem) var(--layout-page-gutter-x, 1rem) var(--layout-page-gutter-y-bottom, 1rem)",
+  overflow: "auto",
+  pointerEvents: "auto",
+  '@media': {
+    '(max-width: 720px)': {
+      padding: "0.9rem 0.75rem 0.8rem",
+    },
+  },
 });
 
 export const card = style({
@@ -23,10 +30,17 @@ export const card = style({
   boxShadow: "0 22px 45px var(--colors-panel-shadow), 0 8px 22px var(--colors-panel-shadow-accent)",
   padding: 0,
   position: "relative",
-  maxHeight: "100%",
+  maxHeight: "calc(100% - var(--layout-page-gutter-y-top, 1.1rem) - var(--layout-page-gutter-y-bottom, 1rem))",
   display: "flex",
   flexDirection: "column",
   overflow: "visible",
+  marginTop: 0,
+  marginBottom: 0,
+  '@media': {
+    '(max-width: 720px)': {
+      maxHeight: "calc(100% - 1.7rem)",
+    },
+  },
 });
 
 export const body = style({

@@ -25,32 +25,8 @@ export const packageOverview = style({
   },
 });
 
-export const detailsHeader = style({
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "0.8rem",
-  paddingRight: "2.1rem",
-  '@media': {
-    '(max-width: 720px)': {
-      flexDirection: "column",
-      alignItems: "flex-start",
-      paddingRight: 0,
-    },
-  },
-});
-
-export const detailsActions = style({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "0.5rem",
-  flexShrink: 0,
-  '@media': {
-    '(max-width: 720px)': {
-      width: "100%",
-      justifyContent: "flex-end",
-    },
-  },
+export const packageOverviewNoIcon = style({
+  marginTop: "0.7rem",
 });
 
 export const detailsActionButton = style({

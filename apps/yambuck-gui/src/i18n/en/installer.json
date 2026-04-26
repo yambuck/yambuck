@@ -49,6 +49,7 @@
   "ui.choosePackageSubtitle": "Open a package file to start.",
   "ui.openPackageButton": "Open .yambuck file",
   "ui.trustTitle": "Publisher trust",
+  "ui.trustSubtitle": "Review publisher verification before you continue.",
   "ui.verifiedPublisherTitle": "Verified publisher",
   "ui.verifiedPublisherBody": "This package is signed by a trusted publisher.",
   "ui.unverifiedPublisherTitle": "Publisher not verified",

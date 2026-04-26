@@ -40,6 +40,20 @@ body {
   overflow: hidden;
 }
 
+.workspace-content-shell {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.modal-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .resize-corner {
   position: absolute;
   width: 18px;
@@ -231,7 +245,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: min(560px, calc(100vw - 28px));
-  z-index: 30;
+  z-index: 60;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

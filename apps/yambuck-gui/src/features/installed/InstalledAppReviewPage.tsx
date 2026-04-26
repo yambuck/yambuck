@@ -3,12 +3,13 @@ import { MetaField } from "../../components/ui/MetaField";
 import { inlineActions, licenseActions, licenseLabel } from "../../components/ui/metaField.css";
 import { appText } from "../../i18n/app";
 import { Panel } from "../../components/ui/Panel";
+import { PanelHeader } from "../../components/ui/PanelHeader";
 import type { InstalledAppDetails } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
 import { formatCanonicalTimestampForDisplay } from "../../utils/time";
 import { PackageDetailsSections } from "../shared/PackageDetailsSections";
-import { detailsActionButton, detailsActions, detailsHeader, packagePanel } from "../shared/packageUi.css";
+import { detailsActionButton, packagePanel } from "../shared/packageUi.css";
 
 type InstalledAppReviewPageProps = {
   details: InstalledAppDetails;
@@ -39,19 +40,25 @@ export const InstalledAppReviewPage = ({
     cornerCloseTitle={appText("review.close.backToInstalled")}
     onCornerClose={onBack}
   >
-      <div class={`details-header ${detailsHeader}`}>
-        <h1>{details.displayName}</h1>
-        <div class={`details-actions ${detailsActions}`} data-no-drag="true">
+    <PanelHeader
+      variant="app"
+      title={details.displayName}
+      iconSrc={details.packageInfo.iconDataUrl!}
+      iconAlt={appText("package.iconAlt", { appName: details.displayName })}
+      actions={(
+        <>
           <Button class={detailsActionButton} variant="danger" onClick={onUninstall}>{appText("review.actions.uninstall")}</Button>
           <Button class={detailsActionButton} variant="primary" onClick={onLaunch}>{appText("review.actions.launch")}</Button>
-        </div>
-      </div>
+        </>
+      )}
+    />
 
     <PackageDetailsSections
       packageInfo={details.packageInfo}
       showTechnicalDetails={showTechnicalDetails}
       onToggleTechnicalDetails={onToggleTechnicalDetails}
       onOpenScreenshot={onOpenScreenshot}
+      showOverviewIcon={false}
       appDetailsContent={(
         <>
           <MetaField label={appText("meta.publisher.label")} tooltip={appText("meta.publisher.tooltip")} value={details.packageInfo.publisher} />

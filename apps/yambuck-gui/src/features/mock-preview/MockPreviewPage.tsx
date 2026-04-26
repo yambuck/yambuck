@@ -2,19 +2,16 @@ import { Button } from "../../components/ui/Button";
 import { MetaField } from "../../components/ui/MetaField";
 import { inlineActions, licenseActions, licenseLabel, link } from "../../components/ui/metaField.css";
 import { Panel } from "../../components/ui/Panel";
+import { PanelHeader } from "../../components/ui/PanelHeader";
 import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
 import { MetaCardGrid } from "../shared/MetaCardGrid";
 import { appText } from "../../i18n/app";
 import {
-  detailsActions,
-  detailsHeader,
   longDescriptionCard,
   longDescriptionSection,
   metaSection,
   metaSectionHeader,
   packageDescription,
-  packageIcon,
-  packageOverview,
   packagePanel,
   screenshotStrip,
   screenshotTile,
@@ -136,22 +133,17 @@ export const MockPreviewPage = ({
       cornerCloseTitle={appText("app.mock.backToDebug")}
       onCornerClose={onBackToSettings}
     >
-      <div class={`details-header ${detailsHeader}`}>
-        <div>
-          <h1>{mockName}</h1>
-          <p class={`subtitle ${subtitle}`}>{appText("app.mock.previewSubtitle")}</p>
-        </div>
-        <div class={`details-actions ${detailsActions}`} data-no-drag="true">
-          <Button variant="primary" onClick={onStartInstallFlow}>{appText("app.mock.install")}</Button>
-        </div>
-      </div>
+      <PanelHeader
+        variant="app"
+        title={mockName}
+        iconSrc={MOCK_ICON}
+        iconAlt={appText("app.mock.iconAlt")}
+        actions={<Button variant="primary" onClick={onStartInstallFlow}>{appText("app.mock.install")}</Button>}
+      >
+        {appText("app.mock.previewSubtitle")}
+      </PanelHeader>
 
-      <div class={`package-overview ${packageOverview}`}>
-        <img class={`package-icon ${packageIcon}`} src={MOCK_ICON} alt={appText("app.mock.iconAlt")} />
-        <div>
-          <p class={`subtitle package-description ${subtitle} ${packageDescription}`}>{truncateDescription(mockDescription)}</p>
-        </div>
-      </div>
+      <p class={`subtitle package-description ${subtitle} ${packageDescription}`}>{truncateDescription(mockDescription)}</p>
 
       <div class={`screenshot-strip ${screenshotStrip}`} data-no-drag="true">
         {mockShots.map((source, index) => (

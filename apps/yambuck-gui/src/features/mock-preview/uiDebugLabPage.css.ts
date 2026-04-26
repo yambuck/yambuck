@@ -98,3 +98,15 @@ export const listRowSubtitle = style({
   color: "var(--colors-style-color070)",
   fontSize: "0.84rem",
 });
+
+export const modalPreviewBody = style({
+  display: "grid",
+  gap: "0.75rem",
+});
+
+export const modalPreviewActions = style({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "0.55rem",
+  flexWrap: "wrap",
+});

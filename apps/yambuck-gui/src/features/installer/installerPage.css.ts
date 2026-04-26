@@ -1,9 +1,17 @@
 import { style } from "@vanilla-extract/css";
 
 export const installerPanel = style({
-  minHeight: "100%",
   display: "flex",
   flexDirection: "column",
+});
+
+export const licenseActionRow = style({
+  justifyContent: "center",
+  '@media': {
+    '(max-width: 720px)': {
+      justifyContent: "center",
+    },
+  },
 });
 
 export const installerActionRow = style({

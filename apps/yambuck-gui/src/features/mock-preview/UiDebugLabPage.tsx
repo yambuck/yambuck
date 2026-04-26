@@ -3,7 +3,9 @@ import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { MessagePanel } from "../../components/ui/MessagePanel";
 import { MetaField } from "../../components/ui/MetaField";
+import { ModalShell } from "../../components/ui/ModalShell";
 import { Panel } from "../../components/ui/Panel";
+import { PanelHeader } from "../../components/ui/PanelHeader";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { ScopeChoiceCards } from "../../components/ui/ScopeChoiceCards";
 import { SectionToggleButton } from "../../components/ui/SectionToggleButton";
@@ -20,6 +22,8 @@ import {
   listRowPreview,
   listRowSubtitle,
   listRowTitle,
+  modalPreviewActions,
+  modalPreviewBody,
   progressActions,
   progressPreview,
   row,
@@ -80,11 +84,11 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const [progress, setProgress] = useState(42);
   const [installScope, setInstallScope] = useState("user");
   const [activeInstallerStep, setActiveInstallerStep] = useState("options");
+  const [showModalPreview, setShowModalPreview] = useState(false);
 
   return (
     <Panel showCornerClose cornerCloseTitle={appText("debugLab.back")} onCornerClose={onBackToSettingsDebug}>
-      <h1>{appText("debugLab.title")}</h1>
-      <p>{appText("debugLab.subtitle")}</p>
+      <PanelHeader title={appText("debugLab.title")}>{appText("debugLab.subtitle")}</PanelHeader>
 
       <div class={stack}>
         <section class={section}>
@@ -95,6 +99,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
             <Button onClick={() => onToast("info", appText("debugLab.buttons.toastGhost"))}>{appText("debugLab.buttons.ghost")}</Button>
             <Button onClick={() => onToast("warning", appText("debugLab.buttons.toastDanger"))} variant="danger">{appText("debugLab.buttons.danger")}</Button>
             <Button disabled>{appText("debugLab.buttons.disabled")}</Button>
+            <Button onClick={() => setShowModalPreview(true)}>{appText("debugLab.buttons.modalPreview")}</Button>
           </div>
         </section>
 
@@ -305,6 +310,20 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
           </MetaCardGrid>
         </section>
       </div>
+
+      {showModalPreview ? (
+        <ModalShell onClose={() => setShowModalPreview(false)} closeTitle={appText("debugLab.modal.close")}> 
+          <section class={modalPreviewBody}>
+            <h2>{appText("debugLab.modal.title")}</h2>
+            <p>{appText("debugLab.modal.body")}</p>
+            <MessagePanel tone="info" title={appText("debugLab.modal.messageTitle")}>{appText("debugLab.modal.messageBody")}</MessagePanel>
+            <div class={modalPreviewActions}>
+              <Button onClick={() => setShowModalPreview(false)}>{appText("debugLab.modal.dismiss")}</Button>
+              <Button variant="primary" onClick={() => onToast("success", appText("debugLab.modal.toast"))}>{appText("debugLab.modal.primary")}</Button>
+            </div>
+          </section>
+        </ModalShell>
+      ) : null}
     </Panel>
   );
 };

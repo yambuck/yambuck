@@ -1,6 +1,7 @@
 import type { SettingsTab, SystemInfo } from "../../types/app";
 import { Button } from "../../components/ui/Button";
 import { Panel } from "../../components/ui/Panel";
+import { PanelHeader } from "../../components/ui/PanelHeader";
 import { TogglePillGroup } from "../../components/ui/TogglePillGroup";
 import { appText } from "../../i18n/app";
 import { logUiAction } from "../../lib/ui-log";
@@ -53,7 +54,7 @@ export const SettingsPage = ({
   onClearLogs,
 }: SettingsPageProps) => (
   <Panel class={pagePanel}>
-    <h1>{appText("settings.title")}</h1>
+    <PanelHeader title={appText("settings.title")} />
 
     <TogglePillGroup
       class={`${tabs} settings-tabs`}

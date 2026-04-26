@@ -227,6 +227,7 @@
   "debugLab.buttons.toastPrimary": "Primary button action fired.",
   "debugLab.buttons.toastGhost": "Ghost button action fired.",
   "debugLab.buttons.toastDanger": "Danger button action fired.",
+  "debugLab.buttons.modalPreview": "Open test modal",
   "debugLab.nav.title": "Navigation Toggles",
   "debugLab.nav.body": "Preview segmented tab/toggle states used in the top bar and settings.",
   "debugLab.nav.aria": "Debug lab tabs",
@@ -258,8 +259,8 @@
   "debugLab.progress.aria": "Debug progress preview",
   "debugLab.stepper.title": "Installer Stepper",
   "debugLab.stepper.body": "Matches the step-by-step orientation used across installer states.",
-  "debugLab.scope.title": "Scope Choice Cards",
-  "debugLab.scope.body": "Matches the install scope selector card component.",
+  "debugLab.scope.title": "Scope Switch",
+  "debugLab.scope.body": "Matches the install scope segmented switch with contextual description.",
   "debugLab.scope.aria": "Debug install scope",
   "debugLab.list.title": "List Row Affordance",
   "debugLab.list.body": "Preview the chevron-style row affordance used in Installed Apps.",
@@ -291,5 +292,13 @@
   "debugLab.techCards.appUuidTip": "Immutable app identity UUID declared by the publisher.",
   "debugLab.techCards.entrypointTip": "Launch command path from package metadata.",
   "debugLab.techCards.installPath": "Install Path",
-  "debugLab.techCards.installPathTip": "Destination path where package payload is installed."
+  "debugLab.techCards.installPathTip": "Destination path where package payload is installed.",
+  "debugLab.modal.title": "Test Modal",
+  "debugLab.modal.body": "Use this preview to tune spacing, hierarchy, and modal button treatments without leaving the debug lab.",
+  "debugLab.modal.messageTitle": "Preview context",
+  "debugLab.modal.messageBody": "This mirrors the current modal shell structure used across installer and review flows.",
+  "debugLab.modal.dismiss": "Close",
+  "debugLab.modal.primary": "Show success toast",
+  "debugLab.modal.toast": "Modal preview primary action fired.",
+  "debugLab.modal.close": "Close test modal"
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ToastHost } from "./components/ui/ToastHost";
 import { WindowControls } from "./components/ui/WindowControls";
 import { Panel } from "./components/ui/Panel";
+import { PanelHeader } from "./components/ui/PanelHeader";
 import { TogglePillGroup } from "./components/ui/TogglePillGroup";
 import { InstalledAppReviewPage } from "./features/installed/InstalledAppReviewPage";
 import { InstalledAppsPage } from "./features/installed/InstalledAppsPage";
@@ -526,8 +527,9 @@ function App() {
     if (!installedAppDetails || isMismatchedTarget) {
       return (
         <Panel>
-          <h1>{appText("app.loadingReviewTitle")}</h1>
-          <p>{loadingInstalledAppDetails ? appText("app.loadingReviewFetching") : appText("app.loadingReviewFailed")}</p>
+          <PanelHeader title={appText("app.loadingReviewTitle")}>
+            {loadingInstalledAppDetails ? appText("app.loadingReviewFetching") : appText("app.loadingReviewFailed")}
+          </PanelHeader>
         </Panel>
       );
     }
@@ -594,8 +596,7 @@ function App() {
     if (!target) {
       return (
         <Panel>
-          <h1>{appText("app.mockReviewMissingTitle")}</h1>
-          <p>{appText("app.mockReviewMissingBody")}</p>
+          <PanelHeader title={appText("app.mockReviewMissingTitle")}>{appText("app.mockReviewMissingBody")}</PanelHeader>
         </Panel>
       );
     }
@@ -760,9 +761,12 @@ function App() {
         <div class="resize-corner resize-corner-sw" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("SouthWest")(event)} />
         <div class="resize-corner resize-corner-se" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("SouthEast")(event)} />
 
-        <section class="content-scroll">
-          {renderCurrentPage()}
-        </section>
+        <div class="workspace-content-shell">
+          <section class="content-scroll">
+            {renderCurrentPage()}
+          </section>
+          <div id="app-modal-host" class="modal-host" data-no-drag="true" />
+        </div>
 
         <footer class="app-footer">
           <div class="footer-meta">

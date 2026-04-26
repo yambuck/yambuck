@@ -2,6 +2,7 @@ import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { MessagePanel } from "../../components/ui/MessagePanel";
 import { MetaField } from "../../components/ui/MetaField";
+import { PanelHeader } from "../../components/ui/PanelHeader";
 import { inlineActions, licenseActions, licenseLabel, link } from "../../components/ui/metaField.css";
 import { Panel } from "../../components/ui/Panel";
 import { ProgressBar } from "../../components/ui/ProgressBar";
@@ -17,8 +18,6 @@ import { PackageDetailsSections } from "../shared/PackageDetailsSections";
 import {
   actions,
   actionsStart,
-  detailsActions,
-  detailsHeader,
   metaSection,
   metaSectionHeader,
   packagePanel,
@@ -29,6 +28,7 @@ import {
 import {
   installerActionRow,
   installerPanel,
+  licenseActionRow,
   licenseRequirementNote,
   openPackageErrorBoxText,
   openPackageErrorPre,
@@ -247,17 +247,19 @@ export const InstallerPage = ({
         {packageInfo || packageOpenError ? renderStepper() : null}
         {packageInfo ? (
           <>
-            <div class={`details-header ${detailsHeader}`}>
-              <div>
-                <h1>{packageInfo.displayName}</h1>
-                <p class={`subtitle ${subtitle}`}>{installerText("ui.reviewSubtitle")}</p>
-              </div>
-              <div class={`details-actions ${detailsActions}`} data-no-drag="true">
+            <PanelHeader
+              variant="app"
+              title={packageInfo.displayName}
+              iconSrc={packageInfo.iconDataUrl!}
+              iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+              actions={(
                 <Button variant="primary" onClick={onContinueFromDetails} disabled={checkingPreflight}>
                   {checkingPreflight ? installerText("ui.checking") : installerText("ui.install")}
                 </Button>
-              </div>
-            </div>
+              )}
+            >
+              {installerText("ui.reviewSubtitle")}
+            </PanelHeader>
             {preflightBlockedMessage ? (
               <MessagePanel tone="error" title={installerText("ui.installBlockedTitle")}>
                 <p>{preflightBlockedMessage}</p>
@@ -283,6 +285,7 @@ export const InstallerPage = ({
               showTechnicalDetails={showTechnicalDetails}
               onToggleTechnicalDetails={onToggleTechnicalDetails}
               onOpenScreenshot={onOpenScreenshotModal}
+              showOverviewIcon={false}
               appDetailsContent={(
                 <>
                   <MetaField label={appText("meta.publisher.label")} tooltip={appText("meta.publisher.tooltip")} value={packageInfo.publisher} onCopySuccess={onMetaFieldCopied} />
@@ -417,9 +420,13 @@ export const InstallerPage = ({
           </>
         ) : packageOpenError ? (
           <>
-            <h1>{installerText("ui.openPackageTitle")}</h1>
-            <p class={`subtitle ${subtitle}`}>{installerText("ui.openPackageSubtitlePrimary")}</p>
-            <p class={`subtitle ${subtitle}`}>{installerText("ui.openPackageSubtitleSecondary")}</p>
+            <PanelHeader title={installerText("ui.openPackageTitle")}>
+              <>
+                {installerText("ui.openPackageSubtitlePrimary")}
+                <br />
+                {installerText("ui.openPackageSubtitleSecondary")}
+              </>
+            </PanelHeader>
             <section class={`meta-section technical open-package-error-section ${openPackageErrorSection}`}>
               <div class={`meta-section-header ${metaSectionHeader}`}>
                 <h2>{installerText("ui.errorDetailsHeading")}</h2>
@@ -441,8 +448,9 @@ export const InstallerPage = ({
           </>
         ) : (
           <>
-            <h1>{installerText("ui.choosePackageTitle")}</h1>
-            <p class={`subtitle ${subtitle}`}>{installerText("ui.choosePackageSubtitle")}</p>
+            <PanelHeader title={installerText("ui.choosePackageTitle")}>
+              {installerText("ui.choosePackageSubtitle")}
+            </PanelHeader>
             <div class={`actions start ${actions} ${actionsStart} ${installerActionRow}`}>
               <Button variant="primary" onClick={onChoosePackage}>
                 {installerText("ui.openPackageButton")}
@@ -463,7 +471,14 @@ export const InstallerPage = ({
     return (
       <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>{installerText("ui.trustTitle")}</h1>
+        <PanelHeader
+          variant="app"
+          title={installerText("ui.trustTitle")}
+          iconSrc={packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        >
+          {installerText("ui.trustSubtitle")}
+        </PanelHeader>
         <MessagePanel
           tone={isVerified ? "success" : "warning"}
           title={isVerified ? installerText("ui.verifiedPublisherTitle") : installerText("ui.unverifiedPublisherTitle")}
@@ -485,9 +500,15 @@ export const InstallerPage = ({
     return (
       <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>{installerText("ui.licenseTitle")}</h1>
-        <p class={`subtitle ${subtitle}`}>{installerText("ui.licenseSubtitle")}</p>
-        <div class={`actions start ${actions} ${actionsStart}`}>
+        <PanelHeader
+          variant="app"
+          title={installerText("ui.licenseTitle")}
+          iconSrc={packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        >
+          {installerText("ui.licenseSubtitle")}
+        </PanelHeader>
+        <div class={`actions start ${actions} ${actionsStart} ${licenseActionRow}`}>
           {licenseText ? (
             <Button onClick={() => onOpenLicenseViewer(appText("review.licenseTitle", { appName: packageInfo.displayName }), licenseText)}>
               {installerText("ui.viewLicense")}
@@ -516,12 +537,16 @@ export const InstallerPage = ({
     return (
       <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>{managedExistingInstall ? installerText("ui.reinstallScopeTitle") : installerText("ui.installScopeTitle")}</h1>
-        <p class={`subtitle ${subtitle}`}>
+        <PanelHeader
+          variant="app"
+          title={managedExistingInstall ? installerText("ui.reinstallScopeTitle") : installerText("ui.installScopeTitle")}
+          iconSrc={packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        >
           {managedExistingInstall
             ? installerText("ui.reinstallScopeSubtitle")
             : installerText("ui.installScopeSubtitle")}
-        </p>
+        </PanelHeader>
         <ScopeChoiceCards
           value={scope}
           options={scopeChoices}
@@ -596,8 +621,14 @@ export const InstallerPage = ({
     return (
       <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>{installerText("ui.optionsTitle")}</h1>
-        <p class={`subtitle ${subtitle}`}>{installerText("ui.optionsSubtitle")}</p>
+        <PanelHeader
+          variant="app"
+          title={installerText("ui.optionsTitle")}
+          iconSrc={packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        >
+          {installerText("ui.optionsSubtitle")}
+        </PanelHeader>
         {installOptions.length === 0 ? (
           <MessagePanel tone="info" title={installerText("ui.noOptionsTitle")}>
             <p>{installerText("ui.noOptionsBody")}</p>
@@ -688,9 +719,18 @@ export const InstallerPage = ({
     return (
       <Panel class={installerPanel}>
         {renderStepper()}
-        <h1>{installerText("ui.installingTitle", { appName: packageInfo.displayName })}</h1>
-        <p class={`subtitle ${subtitle}`}>{statusText}</p>
-        <p class={`subtitle ${subtitle}`}>{installerText("ui.installingStateLine")}</p>
+        <PanelHeader
+          variant="app"
+          title={installerText("ui.installingTitle", { appName: packageInfo.displayName })}
+          iconSrc={packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        >
+          <>
+            {statusText}
+            <br />
+            {installerText("ui.installingStateLine")}
+          </>
+        </PanelHeader>
         <ProgressBar
           value={progress}
           class={progressWrap}
@@ -707,9 +747,18 @@ export const InstallerPage = ({
     return (
       <Panel class={`package-panel ${packagePanel} ${installerPanel}`}>
         {renderStepper()}
-        <h1>{installerText("ui.installFailedTitle")}</h1>
-        <p class={`subtitle ${subtitle}`}>{installerText("ui.installFailedSubtitle")}</p>
-        <p class={`subtitle ${subtitle}`}>{installerText("ui.installFailedDetailsSubtitle")}</p>
+        <PanelHeader
+          variant="app"
+          title={installerText("ui.installFailedTitle")}
+          iconSrc={packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        >
+          <>
+            {installerText("ui.installFailedSubtitle")}
+            <br />
+            {installerText("ui.installFailedDetailsSubtitle")}
+          </>
+        </PanelHeader>
 
         {installFailure ? (
           <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
@@ -743,8 +792,14 @@ export const InstallerPage = ({
       onCornerClose={onCloseInstallComplete}
     >
       {renderStepper()}
-      <h1>{installerText("ui.installCompleteTitle")}</h1>
-      <p class={`subtitle ${subtitle}`}>{installerText("ui.installCompleteSubtitle", { appName: packageInfo.displayName })}</p>
+      <PanelHeader
+        variant="app"
+        title={installerText("ui.installCompleteTitle")}
+        iconSrc={packageInfo.iconDataUrl!}
+        iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+      >
+        {installerText("ui.installCompleteSubtitle", { appName: packageInfo.displayName })}
+      </PanelHeader>
 
       {preview ? (
         <MetaCardGrid compact>
@@ -808,6 +863,7 @@ export const InstallerPage = ({
       ) : null}
 
       <div class={`actions ${actions} ${installerActionRow}`}>
+        <Button onClick={onCloseInstallComplete}>{installerText("ui.close")}</Button>
         {onViewInstalledDetails ? <Button onClick={onViewInstalledDetails}>{installerText("ui.showInstalledDetails")}</Button> : null}
         <Button variant="primary" onClick={onLaunchCurrentPackage}>{installerText("ui.launchApp")}</Button>
       </div>

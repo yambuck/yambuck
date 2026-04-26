@@ -4,6 +4,7 @@ export const pagePanel = style({});
 
 export const tabs = style({
   display: "flex",
+  justifyContent: "center",
   gap: "0.55rem",
   margin: "0.95rem 0 0.9rem",
 });
@@ -11,6 +12,7 @@ export const tabs = style({
 export const tabDescription = style({
   margin: "0 0 0.8rem",
   color: "var(--colors-style-color070)",
+  textAlign: "center",
 });
 
 export const settingsGrid = style({

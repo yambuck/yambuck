@@ -12,6 +12,7 @@ import {
   packageIcon,
   packageIconPlaceholder,
   packageOverview,
+  packageOverviewNoIcon,
   screenshotStrip,
   screenshotTile,
   subtitle,
@@ -29,6 +30,7 @@ type PackageDetailsSectionsProps = {
   technicalDetailsContent: ComponentChildren;
   overviewClassName?: string;
   longDescriptionClassName?: string;
+  showOverviewIcon?: boolean;
 };
 
 export const PackageDetailsSections = ({
@@ -40,22 +42,29 @@ export const PackageDetailsSections = ({
   technicalDetailsContent,
   overviewClassName,
   longDescriptionClassName,
+  showOverviewIcon = true,
 }: PackageDetailsSectionsProps) => (
   <>
-    <div class={`package-overview ${packageOverview}${overviewClassName ? ` ${overviewClassName}` : ""}`}>
-      {packageInfo.iconDataUrl ? (
-        <img
-          class={`package-icon ${packageIcon}`}
-          src={packageInfo.iconDataUrl}
-          alt={appText("package.iconAlt", { appName: packageInfo.displayName })}
-        />
-      ) : (
-        <div class={`package-icon placeholder ${packageIcon} ${packageIconPlaceholder}`}>{appText("package.noIcon")}</div>
-      )}
-      <div>
+    {showOverviewIcon ? (
+      <div class={`package-overview ${packageOverview}${overviewClassName ? ` ${overviewClassName}` : ""}`}>
+        {packageInfo.iconDataUrl ? (
+          <img
+            class={`package-icon ${packageIcon}`}
+            src={packageInfo.iconDataUrl}
+            alt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+          />
+        ) : (
+          <div class={`package-icon placeholder ${packageIcon} ${packageIconPlaceholder}`}>{appText("package.noIcon")}</div>
+        )}
+        <div>
+          <p class={`subtitle package-description ${subtitle} ${packageDescription}`}>{truncateDescription(packageInfo.description)}</p>
+        </div>
+      </div>
+    ) : (
+      <div class={`package-overview-no-icon ${packageOverviewNoIcon}${overviewClassName ? ` ${overviewClassName}` : ""}`}>
         <p class={`subtitle package-description ${subtitle} ${packageDescription}`}>{truncateDescription(packageInfo.description)}</p>
       </div>
-    </div>
+    )}
 
     {packageInfo.screenshotDataUrls.length > 0 ? (
       <div class={`screenshot-strip ${screenshotStrip}`} data-no-drag="true">

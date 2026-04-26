@@ -1,5 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import { Panel } from "../../components/ui/Panel";
+import { PanelHeader } from "../../components/ui/PanelHeader";
 import { appText } from "../../i18n/app";
 import { logUiAction } from "../../lib/ui-log";
 import { subtitle } from "../shared/packageUi.css";
@@ -82,8 +83,7 @@ export const InstalledAppsPage = ({
 
   return (
     <Panel>
-      <h1>{appText("installed.title")}</h1>
-      <p class={`subtitle ${subtitle}`}>{appText("installed.subtitle")}</p>
+      <PanelHeader title={appText("installed.title")}>{appText("installed.subtitle")}</PanelHeader>
 
       <InstalledAppsToolbar
         searchQuery={searchQuery}

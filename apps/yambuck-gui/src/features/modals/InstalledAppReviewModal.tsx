@@ -4,6 +4,7 @@ import { MetaField } from "../../components/ui/MetaField";
 import { inlineActions, licenseActions, licenseLabel } from "../../components/ui/metaField.css";
 import { appText } from "../../i18n/app";
 import { ModalShell } from "../../components/ui/ModalShell";
+import { PanelHeader } from "../../components/ui/PanelHeader";
 import type { InstalledAppDetails } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
@@ -11,8 +12,6 @@ import { formatCanonicalTimestampForDisplay } from "../../utils/time";
 import { PackageDetailsSections } from "../shared/PackageDetailsSections";
 import {
   detailsActionButton,
-  detailsActions,
-  detailsHeader,
 } from "../shared/packageUi.css";
 import {
   installedReviewCard,
@@ -45,18 +44,24 @@ export const InstalledAppReviewModal = ({
   return (
     <ModalShell onClose={onClose} cardClass={`installed-review-modal ${installedReviewCard}`} closeTitle={appText("review.close.modal")}>
       <section class={`modal-section ${section}`}>
-        <div class={`details-header ${detailsHeader}`}>
-          <h1>{details.displayName}</h1>
-          <div class={`details-actions ${detailsActions}`} data-no-drag="true">
-            <Button class={detailsActionButton} variant="danger" onClick={onUninstall}>{appText("review.actions.uninstall")}</Button>
-            <Button class={detailsActionButton} variant="primary" onClick={onLaunch}>{appText("review.actions.launch")}</Button>
-          </div>
-        </div>
+        <PanelHeader
+          variant="app"
+          title={details.displayName}
+          iconSrc={details.packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: details.displayName })}
+          actions={(
+            <>
+              <Button class={detailsActionButton} variant="danger" onClick={onUninstall}>{appText("review.actions.uninstall")}</Button>
+              <Button class={detailsActionButton} variant="primary" onClick={onLaunch}>{appText("review.actions.launch")}</Button>
+            </>
+          )}
+        />
         <PackageDetailsSections
           packageInfo={details.packageInfo}
           showTechnicalDetails={showTechnicalDetails}
           onToggleTechnicalDetails={() => setShowTechnicalDetails((value) => !value)}
           onOpenScreenshot={onOpenScreenshot}
+          showOverviewIcon={false}
           overviewClassName={installedReviewOverview}
           longDescriptionClassName={installedReviewLongDescription}
           appDetailsContent={(
