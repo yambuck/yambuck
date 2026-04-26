@@ -1,4 +1,5 @@
 import { IconChevronRight } from "@tabler/icons-preact";
+import { Tooltip } from "./Tooltip";
 import { actionButton } from "./tableRowAction.css";
 
 type TableRowActionProps = {
@@ -6,7 +7,9 @@ type TableRowActionProps = {
 };
 
 export const TableRowAction = ({ label = "Open app details" }: TableRowActionProps) => (
-  <span class={actionButton} aria-hidden="true" title={label}>
-    <IconChevronRight size={28} stroke={2.1} />
-  </span>
+  <Tooltip content={label} align="end">
+    <span class={actionButton} aria-hidden="true">
+      <IconChevronRight size={28} stroke={2.1} />
+    </span>
+  </Tooltip>
 );

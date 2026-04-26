@@ -40,38 +40,6 @@ export const help = style({
   lineHeight: 1,
 });
 
-export const tooltip = style({
-  position: "absolute",
-  left: 0,
-  top: "calc(100% + 0.45rem)",
-  minWidth: "220px",
-  maxWidth: "320px",
-  padding: "0.45rem 0.55rem",
-  borderRadius: "8px",
-  border: "1px solid var(--colors-style-color027)",
-  background: "var(--colors-style-color028)",
-  color: "var(--colors-toast-info-text)",
-  fontSize: "0.73rem",
-  letterSpacing: "normal",
-  textTransform: "none",
-  lineHeight: 1.35,
-  zIndex: 4,
-  opacity: 0,
-  pointerEvents: "none",
-  transform: "translateY(-2px)",
-  transition: "opacity 120ms ease, transform 120ms ease",
-  selectors: {
-    [`${term}:hover &`]: {
-      opacity: 1,
-      transform: "translateY(0)",
-    },
-    [`${term}:focus-visible &`]: {
-      opacity: 1,
-      transform: "translateY(0)",
-    },
-  },
-});
-
 export const dtText = style({
   margin: 0,
   display: "flex",

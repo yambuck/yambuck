@@ -2,7 +2,8 @@ import { IconCheck, IconCopy } from "@tabler/icons-preact";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { copyPlainText } from "../../utils/clipboard";
-import { copyAffordance, ddText, dtText, field, help, term, tooltip as tooltipClass } from "./metaField.css";
+import { Tooltip } from "./Tooltip";
+import { copyAffordance, ddText, dtText, field, help, term } from "./metaField.css";
 
 type MetaFieldProps = {
   label: string;
@@ -64,7 +65,11 @@ export const MetaField = ({
         setCopied(false);
         copiedResetTimer.current = null;
       }, 1200);
-      onCopySuccess?.(label);
+      if (onCopySuccess) {
+        onCopySuccess(label);
+      } else {
+        window.dispatchEvent(new CustomEvent("yambuck:meta-field-copied", { detail: { label } }));
+      }
     } catch {
       // copy is a hidden convenience feature; silently ignore failures
     }
@@ -73,11 +78,10 @@ export const MetaField = ({
   return (
     <div class={`meta-field ${field}`} data-copyable={isCopyable ? "true" : "false"} onClick={(event) => void handleCopy(event)}>
       <dt class={dtText}>
-        <span class={`meta-term ${term}`} tabIndex={0}>
+        <Tooltip content={tooltip} triggerClass={`meta-term ${term}`} focusableTrigger>
           {label}
           <span class={`meta-help ${help}`} aria-hidden="true">?</span>
-          <span class={`meta-tooltip ${tooltipClass}`} role="tooltip">{tooltip}</span>
-        </span>
+        </Tooltip>
         {isCopyable ? (
           <span class={copyAffordance} data-state={copied ? "copied" : "idle"} aria-hidden="true">
             {copied ? <IconCheck size={16} stroke={2.2} /> : <IconCopy size={16} stroke={2.2} />}

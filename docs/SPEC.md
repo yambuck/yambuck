@@ -118,6 +118,20 @@ Media and manifest validation rules are owned by `docs/PACKAGE_SPEC.md`.
 - Optional: `All users` (system scope with elevation)
 - System-scope install and system-scope uninstall must request elevation when required by host policy.
 
+### Guided Step Order (v1)
+
+- Installer step order should prioritize early trust confirmation and clear scope/action separation.
+- Default flow order:
+  1. package review
+  2. trust confirmation
+  3. install scope selection (`Just for me` / `All users`)
+  4. action plan for selected scope (`new install`, `update`, `reinstall`, `downgrade`)
+  5. license acceptance (when required)
+  6. install options (when present)
+  7. install progress
+  8. completion
+- Scope selection and action planning are distinct steps; action planning must always reflect the selected scope.
+
 ### Installed apps experience
 
 - list installed apps

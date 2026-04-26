@@ -1,4 +1,5 @@
 import { TableRowAction } from "../../components/ui/TableRowAction";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { appText } from "../../i18n/app";
 import type { InstalledApp } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
@@ -79,15 +80,25 @@ export const InstalledAppsTable = ({
                   <div class={`${icon} ${iconPlaceholder} installed-table-icon placeholder`} aria-hidden="true">{appText("installed.table.noIcon")}</div>
                 )}
                 <div class={`${appCopy} installed-table-app-copy`}>
-                  <strong class={appName} title={app.displayName}>{app.displayName}</strong>
-                  <span class={`${appId} installed-table-app-id`} title={app.appId}>{app.appId}</span>
+                  <Tooltip content={app.displayName} block onlyWhenTruncated>
+                    <strong class={appName}>{app.displayName}</strong>
+                  </Tooltip>
+                  <Tooltip content={app.appId} block onlyWhenTruncated>
+                    <span class={`${appId} installed-table-app-id`}>{app.appId}</span>
+                  </Tooltip>
                 </div>
               </div>
             </td>
-            <td class={`${colVersion} col-version`}><span class={`${chip} ${versionChip} installed-meta-chip version-chip`} title={app.version}>{app.version}</span></td>
+            <td class={`${colVersion} col-version`}>
+              <Tooltip content={app.version} align="center" onlyWhenTruncated>
+                <span class={`${chip} ${versionChip} installed-meta-chip version-chip`}>{app.version}</span>
+              </Tooltip>
+            </td>
             <td class={`${colScope} col-scope`}><span class={`${chip} installed-meta-chip`}>{formatInstallScopeLabel(app.installScope)}</span></td>
-            <td class={`${colInstalled} col-installed`} title={formatCanonicalTimestampForDisplay(app.installedAt)}>
-              {formatCompactTimestampForTable(app.installedAt)}
+            <td class={`${colInstalled} col-installed`}>
+              <Tooltip content={formatCanonicalTimestampForDisplay(app.installedAt)} align="end">
+                {formatCompactTimestampForTable(app.installedAt)}
+              </Tooltip>
             </td>
             <td class={`${colAction} col-action`}>
               <TableRowAction />

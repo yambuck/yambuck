@@ -7,14 +7,16 @@ import { PanelHeader } from "./components/ui/PanelHeader";
 import { TogglePillGroup } from "./components/ui/TogglePillGroup";
 import { InstalledAppReviewPage } from "./features/installed/InstalledAppReviewPage";
 import { InstalledAppsPage } from "./features/installed/InstalledAppsPage";
+import { UninstallFlowPage } from "./features/installed/UninstallFlowPage";
 import { InstallerPage } from "./features/installer/InstallerPage";
+import { DebugControlToolbar, type DebugInstallScenario } from "./features/mock-preview/DebugControlToolbar";
 import { MockInstallFlowPage } from "./features/mock-preview/MockInstallFlowPage";
 import { MockInstalledAppsPage } from "./features/mock-preview/MockInstalledAppsPage";
 import { MockPreviewPage } from "./features/mock-preview/MockPreviewPage";
+import { MockUninstallFlowPage } from "./features/mock-preview/MockUninstallFlowPage";
 import { UiDebugLabPage } from "./features/mock-preview/UiDebugLabPage";
 import { LicenseViewerModal } from "./features/modals/LicenseViewerModal";
 import { ScreenshotModal } from "./features/modals/ScreenshotModal";
-import { UninstallWizardModal } from "./features/modals/UninstallWizardModal";
 import { UpdateModal } from "./features/modals/UpdateModal";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { useDebugTools } from "./hooks/useDebugTools";
@@ -25,7 +27,7 @@ import { useUpdateManager } from "./hooks/useUpdateManager";
 import { useWindowControls } from "./hooks/useWindowControls";
 import { getInstallerContext } from "./lib/tauri/api";
 import { logUiAction } from "./lib/ui-log";
-import { mockInstalledApps, toMockInstalledAppDetails } from "./mocks/mockData";
+import { mockInstalledApps, mockPackageInfo, toMockInstalledAppDetails } from "./mocks/mockData";
 import { copyPlainText } from "./utils/clipboard";
 import { appText } from "./i18n/app";
 import appIcon from "../src-tauri/icons/icon-source.svg";
@@ -76,6 +78,9 @@ const routeFromHash = (hash: string): RouteState => {
   }
 
   if (segments[0] === "installed") {
+    if (segments[1] === "uninstall") {
+      return { page: "installedUninstall", settingsTab: "general", installedReviewTarget: null, mockInstalledReviewAppId: null };
+    }
     if (segments[1] === "review" && segments[2]) {
       return {
         page: "installedReview",
@@ -104,8 +109,16 @@ const routeFromHash = (hash: string): RouteState => {
     };
   }
 
-  if (segments[0] === "mock") {
+  if (segments[0] === "debug") {
     if (segments[1] === "installed") {
+      if (segments[2] === "uninstall") {
+        return {
+          page: "mockInstalledUninstall",
+          settingsTab: "general",
+          installedReviewTarget: null,
+          mockInstalledReviewAppId: decodeURIComponent(segments.slice(3).join("/")) || null,
+        };
+      }
       if (segments[2] === "review" && segments[3]) {
         return {
           page: "mockInstalledReview",
@@ -135,6 +148,9 @@ const hashFromRoute = ({ page, settingsTab, installedReviewTarget, mockInstalled
   if (page === "installedReview") {
     return installedReviewTarget ? `#/installed/review/${encodeURIComponent(installedReviewTarget)}` : "#/installed";
   }
+  if (page === "installedUninstall") {
+    return "#/installed/uninstall";
+  }
   if (page === "settings") {
     return settingsTab === "debug" ? "#/settings/debug" : "#/settings";
   }
@@ -142,17 +158,22 @@ const hashFromRoute = ({ page, settingsTab, installedReviewTarget, mockInstalled
     return "#/settings/debug/ui-lab";
   }
   if (page === "mockInstalled") {
-    return "#/mock/installed";
+    return "#/debug/installed";
   }
   if (page === "mockInstalledReview") {
     return mockInstalledReviewAppId
-      ? `#/mock/installed/review/${encodeURIComponent(mockInstalledReviewAppId)}`
-      : "#/mock/installed";
+      ? `#/debug/installed/review/${encodeURIComponent(mockInstalledReviewAppId)}`
+      : "#/debug/installed";
+  }
+  if (page === "mockInstalledUninstall") {
+    return mockInstalledReviewAppId
+      ? `#/debug/installed/uninstall/${encodeURIComponent(mockInstalledReviewAppId)}`
+      : "#/debug/installed/uninstall";
   }
   if (page === "mockInstallFlow") {
-    return "#/mock/install-flow";
+    return "#/debug/install-flow";
   }
-  return "#/mock/preview";
+  return "#/debug/preview";
 };
 
 function App() {
@@ -164,6 +185,21 @@ function App() {
   const [showMockInstalledReviewTechnicalDetails, setShowMockInstalledReviewTechnicalDetails] = useState(false);
   const [context, setContext] = useState<InstallerContext | null>(null);
   const [showMockTechnicalDetails, setShowMockTechnicalDetails] = useState(false);
+  const [debugInstallScenario, setDebugInstallScenario] = useState<DebugInstallScenario>("update");
+  const [debugExistingVersion, setDebugExistingVersion] = useState("1.3.8");
+  const [debugIncomingVersion, setDebugIncomingVersion] = useState(mockPackageInfo.version);
+
+  const handleSetDebugInstallScenario = (scenario: DebugInstallScenario) => {
+    setDebugInstallScenario(scenario);
+    if (scenario === "reinstall") {
+      setDebugExistingVersion(debugIncomingVersion);
+    }
+  };
+
+  const handleSetDebugReinstallVersion = (version: string) => {
+    setDebugIncomingVersion(version);
+    setDebugExistingVersion(version);
+  };
 
   const { toasts, pushToast, dismissToast, pauseToast, resumeToast } = useToastManager();
   const {
@@ -268,10 +304,12 @@ function App() {
     continueFromTrustStep,
     continueFromLicenseStep,
     continueFromOptionsStep,
+    continueFromScopeStep,
     goBackFromTrustStep,
     goBackFromLicenseStep,
     goBackFromOptionsStep,
     goBackFromScopeStep,
+    goBackFromDecisionStep,
     startInstall,
     launchCurrentPackage,
     activeScreenshotIndex,
@@ -393,6 +431,23 @@ function App() {
     }
   }, [page, settingsTab]);
 
+  useEffect(() => {
+    const handleMetaFieldCopiedEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ label?: string }>;
+      const label = customEvent.detail?.label;
+      if (!label) {
+        return;
+      }
+      logUiAction("meta-field-copied", { label });
+      pushToast("info", appText("toast.metaCopied", { label }));
+    };
+
+    window.addEventListener("yambuck:meta-field-copied", handleMetaFieldCopiedEvent as EventListener);
+    return () => {
+      window.removeEventListener("yambuck:meta-field-copied", handleMetaFieldCopiedEvent as EventListener);
+    };
+  }, [pushToast]);
+
   useEscapeKey(page === "installer" && step === "complete" && packageInfo !== null, closeInstallComplete);
 
   const handleMetaFieldCopied = (label: string) => {
@@ -410,12 +465,27 @@ function App() {
   };
 
   const navigateToInstalledList = () => {
+    if (page === "installedUninstall" && uninstallStep === "running") {
+      return;
+    }
     logUiAction("navigate-installed-list");
+    closeUninstallWizard();
     setInstalledReviewTarget(null);
     setMockInstalledReviewAppId(null);
     closeInstalledAppDetails();
     setShowInstalledReviewTechnicalDetails(false);
     setPage("installed");
+  };
+
+  const openInstalledUninstall = (app: InstalledApp) => {
+    logUiAction("navigate-installed-uninstall", {
+      appId: app.appId,
+      scope: app.installScope,
+    });
+    closeInstalledAppDetails();
+    setInstalledReviewTarget(null);
+    setPage("installedUninstall");
+    openUninstallWizard(app);
   };
 
   const openInstalledReview = async (app: InstalledApp) => {
@@ -439,6 +509,13 @@ function App() {
     setMockInstalledReviewAppId(null);
     setShowMockInstalledReviewTechnicalDetails(false);
     setPage("mockInstalled");
+  };
+
+  const openMockInstalledUninstall = (app: InstalledApp) => {
+    logUiAction("navigate-mock-installed-uninstall", { appId: app.appId });
+    setMockInstalledReviewAppId(app.appId);
+    setShowMockInstalledReviewTechnicalDetails(false);
+    setPage("mockInstalledUninstall");
   };
 
   const openMockInstalledReview = (app: InstalledApp) => {
@@ -480,6 +557,8 @@ function App() {
         onGoBackFromOptionsStep={goBackFromOptionsStep}
         onContinueFromOptionsStep={() => void continueFromOptionsStep()}
         onGoBackFromScopeStep={goBackFromScopeStep}
+        onContinueFromScopeStep={continueFromScopeStep}
+        onGoBackFromDecisionStep={goBackFromDecisionStep}
         installOptions={installOptions}
         managedExistingInstall={managedExistingInstall}
         installDecision={installDecision}
@@ -518,6 +597,38 @@ function App() {
       onOpenDetails={(app) => void openInstalledReview(app)}
     />
   );
+
+  const renderInstalledUninstallPage = () => {
+    if (!uninstallTarget) {
+      return (
+        <Panel>
+          <PanelHeader title={appText("app.uninstallMissingTitle")}>{appText("app.uninstallMissingBody")}</PanelHeader>
+        </Panel>
+      );
+    }
+
+    return (
+      <UninstallFlowPage
+        uninstallTarget={uninstallTarget}
+        uninstallStep={uninstallStep}
+        uninstallRemoveUserData={uninstallRemoveUserData}
+        loadingUninstallDetails={loadingUninstallDetails}
+        uninstallDetails={uninstallDetails}
+        uninstallResult={uninstallResult}
+        uninstallError={uninstallError}
+        onClose={() => {
+          if (uninstallStep === "running") {
+            return;
+          }
+          closeUninstallWizard();
+          navigateToInstalledList();
+        }}
+        onSetStep={setUninstallStep}
+        onSetRemoveUserData={setUninstallRemoveUserData}
+        onRunUninstall={() => void runUninstall()}
+      />
+    );
+  };
 
   const renderInstalledReviewPage = () => {
     const parsedTarget = parseInstalledReviewTarget(installedReviewTarget);
@@ -558,8 +669,7 @@ function App() {
           void launchInstalledApp(app);
         }}
         onUninstall={() => {
-          navigateToInstalledList();
-          openUninstallWizard(app);
+          openInstalledUninstall(app);
         }}
       />
     );
@@ -613,13 +723,16 @@ function App() {
         onOpenLicense={openLicenseViewer}
         onMetaFieldCopied={handleMetaFieldCopied}
         onLaunch={() => pushToast("success", appText("app.mock.launch", { appName: details.displayName }))}
-        onUninstall={() => pushToast("warning", appText("app.mock.uninstallPrompt", { appName: details.displayName }))}
+        onUninstall={() => openMockInstalledUninstall(target)}
       />
     );
   };
 
   const renderMockInstallFlowPage = () => (
     <MockInstallFlowPage
+      scenario={debugInstallScenario}
+      existingVersion={debugExistingVersion}
+      incomingVersion={debugIncomingVersion}
       onOpenScreenshot={(gallery, index) => openScreenshotModal(gallery, index)}
       onOpenLicense={(title, text) => openLicenseViewer(title, text)}
       onToast={pushToast}
@@ -633,8 +746,30 @@ function App() {
         setSettingsTab("debug");
         setPage("settings");
       }}
-    />
+      />
   );
+
+  const renderMockInstalledUninstallPage = () => {
+    const target = mockInstalledReviewAppId
+      ? mockInstalledApps.find((candidate) => candidate.appId === mockInstalledReviewAppId)
+      : null;
+
+    if (!target) {
+      return (
+        <Panel>
+          <PanelHeader title={appText("app.mockUninstallMissingTitle")}>{appText("app.mockUninstallMissingBody")}</PanelHeader>
+        </Panel>
+      );
+    }
+
+    return (
+      <MockUninstallFlowPage
+        target={target}
+        onClose={navigateToMockInstalledList}
+        onToast={pushToast}
+      />
+    );
+  };
 
   const renderSettingsPage = () => (
     <SettingsPage
@@ -681,6 +816,9 @@ function App() {
     if (page === "installedReview") {
       return renderInstalledReviewPage();
     }
+    if (page === "installedUninstall") {
+      return renderInstalledUninstallPage();
+    }
     if (page === "settings") {
       return renderSettingsPage();
     }
@@ -693,11 +831,22 @@ function App() {
     if (page === "mockInstalledReview") {
       return renderMockInstalledReviewPage();
     }
+    if (page === "mockInstalledUninstall") {
+      return renderMockInstalledUninstallPage();
+    }
     if (page === "mockInstallFlow") {
       return renderMockInstallFlowPage();
     }
     return renderMockPreviewPage();
   };
+
+  const showDebugToolbar = page === "uiDebugLab"
+    || page === "mockPreview"
+    || page === "mockInstallFlow"
+    || page === "mockInstalled"
+    || page === "mockInstalledReview"
+    || page === "mockInstalledUninstall";
+  const showDebugScenarioControls = page === "uiDebugLab" || page === "mockInstallFlow";
 
   return (
     <main class="app-shell">
@@ -713,18 +862,19 @@ function App() {
                 id: "installer",
                 label: appText("app.nav.installer"),
                 active: page === "installer",
-                onSelect: () => {
-                  logUiAction("navigate-installer-tab");
-                  closeInstalledAppDetails();
-                  setInstalledReviewTarget(null);
-                  setMockInstalledReviewAppId(null);
-                  setPage("installer");
-                },
+                  onSelect: () => {
+                    logUiAction("navigate-installer-tab");
+                    closeUninstallWizard();
+                    closeInstalledAppDetails();
+                    setInstalledReviewTarget(null);
+                    setMockInstalledReviewAppId(null);
+                    setPage("installer");
+                  },
               },
               {
                 id: "installed-apps",
                 label: appText("app.nav.installedApps"),
-                active: page === "installed" || page === "installedReview",
+                active: page === "installed" || page === "installedReview" || page === "installedUninstall",
                 onSelect: navigateToInstalledList,
               },
             ]}
@@ -735,6 +885,7 @@ function App() {
           isMaximized={isMaximized}
           onOpenSettings={() => {
             logUiAction("navigate-settings");
+              closeUninstallWizard();
               closeInstalledAppDetails();
               setInstalledReviewTarget(null);
               setMockInstalledReviewAppId(null);
@@ -767,6 +918,19 @@ function App() {
           </section>
           <div id="app-modal-host" class="modal-host" data-no-drag="true" />
         </div>
+
+        {showDebugToolbar ? (
+          <DebugControlToolbar
+            showScenarioControls={showDebugScenarioControls}
+            scenario={debugInstallScenario}
+            onSetScenario={handleSetDebugInstallScenario}
+            existingVersion={debugExistingVersion}
+            incomingVersion={debugIncomingVersion}
+            onSetExistingVersion={setDebugExistingVersion}
+            onSetIncomingVersion={setDebugIncomingVersion}
+            onSetReinstallVersion={handleSetDebugReinstallVersion}
+          />
+        ) : null}
 
         <footer class="app-footer">
           <div class="footer-meta">
@@ -803,22 +967,6 @@ function App() {
 
         {licenseViewer ? (
           <LicenseViewerModal title={licenseViewer.title} text={licenseViewer.text} onClose={closeLicenseViewer} />
-        ) : null}
-
-        {uninstallTarget ? (
-          <UninstallWizardModal
-            uninstallTarget={uninstallTarget}
-            uninstallStep={uninstallStep}
-            uninstallRemoveUserData={uninstallRemoveUserData}
-            loadingUninstallDetails={loadingUninstallDetails}
-            uninstallDetails={uninstallDetails}
-            uninstallResult={uninstallResult}
-            uninstallError={uninstallError}
-            onClose={closeUninstallWizard}
-            onSetStep={setUninstallStep}
-            onSetRemoveUserData={setUninstallRemoveUserData}
-            onRunUninstall={() => void runUninstall()}
-          />
         ) : null}
 
         {activeScreenshotIndex !== null && screenshotGallery.length > 0 ? (

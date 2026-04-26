@@ -17,22 +17,6 @@ export const installerText = (key: string, params?: MessageParams): string => {
   });
 };
 
-export const installerDecisionTitle = (decision: InstallDecision | null): string => {
-  if (!decision) {
-    return installerText("decision.title.install");
-  }
-  switch (decision.action) {
-    case "update":
-      return installerText("decision.title.update");
-    case "reinstall":
-      return installerText("decision.title.reinstall");
-    case "downgrade":
-      return installerText("decision.title.downgrade");
-    default:
-      return installerText("decision.title.install");
-  }
-};
-
 export const installerDecisionMessage = (decision: InstallDecision | null): string => {
   if (!decision) {
     return installerText("decision.message.newInstall");
@@ -40,10 +24,13 @@ export const installerDecisionMessage = (decision: InstallDecision | null): stri
   switch (decision.action) {
     case "update":
       return installerText("decision.message.update", {
+        existingVersion: decision.existingVersion ?? "current",
         incomingVersion: decision.incomingVersion,
       });
     case "reinstall":
-      return installerText("decision.message.reinstall");
+      return installerText("decision.message.reinstall", {
+        incomingVersion: decision.incomingVersion,
+      });
     case "downgrade":
       return installerText("decision.message.downgrade", {
         existingVersion: decision.existingVersion ?? "current",

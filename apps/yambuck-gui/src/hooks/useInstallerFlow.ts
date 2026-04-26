@@ -258,7 +258,7 @@ export const useInstallerFlow = ({
       return false;
     }
 
-    return step === "trust" || step === "license" || step === "scope" || step === "progress";
+    return step === "trust" || step === "license" || step === "scope" || step === "decision" || step === "progress";
   };
 
   const loadPackageFromPath = async (packageFile: string) => {
@@ -654,6 +654,16 @@ export const useInstallerFlow = ({
     setStep(getStepPrevious("scope", "trust"));
   };
 
+  const continueFromScopeStep = () => {
+    logUiAction("installer-continue-scope", { scope });
+    setStep(getStepNext("scope", "decision"));
+  };
+
+  const goBackFromDecisionStep = () => {
+    logUiAction("installer-back-decision");
+    setStep(getStepPrevious("decision", "scope"));
+  };
+
   const setInstallOptionValue = (id: string, value: InstallOptionValue) => {
     setInstallOptionValues((current) => ({
       ...current,
@@ -794,7 +804,7 @@ export const useInstallerFlow = ({
         reason: "downgrade-not-confirmed",
       });
       onToast("warning", installerText("toast.confirmDowngradeToContinue"));
-      setStep("scope");
+      setStep("decision");
       return;
     }
 
@@ -805,7 +815,7 @@ export const useInstallerFlow = ({
           reason: "wipe-not-confirmed",
         });
         onToast("warning", installerText("toast.confirmDataRemovalToContinue"));
-        setStep("scope");
+        setStep("decision");
         return;
       }
 
@@ -915,7 +925,7 @@ export const useInstallerFlow = ({
       });
       onToast("error", installerText("toast.installPreviewFailed"));
       setIsBusy(false);
-      setStep("scope");
+      setStep("decision");
       return;
     }
 
@@ -1025,10 +1035,12 @@ export const useInstallerFlow = ({
     continueFromTrustStep,
     continueFromLicenseStep,
     continueFromOptionsStep,
+    continueFromScopeStep,
     goBackFromTrustStep,
     goBackFromLicenseStep,
     goBackFromOptionsStep,
     goBackFromScopeStep,
+    goBackFromDecisionStep,
     startInstall,
     launchCurrentPackage,
     activeScreenshotIndex,

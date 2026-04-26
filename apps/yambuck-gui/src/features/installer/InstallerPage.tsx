@@ -50,7 +50,7 @@ import type {
 } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
 import { displayOrFallback } from "../../utils/text";
-import { installerDecisionMessage, installerDecisionTitle, installerText } from "../../i18n/installer";
+import { installerDecisionMessage, installerText } from "../../i18n/installer";
 
 const scopeChoices = [
   {
@@ -69,6 +69,7 @@ const stepLabels: Record<WizardStep, string> = {
   details: installerText("step.details"),
   trust: installerText("step.trust"),
   license: installerText("step.license"),
+  decision: installerText("step.decision"),
   options: installerText("step.options"),
   scope: installerText("step.scope"),
   progress: installerText("step.progress"),
@@ -83,6 +84,7 @@ const buildInstallerSteps = (wizardSteps: WizardStep[] | null, includeLicense: b
     ...(includeLicense ? ["license" as const] : []),
     "options",
     "scope",
+    "decision",
     "progress",
     "complete",
   ];
@@ -123,6 +125,8 @@ type InstallerPageProps = {
   onGoBackFromOptionsStep: () => void;
   onContinueFromOptionsStep: () => void;
   onGoBackFromScopeStep: () => void;
+  onContinueFromScopeStep: () => void;
+  onGoBackFromDecisionStep: () => void;
   installOptions: InstallOptionDefinition[];
   managedExistingInstall: boolean;
   installDecision: InstallDecision | null;
@@ -192,6 +196,8 @@ export const InstallerPage = ({
   onGoBackFromOptionsStep,
   onContinueFromOptionsStep,
   onGoBackFromScopeStep,
+  onContinueFromScopeStep,
+  onGoBackFromDecisionStep,
   installOptions,
   managedExistingInstall,
   installDecision,
@@ -534,18 +540,32 @@ export const InstallerPage = ({
   }
 
   if (step === "scope") {
+    const scopeTitle = !managedExistingInstall
+      ? installerText("ui.installScopeTitle")
+      : installDecision?.action === "update"
+        ? installerText("ui.updateScopeTitle")
+        : installDecision?.action === "downgrade"
+          ? installerText("ui.downgradeScopeTitle")
+          : installerText("ui.reinstallScopeTitle");
+
+    const scopeSubtitle = !managedExistingInstall
+      ? installerText("ui.installScopeSubtitle")
+      : installDecision?.action === "update"
+        ? installerText("ui.updateScopeSubtitle")
+        : installDecision?.action === "downgrade"
+          ? installerText("ui.downgradeScopeSubtitle")
+          : installerText("ui.reinstallScopeSubtitle");
+
     return (
       <Panel class={installerPanel}>
         {renderStepper()}
         <PanelHeader
           variant="app"
-          title={managedExistingInstall ? installerText("ui.reinstallScopeTitle") : installerText("ui.installScopeTitle")}
+          title={scopeTitle}
           iconSrc={packageInfo.iconDataUrl!}
           iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
         >
-          {managedExistingInstall
-            ? installerText("ui.reinstallScopeSubtitle")
-            : installerText("ui.installScopeSubtitle")}
+          {scopeSubtitle}
         </PanelHeader>
         <ScopeChoiceCards
           value={scope}
@@ -565,29 +585,54 @@ export const InstallerPage = ({
             </p>
           </MessagePanel>
         ) : null}
-        {managedExistingInstall ? (
+        <div class={`actions ${actions} ${installerActionRow}`}>
+          <Button onClick={onGoBackFromScopeStep}>{installerText("ui.back")}</Button>
+          <Button
+            variant="primary"
+            onClick={managedExistingInstall ? onContinueFromScopeStep : onStartInstall}
+          >
+            {managedExistingInstall ? installerText("ui.continue") : installerText("ui.install")}
+          </Button>
+        </div>
+      </Panel>
+    );
+  }
+
+  if (step === "decision") {
+    const scopeOptionsTitle = installDecision?.action === "update"
+      ? installerText("ui.updateOptionsTitle")
+      : installDecision?.action === "downgrade"
+        ? installerText("ui.downgradeOptionsTitle")
+        : installerText("ui.reinstallOptionsTitle");
+
+    const canProceed = !((installDecision?.action === "downgrade" && !allowDowngrade)
+      || (wipeOnReinstall && !confirmWipeOnReinstall));
+
+    return (
+      <Panel class={installerPanel}>
+        {renderStepper()}
+        <PanelHeader
+          variant="app"
+          title={scopeOptionsTitle}
+          iconSrc={packageInfo.iconDataUrl!}
+          iconAlt={appText("package.iconAlt", { appName: packageInfo.displayName })}
+        >
+          {installerText("ui.scopeDecisionSubtitle")}
+        </PanelHeader>
+
+        {installDecision ? (
           <section class={`meta-section technical ${metaSection} ${technicalSection}`}>
-            <div class={`meta-section-header ${metaSectionHeader}`}>
-              <h2>{installerText("ui.reinstallOptionsTitle")}</h2>
-            </div>
-            {installDecision ? (
-              <MessagePanel
-                tone={installDecision.action === "downgrade" ? "warning" : "info"}
-                title={installerDecisionTitle(installDecision)}
-              >
-                <p>{installerDecisionMessage(installDecision)}</p>
-                {installDecision.existingVersion ? (
-                  <p>
-                    {installerText("ui.installedLabel")}: <code>{installDecision.existingVersion}</code>
-                    {" -> "}
-                    {installerText("ui.packageLabel")}: <code>{installDecision.incomingVersion}</code>
-                  </p>
-                ) : null}
-                </MessagePanel>
-            ) : null}
+            <MessagePanel
+              tone={installDecision.action === "downgrade" ? "warning" : "info"}
+            >
+              <p>{installerDecisionMessage(installDecision)}</p>
+            </MessagePanel>
             {installDecision?.action === "downgrade" ? (
               <CheckboxField checked={allowDowngrade} onChange={onSetDowngradeAllowed} class="license-acceptance">
-                {installerText("ui.confirmDowngrade")}
+                {installerText("ui.confirmDowngrade", {
+                  existingVersion: installDecision.existingVersion ?? "current",
+                  incomingVersion: installDecision.incomingVersion,
+                })}
               </CheckboxField>
             ) : null}
             <CheckboxField checked={wipeOnReinstall} onChange={onSetReinstallWipeChoice} class="license-acceptance">
@@ -601,16 +646,19 @@ export const InstallerPage = ({
           </section>
         ) : null}
         <div class={`actions ${actions} ${installerActionRow}`}>
-          <Button onClick={onGoBackFromScopeStep}>{installerText("ui.back")}</Button>
+          <Button onClick={onGoBackFromDecisionStep}>{installerText("ui.back")}</Button>
           <Button
             variant="primary"
             onClick={onStartInstall}
-            disabled={
-              (managedExistingInstall && wipeOnReinstall && !confirmWipeOnReinstall)
-              || (installDecision?.action === "downgrade" && !allowDowngrade)
-            }
+            disabled={!canProceed}
           >
-            {installDecision?.action === "update" ? installerText("ui.action.update") : managedExistingInstall ? installerText("ui.action.reinstall") : installerText("ui.install")}
+            {installDecision?.action === "update"
+              ? installerText("ui.action.update")
+              : installDecision?.action === "downgrade"
+                ? installerText("ui.action.downgrade")
+              : managedExistingInstall
+                ? installerText("ui.action.reinstall")
+                : installerText("ui.install")}
           </Button>
         </div>
       </Panel>

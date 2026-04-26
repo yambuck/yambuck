@@ -1,13 +1,27 @@
-import type { InstalledApp, InstalledAppDetails, UninstallResult, UninstallStep } from "../../types/app";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
+import { Panel } from "../../components/ui/Panel";
+import { PanelHeader } from "../../components/ui/PanelHeader";
+import { WizardStepper } from "../../components/ui/WizardStepper";
 import { appText } from "../../i18n/app";
-import { ModalShell } from "../../components/ui/ModalShell";
+import type { InstalledApp, InstalledAppDetails, UninstallResult, UninstallStep } from "../../types/app";
 import { formatInstallScopeLabel } from "../../utils/scope";
-import { section, updateActions } from "./modalStyles.css";
-import { subtitle } from "../shared/packageUi.css";
+import { actions, packagePanel, subtitle } from "../shared/packageUi.css";
+import {
+  uninstallActions,
+  uninstallPanel,
+  uninstallStepSection,
+  uninstallWarningTitle,
+} from "./uninstallFlowPage.css";
 
-type UninstallWizardModalProps = {
+const uninstallStepperSteps = [
+  { id: "confirm", label: appText("uninstall.step.confirm") },
+  { id: "options", label: appText("uninstall.step.options") },
+  { id: "running", label: appText("uninstall.step.running") },
+  { id: "result", label: appText("uninstall.step.result") },
+];
+
+type UninstallFlowPageProps = {
   uninstallTarget: InstalledApp;
   uninstallStep: UninstallStep;
   uninstallRemoveUserData: boolean;
@@ -21,7 +35,7 @@ type UninstallWizardModalProps = {
   onRunUninstall: () => void;
 };
 
-export const UninstallWizardModal = ({
+export const UninstallFlowPage = ({
   uninstallTarget,
   uninstallStep,
   uninstallRemoveUserData,
@@ -33,15 +47,41 @@ export const UninstallWizardModal = ({
   onSetStep,
   onSetRemoveUserData,
   onRunUninstall,
-}: UninstallWizardModalProps) => (
-  <ModalShell onClose={onClose} closeTitle={appText("modal.close.uninstall")}>
-    <section class={`modal-section ${section}`}>
+}: UninstallFlowPageProps) => {
+  const iconSrc = uninstallDetails?.packageInfo.iconDataUrl ?? uninstallTarget.iconDataUrl;
+
+  return (
+    <Panel
+      class={`package-panel ${packagePanel} ${uninstallPanel}`}
+      showCornerClose
+      cornerCloseTitle={appText("uninstall.closeFlow")}
+      onCornerClose={onClose}
+    >
+      <WizardStepper steps={uninstallStepperSteps} currentStepId={uninstallStep} align="center" />
+
+      {iconSrc ? (
+        <PanelHeader
+          variant="app"
+          title={appText("uninstall.pageTitle", { appName: uninstallTarget.displayName })}
+          iconSrc={iconSrc}
+          iconAlt={appText("package.iconAlt", { appName: uninstallTarget.displayName })}
+        >
+          {appText("uninstall.pageSubtitle")}
+        </PanelHeader>
+      ) : (
+        <PanelHeader title={appText("uninstall.pageTitle", { appName: uninstallTarget.displayName })}>
+          {appText("uninstall.pageSubtitle")}
+        </PanelHeader>
+      )}
+
+      <section class={uninstallStepSection}>
       {uninstallStep === "confirm" ? (
         <>
           <h2>{appText("uninstall.confirmTitle", { appName: uninstallTarget.displayName })}</h2>
           <p class={`subtitle ${subtitle}`}>{appText("uninstall.confirmBody")}</p>
           <p class={`subtitle ${subtitle}`}>{appText("uninstall.scope", { scope: formatInstallScopeLabel(uninstallTarget.installScope) })}</p>
-          <div class={`update-actions ${updateActions}`}>
+          <p class={`subtitle ${subtitle}`}>{appText("uninstall.scopeClarifier")}</p>
+          <div class={`actions ${actions} ${uninstallActions}`}>
             <Button onClick={onClose}>{appText("uninstall.cancel")}</Button>
             <Button variant="primary" onClick={() => onSetStep("options")}>{appText("uninstall.continue")}</Button>
           </div>
@@ -67,7 +107,7 @@ export const UninstallWizardModal = ({
               {uninstallDetails.packageInfo.tempPath ? <li>{appText("uninstall.temp")}: <code>{uninstallDetails.packageInfo.tempPath}</code></li> : null}
             </ul>
           ) : null}
-          <div class={`update-actions ${updateActions}`}>
+          <div class={`actions ${actions} ${uninstallActions}`}>
             <Button onClick={() => onSetStep("confirm")}>{appText("uninstall.back")}</Button>
             <Button variant="danger" onClick={onRunUninstall}>{appText("uninstall.run")}</Button>
           </div>
@@ -87,7 +127,7 @@ export const UninstallWizardModal = ({
           {uninstallError ? <p class={`subtitle ${subtitle}`}>{uninstallError}</p> : null}
           {uninstallResult?.warnings.length ? (
             <>
-              <p class={`subtitle ${subtitle}`}>{appText("uninstall.warningsTitle")}</p>
+              <p class={uninstallWarningTitle}>{appText("uninstall.warningsTitle")}</p>
               <ul class="system-info-list">
                 {uninstallResult.warnings.map((warning) => (
                   <li key={warning}>{warning}</li>
@@ -95,11 +135,12 @@ export const UninstallWizardModal = ({
               </ul>
             </>
           ) : null}
-          <div class={`update-actions ${updateActions}`}>
+          <div class={`actions ${actions} ${uninstallActions}`}>
             <Button variant="primary" onClick={onClose}>{appText("uninstall.close")}</Button>
           </div>
         </>
       ) : null}
-    </section>
-  </ModalShell>
-);
+      </section>
+    </Panel>
+  );
+};
