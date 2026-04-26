@@ -96,16 +96,6 @@ body {
     var(--layout-page-gutter-y-bottom, 1rem);
 }
 
-.content-scroll.installer-layout {
-  display: flex;
-  flex-direction: column;
-  align-content: normal;
-}
-
-.content-scroll.installer-layout > * {
-  min-height: 100%;
-}
-
 .topbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

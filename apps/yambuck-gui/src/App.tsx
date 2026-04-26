@@ -760,7 +760,7 @@ function App() {
         <div class="resize-corner resize-corner-sw" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("SouthWest")(event)} />
         <div class="resize-corner resize-corner-se" data-no-drag="true" onMouseDown={(event) => void handleResizeMouseDown("SouthEast")(event)} />
 
-        <section class={`content-scroll${page === "installer" || page === "mockInstallFlow" ? " installer-layout" : ""}`}>
+        <section class="content-scroll">
           {renderCurrentPage()}
         </section>
 
