@@ -1,5 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
-import { IconLayoutGrid, IconPhoto, IconX } from "@tabler/icons-preact";
+import { IconLayoutGrid, IconPhoto, IconPlus, IconX } from "@tabler/icons-preact";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Panel } from "../../components/ui/Panel";
@@ -42,6 +42,7 @@ import {
   targetListActions,
   targetValidationList,
   assetThumbGrid,
+  assetThumbAdd,
   assetThumbPlaceholder,
   assetThumbSlotText,
   assetThumbRemove,
@@ -111,17 +112,43 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
   ],
 });
 
+const mockScreenshotCandidates = [
+  "assets/screenshots/screen-a.png",
+  "assets/screenshots/screen-b.png",
+  "assets/screenshots/screen-c.png",
+  "assets/screenshots/screen-d.png",
+  "assets/screenshots/screen-e.png",
+  "assets/screenshots/screen-f.png",
+];
+
+const parseScreenshotsText = (value: string): string[] =>
+  value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean);
+
+const screenshotSlotsFromPaths = (paths: string[]): Array<string | null> => {
+  const slots: Array<string | null> = Array.from({ length: builderMaxScreenshots }, () => null);
+  paths.slice(0, builderMaxScreenshots).forEach((path, index) => {
+    slots[index] = path;
+  });
+  return slots;
+};
+
+const screenshotPathsFromSlots = (slots: Array<string | null>): string[] =>
+  slots.flatMap((slot) => (slot ? [slot] : []));
+
 export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
-  const [step, setStep] = useState<BuilderStep>("identity");
+  const [step, setStep] = useState<BuilderStep>(builderSteps[0]);
   const [form, setForm] = useState<BuilderFormState>(() => defaultDebugBuilderForm());
+  const [screenshotSlots, setScreenshotSlots] = useState<Array<string | null>>(() =>
+    screenshotSlotsFromPaths(parseScreenshotsText(defaultDebugBuilderForm().screenshotsText)),
+  );
   const [activeTargetIndex, setActiveTargetIndex] = useState(0);
   const [statusMessage] = useState<string | null>(null);
   const [isManifestModalOpen, setIsManifestModalOpen] = useState(false);
   const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null);
 
   const screenshots = useMemo(
-    () => form.screenshotsText.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean),
+    () => parseScreenshotsText(form.screenshotsText),
     [form.screenshotsText],
   );
 
@@ -148,7 +175,9 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   };
 
   const handleDiscard = () => {
-    setForm(defaultDebugBuilderForm());
+    const nextForm = defaultDebugBuilderForm();
+    setForm(nextForm);
+    setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
     setShowDiscardConfirm(false);
     setMode("start");
   };
@@ -219,6 +248,11 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
 
   const setField = <Key extends keyof BuilderFormState>(key: Key, value: BuilderFormState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const syncScreenshotSlots = (nextSlots: Array<string | null>) => {
+    setScreenshotSlots(nextSlots);
+    setField("screenshotsText", screenshotPathsFromSlots(nextSlots).join("\n"));
   };
 
   const setTargetField = <Key extends keyof BuilderTarget>(index: number, key: Key, value: BuilderTarget[Key]) => {
@@ -375,20 +409,31 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
           </div>
           <div class={`${assetSection} ${fieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.screenshotUpload")} help={appText("builder.help.screenshotUpload")} />
-            <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={mockBrowseScreenshots}>{appText("builder.files.browseScreenshots")}</Button>
             <p class={sectionBody}>{appText("builder.files.screenshotSlots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
             <div class={assetThumbGrid}>
               {screenshotSlots.map((path, index) => (
                 <div key={path ?? `mock-screenshot-slot-${index}`} class={assetThumbTile}>
                   <div class={assetThumbPlaceholder}>
                     <IconPhoto size={24} stroke={1.8} />
-                    {!path ? <span class={assetThumbSlotText}>{appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}</span> : null}
+                    <span class={assetThumbSlotText}>
+                      {path ? path.split(/[\\/]/).pop() ?? path : appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}
+                    </span>
                   </div>
                   {path ? (
                     <button class={assetThumbRemove} type="button" onClick={() => removeMockScreenshot(index)} title={appText("builder.files.removeScreenshot")}>
                       <IconX size={14} stroke={2.4} />
                     </button>
-                  ) : null}
+                  ) : (
+                    <button
+                      class={assetThumbAdd}
+                      type="button"
+                      onClick={() => addMockScreenshotAtSlot(index)}
+                      title={appText("builder.files.addScreenshotSlot", { index: index + 1 })}
+                    >
+                      <IconPlus size={20} stroke={2.2} />
+                      <span class={assetThumbSlotText}>{appText("builder.files.addScreenshot")}</span>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -421,30 +466,21 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
     onToast("info", appText("builder.files.browseIcon"));
   };
 
-  const mockBrowseScreenshots = () => {
-    const mockCandidates = [
-      "assets/screenshots/screen-a.png",
-      "assets/screenshots/screen-b.png",
-      "assets/screenshots/screen-c.png",
-      "assets/screenshots/screen-d.png",
-      "assets/screenshots/screen-e.png",
-      "assets/screenshots/screen-f.png",
-    ];
-    const remainingSlots = builderMaxScreenshots - screenshots.length;
-    if (remainingSlots <= 0) {
+  const addMockScreenshotAtSlot = (slotIndex: number) => {
+    const used = new Set(screenshotPathsFromSlots(screenshotSlots));
+    const nextCandidate = mockScreenshotCandidates.find((path) => !used.has(path));
+    if (!nextCandidate) {
       onToast("info", appText("builder.files.screenshotLimitReached", { max: builderMaxScreenshots }));
       return;
     }
-
-    const nextBatch = mockCandidates.filter((path) => !screenshots.includes(path)).slice(0, remainingSlots);
-    const nextScreenshots = [...screenshots, ...nextBatch];
-    setField("screenshotsText", nextScreenshots.join("\n"));
-    onToast("info", appText("builder.files.browseScreenshots"));
+    const nextSlots = screenshotSlots.map((slot, index) => (index === slotIndex ? nextCandidate : slot));
+    syncScreenshotSlots(nextSlots);
+    onToast("info", appText("builder.files.addScreenshot"));
   };
 
-  const removeMockScreenshot = (index: number) => {
-    const next = screenshots.filter((_, screenshotIndex) => screenshotIndex !== index);
-    setField("screenshotsText", next.join("\n"));
+  const removeMockScreenshot = (slotIndex: number) => {
+    const nextSlots = screenshotSlots.map((slot, index) => (index === slotIndex ? null : slot));
+    syncScreenshotSlots(nextSlots);
   };
 
   const mockBrowseLicenseFile = () => {
@@ -458,7 +494,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
 
   const handleStartMock = () => {
     setMode("new");
-    setStep("identity");
+    setStep(builderSteps[0]);
   };
 
   const selectStep = (nextStep: BuilderStep) => {
@@ -468,11 +504,6 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   const goToPreviousStep = () => {
     if (currentStepIndex > 0) selectStep(builderSteps[currentStepIndex - 1]);
   };
-
-  const screenshotSlots = useMemo(
-    () => Array.from({ length: builderMaxScreenshots }, (_, index) => screenshots[index] ?? null),
-    [screenshots],
-  );
 
   const goToNextStep = () => {
     if (isFinalStep) return;

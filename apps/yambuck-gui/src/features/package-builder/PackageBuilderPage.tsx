@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { IconLayoutGrid, IconPhoto, IconX } from "@tabler/icons-preact";
+import { IconLayoutGrid, IconPhoto, IconPlus, IconX } from "@tabler/icons-preact";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Button } from "../../components/ui/Button";
@@ -67,6 +67,7 @@ import {
   assetThumbTile,
   assetThumbImage,
   assetThumbPlaceholder,
+  assetThumbAdd,
   assetThumbSlotText,
   assetThumbRemove,
   assetActionRow,
@@ -92,6 +93,13 @@ type StagedAsset = {
   targetPath: string;
   sourcePath?: string;
   arch?: string;
+};
+
+type ScreenshotSlot = {
+  id: string;
+  targetPath: string;
+  sourceName: string;
+  sourcePath?: string;
 };
 
 type PackageBuilderPageProps = {
@@ -173,6 +181,38 @@ const fileBaseName = (path: string): string => {
   const parts = path.split(/[\\/]/);
   return parts[parts.length - 1] || path;
 };
+
+const parseScreenshotsText = (value: string): string[] =>
+  value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean);
+
+const screenshotSlotsFromPaths = (paths: string[]): Array<ScreenshotSlot | null> => {
+  const slots: Array<ScreenshotSlot | null> = Array.from({ length: builderMaxScreenshots }, () => null);
+  paths.slice(0, builderMaxScreenshots).forEach((path, index) => {
+    slots[index] = {
+      id: `screenshot-existing-${index}-${sanitizeFileName(fileBaseName(path))}`,
+      targetPath: path,
+      sourceName: fileBaseName(path),
+    };
+  });
+  return slots;
+};
+
+const screenshotPathsFromSlots = (slots: Array<ScreenshotSlot | null>): string[] =>
+  slots.flatMap((slot) => (slot ? [slot.targetPath] : []));
+
+const stagedScreenshotAssetsFromSlots = (slots: Array<ScreenshotSlot | null>): StagedAsset[] =>
+  slots.flatMap((slot) => {
+    if (!slot?.sourcePath) {
+      return [];
+    }
+    return [{
+      id: slot.id,
+      kind: "screenshot" as const,
+      sourceName: slot.sourceName,
+      targetPath: slot.targetPath,
+      sourcePath: slot.sourcePath,
+    }];
+  });
 
 const generateUuid = (): string => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -273,8 +313,11 @@ const formFromManifest = (manifest: Record<string, unknown>): BuilderFormState =
 
 export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
-  const [step, setStep] = useState<BuilderStep>("interfaces");
+  const [step, setStep] = useState<BuilderStep>(builderSteps[0]);
   const [form, setForm] = useState<BuilderFormState>(() => defaultBuilderForm());
+  const [screenshotSlots, setScreenshotSlots] = useState<Array<ScreenshotSlot | null>>(() =>
+    screenshotSlotsFromPaths(parseScreenshotsText(defaultBuilderForm().screenshotsText)),
+  );
   const [activeTargetIndex, setActiveTargetIndex] = useState(0);
   const [stagedAssets, setStagedAssets] = useState<StagedAsset[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -313,7 +356,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   }, [form.targets.length, activeTargetIndex]);
 
   const screenshots = useMemo(
-    () => form.screenshotsText.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean),
+    () => parseScreenshotsText(form.screenshotsText),
     [form.screenshotsText],
   );
 
@@ -349,7 +392,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     if (sessionId) {
       await discardBuilderSession(sessionId);
     }
-    setForm(defaultBuilderForm());
+    const nextForm = defaultBuilderForm();
+    setForm(nextForm);
+    setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
     setIsDirty(false);
     setSessionId(null);
     setOpenedPackageFile(null);
@@ -513,10 +558,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     files: BuilderStagedFile[],
     assets: StagedAsset[],
     replace: (item: StagedAsset) => boolean,
-  ) => {
+  ): Promise<boolean> => {
     const activeSessionId = ensureSessionId();
     if (!activeSessionId) {
-      return;
+      return false;
     }
 
     try {
@@ -527,12 +572,14 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       setStatusMessage(null);
       logUiAction("builder-stage-files-success", { count: files.length });
       notify("success", "builder.files.stagedSuccess", { count: files.length });
+      return true;
     } catch (error) {
       logUiError("builder-stage-files-failed", {
         count: files.length,
         error: error instanceof Error ? error.message : "unknown",
       });
       notify("error", "builder.files.stageError");
+      return false;
     }
   };
 
@@ -551,13 +598,15 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       logUiAction("builder-create-new-success", { sessionId: session.sessionId });
       setSessionId(session.sessionId);
       setOpenedPackageFile(null);
-      setForm({
+      const nextForm = {
         ...defaultBuilderForm(),
         packageUuid: generateUuid(),
-      });
+      };
+      setForm(nextForm);
+      setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
       setActiveTargetIndex(0);
       setStagedAssets([]);
-      setStep("interfaces");
+      setStep(builderSteps[0]);
       setMode("new");
       setIsDirty(true);
     } catch (error) {
@@ -607,9 +656,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       setSessionId(session.sessionId);
       setOpenedPackageFile(session.packageFile ?? packagePath);
       setForm(nextForm);
+      setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
       setActiveTargetIndex(0);
       setStagedAssets([]);
-      setStep("interfaces");
+      setStep(builderSteps[0]);
       setMode("new");
       setIsDirty(false);
       logUiAction("builder-open-package-success", {
@@ -752,64 +802,51 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     );
   };
 
-  const browseScreenshots = async () => {
-    logUiAction("builder-browse-screenshots-clicked");
-    const remainingSlots = builderMaxScreenshots - screenshotAssets.length;
-    if (remainingSlots <= 0) {
-      notify("info", "builder.files.screenshotLimitReached", { max: builderMaxScreenshots });
-      return;
-    }
-
-    let sourcePaths: string[] = [];
+  const browseScreenshotForSlot = async (slotIndex: number) => {
+    logUiAction("builder-browse-screenshot-slot-clicked", { slot: slotIndex + 1 });
+    let sourcePath: string | undefined;
     try {
       const selected = await open({
-        multiple: true,
-        filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "gif"] }],
+        multiple: false,
+        filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "gif"] }],
       });
-      sourcePaths = toPathList(selected);
+      sourcePath = toPathList(selected)[0];
     } catch (error) {
-      logUiError("builder-browse-screenshots-dialog-failed", {
+      logUiError("builder-browse-screenshot-slot-dialog-failed", {
         error: error instanceof Error ? error.message : "unknown",
+        slot: slotIndex + 1,
       });
       notify("error", "builder.files.stageError");
       return;
     }
-    if (sourcePaths.length === 0) {
-      logUiAction("builder-browse-screenshots-cancelled");
+
+    if (!sourcePath) {
+      logUiAction("builder-browse-screenshot-slot-cancelled", { slot: slotIndex + 1 });
       return;
     }
 
-    const acceptedSourcePaths = sourcePaths.slice(0, remainingSlots);
-    if (sourcePaths.length > acceptedSourcePaths.length) {
-      notify("info", "builder.files.screenshotTrimmed", {
-        accepted: acceptedSourcePaths.length,
-        dropped: sourcePaths.length - acceptedSourcePaths.length,
-        max: builderMaxScreenshots,
-      });
-    }
+    const sourceName = fileBaseName(sourcePath);
+    const normalizedName = sanitizeFileName(sourceName);
+    const nextSlot: ScreenshotSlot = {
+      id: `screenshot-${slotIndex}-${Date.now()}-${normalizedName}`,
+      targetPath: `assets/screenshots/${normalizedName}`,
+      sourceName,
+      sourcePath,
+    };
+    const nextSlots = screenshotSlots.map((slot, index) => (index === slotIndex ? nextSlot : slot));
+    const nextStagedAssets = stagedScreenshotAssetsFromSlots(nextSlots);
 
-    const nextAssets = acceptedSourcePaths.map((sourcePath, index) => {
-      const sourceName = fileBaseName(sourcePath);
-      const normalizedName = sanitizeFileName(sourceName);
-      return {
-        id: `screenshot-${Date.now()}-${index}-${normalizedName}`,
-        kind: "screenshot" as const,
-        sourceName,
-        targetPath: `assets/screenshots/${normalizedName}`,
-        sourcePath,
-      };
-    });
-
-    const mergedAssets = [...screenshotAssets, ...nextAssets];
-    setField("screenshotsText", mergedAssets.map((item) => item.targetPath).join("\n"));
-    await stageSelectedFiles(
-      nextAssets.map((item, index) => ({
-        sourcePath: acceptedSourcePaths[index],
-        targetPath: item.targetPath,
-      })),
-      mergedAssets,
+    const staged = await stageSelectedFiles(
+      [{ sourcePath, targetPath: nextSlot.targetPath }],
+      nextStagedAssets,
       (item) => item.kind === "screenshot",
     );
+    if (!staged) {
+      return;
+    }
+
+    setScreenshotSlots(nextSlots);
+    setField("screenshotsText", screenshotPathsFromSlots(nextSlots).join("\n"));
   };
 
   const browseBinary = async () => {
@@ -897,16 +934,6 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     );
   };
 
-  const screenshotAssets = useMemo(
-    () => stagedAssets.filter((item) => item.kind === "screenshot"),
-    [stagedAssets],
-  );
-
-  const screenshotSlots = useMemo(
-    () => Array.from({ length: builderMaxScreenshots }, (_, index) => screenshotAssets[index] ?? null),
-    [screenshotAssets],
-  );
-
   const iconPreviewSrc = useMemo(() => {
     const iconAsset = [...stagedAssets].reverse().find((item) => item.kind === "icon");
     if (iconAsset?.sourcePath) {
@@ -919,10 +946,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     return null;
   }, [stagedAssets]);
 
-  const screenshotPreviewSrc = (asset: StagedAsset): string | null => {
-    if (asset.sourcePath) {
+  const screenshotPreviewSrc = (slot: ScreenshotSlot): string | null => {
+    if (slot.sourcePath) {
       try {
-        return convertFileSrc(asset.sourcePath);
+        return convertFileSrc(slot.sourcePath);
       } catch {
         // fallback below
       }
@@ -930,11 +957,14 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     return null;
   };
 
-  const removeScreenshotAsset = (assetId: string) => {
-    const nextAssets = stagedAssets.filter((item) => item.id !== assetId);
-    const nextScreenshotPaths = nextAssets.filter((item) => item.kind === "screenshot").map((item) => item.targetPath);
-    setStagedAssets(nextAssets);
-    setField("screenshotsText", nextScreenshotPaths.join("\n"));
+  const removeScreenshotAtSlot = (slotIndex: number) => {
+    const nextSlots = screenshotSlots.map((slot, index) => (index === slotIndex ? null : slot));
+    setScreenshotSlots(nextSlots);
+    setStagedAssets((current) => [
+      ...current.filter((item) => item.kind !== "screenshot"),
+      ...stagedScreenshotAssetsFromSlots(nextSlots),
+    ]);
+    setField("screenshotsText", screenshotPathsFromSlots(nextSlots).join("\n"));
   };
 
   const clearIconAsset = () => {
@@ -1181,8 +1211,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           </div>
           <div class={`${assetSection} ${stackClass("screenshots")}`}>
             <BuilderFieldLabel label={appText("builder.fields.screenshotUpload")} help={appText("builder.help.screenshotUpload")} />
-            <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={() => void browseScreenshots()} disabled={isBusy}>{appText("builder.files.browseScreenshots")}</Button>
-            <p class={sectionBody}>{appText("builder.files.screenshotSlots", { count: screenshotAssets.length, max: builderMaxScreenshots })}</p>
+            <p class={sectionBody}>{appText("builder.files.screenshotSlots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
             <div class={assetThumbGrid}>
               {screenshotSlots.map((asset, index) => (
                 <div key={asset ? asset.id : `screenshot-slot-${index}`} class={assetThumbTile}>
@@ -1191,14 +1220,27 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
                   ) : (
                     <div class={assetThumbPlaceholder}>
                       <IconPhoto size={24} stroke={1.8} />
-                      <span class={assetThumbSlotText}>{appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}</span>
+                      <span class={assetThumbSlotText}>
+                        {asset ? asset.sourceName : appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}
+                      </span>
                     </div>
                   )}
                   {asset ? (
-                    <button class={assetThumbRemove} type="button" onClick={() => removeScreenshotAsset(asset.id)} title={appText("builder.files.removeScreenshot")}>
+                    <button class={assetThumbRemove} type="button" onClick={() => removeScreenshotAtSlot(index)} title={appText("builder.files.removeScreenshot")}>
                       <IconX size={14} stroke={2.4} />
                     </button>
-                  ) : null}
+                  ) : (
+                    <button
+                      class={assetThumbAdd}
+                      type="button"
+                      onClick={() => void browseScreenshotForSlot(index)}
+                      disabled={isBusy}
+                      title={appText("builder.files.addScreenshotSlot", { index: index + 1 })}
+                    >
+                      <IconPlus size={20} stroke={2.2} />
+                      <span class={assetThumbSlotText}>{appText("builder.files.addScreenshot")}</span>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

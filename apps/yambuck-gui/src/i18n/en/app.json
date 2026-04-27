@@ -441,6 +441,8 @@
   "builder.files.viewLicense": "View license",
   "builder.files.remove": "Remove",
   "builder.files.removeScreenshot": "Remove screenshot",
+  "builder.files.addScreenshot": "Add screenshot",
+  "builder.files.addScreenshotSlot": "Add screenshot to slot {index}",
   "builder.files.noneSelected": "No file selected yet.",
   "builder.files.screenshotSlots": "Screenshots: {count}/{max}",
   "builder.files.screenshotSlotEmpty": "Slot {index} empty",

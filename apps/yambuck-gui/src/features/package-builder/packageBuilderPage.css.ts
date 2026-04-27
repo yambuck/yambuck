@@ -533,6 +533,27 @@ export const assetThumbSlotText = style({
   color: "var(--colors-style-color070)",
 });
 
+export const assetThumbAdd = style({
+  position: "absolute",
+  inset: "0",
+  border: 0,
+  background: "transparent",
+  color: "var(--colors-style-color070)",
+  display: "grid",
+  placeItems: "center",
+  gap: "0.25rem",
+  cursor: "pointer",
+  selectors: {
+    '&:hover': {
+      background: "color-mix(in srgb, var(--colors-style-color072) 40%, transparent)",
+    },
+    '&:focus-visible': {
+      outline: "none",
+      boxShadow: "0 0 0 3px var(--colors-focus-ring)",
+    },
+  },
+});
+
 export const assetThumbRemove = style({
   position: "absolute",
   top: "0.35rem",

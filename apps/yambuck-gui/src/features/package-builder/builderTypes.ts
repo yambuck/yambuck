@@ -36,4 +36,4 @@ export type BuilderFormState = {
   targets: BuilderTarget[];
 };
 
-export const builderSteps: BuilderStep[] = ["interfaces", "metadata", "assets", "identity", "targets"];
+export const builderSteps: BuilderStep[] = ["metadata", "interfaces", "assets", "identity", "targets"];
