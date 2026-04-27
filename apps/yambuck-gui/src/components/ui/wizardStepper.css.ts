@@ -44,11 +44,13 @@ export const marker = style({
   height: "1.2rem",
   borderRadius: "var(--radius-pill)",
   border: "1px solid var(--colors-style-color073)",
+  background: "transparent",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   fontSize: "0.67rem",
   fontWeight: 700,
+  lineHeight: 1,
   color: "inherit",
   selectors: {
     [`${item}[data-state="active"] &`]: {

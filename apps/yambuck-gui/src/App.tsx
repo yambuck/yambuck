@@ -12,6 +12,7 @@ import { DebugControlToolbar, type DebugInstallScenario } from "./features/mock-
 import { MockInstallFlowPage } from "./features/mock-preview/MockInstallFlowPage";
 import { MockInstalledAppsPage } from "./features/mock-preview/MockInstalledAppsPage";
 import { MockPreviewPage } from "./features/mock-preview/MockPreviewPage";
+import { MockPackageBuilderPage } from "./features/mock-preview/MockPackageBuilderPage";
 import { MockUninstallFlowPage } from "./features/mock-preview/MockUninstallFlowPage";
 import { UiDebugLabPage } from "./features/mock-preview/UiDebugLabPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
@@ -711,6 +712,7 @@ function App() {
         setMockInstalledReviewAppId(null);
         setPage("mockInstalled");
       }}
+      onOpenMockPackageBuilder={() => setPage("mockPackageBuilder")}
       onOpenUiDebugLab={() => {
         setSettingsTab("debug");
         setPage("uiDebugLab");
@@ -736,7 +738,7 @@ function App() {
     || page === "mockInstalled"
     || page === "mockInstalledReview"
     || page === "mockInstalledUninstall";
-  const showDebugScenarioControls = page === "uiDebugLab" || page === "mockInstallFlow";
+  const showDebugScenarioControls = page === "mockInstallFlow";
 
   const navigateToInstaller = () => {
     logUiAction("navigate-installer-tab");
@@ -813,6 +815,7 @@ function App() {
               renderMockInstalledUninstall={renderMockInstalledUninstallPage}
               renderMockInstallFlow={renderMockInstallFlowPage}
               renderMockPreview={renderMockPreviewPage}
+              renderMockPackageBuilder={() => <MockPackageBuilderPage onToast={pushToast} />}
             />
           </section>
           <div id="app-modal-host" class="modal-host" data-no-drag="true" />

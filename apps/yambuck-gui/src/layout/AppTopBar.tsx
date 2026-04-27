@@ -53,7 +53,7 @@ export const AppTopBar = ({
           {
             id: "package-builder",
             label: appText("app.nav.packageBuilder"),
-            active: page === "packageBuilder",
+            active: page === "packageBuilder" || page === "mockPackageBuilder",
             onSelect: onNavigatePackageBuilder,
           },
         ]}

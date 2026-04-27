@@ -10,6 +10,7 @@ type AppPageRendererProps = {
   renderInstalledReview: RenderPage;
   renderInstalledUninstall: RenderPage;
   renderPackageBuilder: RenderPage;
+  renderMockPackageBuilder: RenderPage;
   renderSettings: RenderPage;
   renderUiDebugLab: RenderPage;
   renderMockInstalled: RenderPage;
@@ -26,6 +27,7 @@ export const AppPageRenderer = ({
   renderInstalledReview,
   renderInstalledUninstall,
   renderPackageBuilder,
+  renderMockPackageBuilder,
   renderSettings,
   renderUiDebugLab,
   renderMockInstalled,
@@ -48,6 +50,9 @@ export const AppPageRenderer = ({
   }
   if (page === "packageBuilder") {
     return <>{renderPackageBuilder()}</>;
+  }
+  if (page === "mockPackageBuilder") {
+    return <>{renderMockPackageBuilder()}</>;
   }
   if (page === "settings") {
     return <>{renderSettings()}</>;

@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { MessagePanel } from "../../components/ui/MessagePanel";
@@ -16,7 +16,35 @@ import { TogglePillGroup } from "../../components/ui/TogglePillGroup";
 import { WizardStepper } from "../../components/ui/WizardStepper";
 import { appText } from "../../i18n/app";
 import { installerText } from "../../i18n/installer";
+import {
+  buildTargetIdList,
+  collectBuilderValidation,
+  linuxDesktopListForTarget,
+  payloadRootForTarget,
+  sanitizeTargetSegment,
+} from "../package-builder/builderValidation";
+import {
+  builderSteps,
+  type BuilderFormState,
+  type BuilderStep,
+  type BuilderTarget,
+} from "../package-builder/builderTypes";
+import { BuilderManifestPreviewModal } from "../package-builder/components/BuilderManifestPreviewModal";
+import { BuilderSaveChecklistModal } from "../package-builder/components/BuilderSaveChecklistModal";
+import { BuilderStepStatusNav } from "../package-builder/components/BuilderStepStatusNav";
+import { BuilderTargetCard } from "../package-builder/components/BuilderTargetCard";
 import { MetaCardGrid } from "../shared/MetaCardGrid";
+import {
+  actionBar,
+  editorCard,
+  targetDuplicateWarning,
+  targetList,
+  targetListActions,
+  targetValidationList,
+  wizardFooter,
+  wizardFooterActions,
+  workspace,
+} from "../package-builder/packageBuilderPage.css";
 import {
   fieldWrap,
   listRowPreview,
@@ -75,6 +103,80 @@ const installerSteps = [
 
 const installerStepOptions = installerSteps.map((step) => ({ value: step.id, label: step.label }));
 
+const defaultDebugBuilderForm = (): BuilderFormState => ({
+  appId: "com.example.preview",
+  appUuid: "123e4567-e89b-12d3-a456-426614174000",
+  packageUuid: "123e4567-e89b-12d3-a456-426614174001",
+  displayName: "Debug Builder App",
+  description: "Short summary shown in installer preview.",
+  longDescription: "Longer description shown in installer details.",
+  version: "1.2.0",
+  publisher: "Yambuck Labs",
+  homepageUrl: "https://example.com",
+  supportUrl: "https://example.com/support",
+  license: "MIT",
+  licenseFile: "assets/licenses/LICENSE.txt",
+  requiresLicenseAcceptance: false,
+  hasGui: true,
+  hasCli: true,
+  commandName: "",
+  usageHint: "debug-app --help",
+  iconPath: "assets/icon.png",
+  screenshotsText: "assets/screenshots/screen-a.png",
+  targets: [
+    {
+      arch: "x86_64",
+      variant: "default",
+      desktopEnvironment: "all",
+      guiEntrypoint: "app/bin/debug-app",
+      cliEntrypoint: "app/bin/debug-app",
+    },
+  ],
+});
+
+type BuilderPreviewScenario = "clean" | "missingIdentity" | "cliMissingCommand" | "ambiguousTargets" | "assetErrors";
+
+const buildPreviewScenarioForm = (scenario: BuilderPreviewScenario): BuilderFormState => {
+  const base = defaultDebugBuilderForm();
+  if (scenario === "missingIdentity") {
+    return { ...base, appId: "", appUuid: "", packageUuid: "" };
+  }
+  if (scenario === "cliMissingCommand") {
+    return { ...base, hasCli: true, commandName: "" };
+  }
+  if (scenario === "ambiguousTargets") {
+    return {
+      ...base,
+      targets: [
+        {
+          arch: "x86_64",
+          variant: "default",
+          desktopEnvironment: "all",
+          guiEntrypoint: "app/bin/debug-app",
+          cliEntrypoint: "app/bin/debug-app",
+        },
+        {
+          arch: "x86_64",
+          variant: "alt",
+          desktopEnvironment: "x11",
+          guiEntrypoint: "app/bin/debug-app",
+          cliEntrypoint: "app/bin/debug-app",
+        },
+      ],
+    };
+  }
+  if (scenario === "assetErrors") {
+    return {
+      ...base,
+      iconPath: "",
+      screenshotsText: "",
+      requiresLicenseAcceptance: true,
+      licenseFile: "",
+    };
+  }
+  return base;
+};
+
 export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPageProps) => {
   const [searchQuery, setSearchQuery] = useState("Voice notes");
   const [layoutDensity, setLayoutDensity] = useState("balanced");
@@ -85,6 +187,105 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const [installScope, setInstallScope] = useState("user");
   const [activeInstallerStep, setActiveInstallerStep] = useState("options");
   const [showModalPreview, setShowModalPreview] = useState(false);
+  const [builderScenario, setBuilderScenario] = useState<BuilderPreviewScenario>("clean");
+  const [builderStepPreview, setBuilderStepPreview] = useState<BuilderStep>("targets");
+  const [builderActiveTargetIndex, setBuilderActiveTargetIndex] = useState(0);
+  const [builderFormPreview, setBuilderFormPreview] = useState<BuilderFormState>(() => buildPreviewScenarioForm("clean"));
+  const [showBuilderChecklistPreview, setShowBuilderChecklistPreview] = useState(false);
+  const [showBuilderManifestPreview, setShowBuilderManifestPreview] = useState(false);
+
+  const builderScreenshots = useMemo(
+    () => builderFormPreview.screenshotsText.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+    [builderFormPreview.screenshotsText],
+  );
+  const builderStepIssueMap = useMemo(
+    () => collectBuilderValidation({ form: builderFormPreview, screenshots: builderScreenshots, t: appText }),
+    [builderFormPreview, builderScreenshots],
+  );
+  const builderTargetIds = useMemo(
+    () => buildTargetIdList(builderFormPreview.targets),
+    [builderFormPreview.targets],
+  );
+  const builderAllIssues = useMemo(
+    () => builderSteps.flatMap((step) => builderStepIssueMap[step]),
+    [builderStepIssueMap],
+  );
+  const builderStepIndex = builderSteps.indexOf(builderStepPreview);
+  const builderFinalStep = builderStepIndex === builderSteps.length - 1;
+  const builderManifestPreview = useMemo(() => {
+    const manifest: Record<string, unknown> = {
+      manifestVersion: "1.0.0",
+      packageUuid: builderFormPreview.packageUuid,
+      appId: builderFormPreview.appId,
+      appUuid: builderFormPreview.appUuid,
+      displayName: builderFormPreview.displayName,
+      description: builderFormPreview.description,
+      longDescription: builderFormPreview.longDescription,
+      version: builderFormPreview.version,
+      publisher: builderFormPreview.publisher,
+      iconPath: builderFormPreview.iconPath,
+      screenshots: builderScreenshots,
+      interfaces: {
+        gui: { enabled: builderFormPreview.hasGui },
+        cli: {
+          enabled: builderFormPreview.hasCli,
+          commandName: builderFormPreview.commandName,
+          usageHint: builderFormPreview.usageHint,
+        },
+      },
+      targets: builderFormPreview.targets.map((target, index) => ({
+        id: builderTargetIds[index],
+        os: "linux",
+        arch: target.arch,
+        variant: sanitizeTargetSegment(target.variant, "default"),
+        payloadRoot: payloadRootForTarget(target),
+        entrypoints: {
+          gui: target.guiEntrypoint,
+          cli: target.cliEntrypoint,
+        },
+        linux: {
+          desktopEnvironments: linuxDesktopListForTarget(target),
+        },
+      })),
+    };
+    return JSON.stringify(manifest, null, 2);
+  }, [builderFormPreview, builderScreenshots, builderTargetIds]);
+
+  const setPreviewTargetField = <Key extends keyof BuilderTarget>(index: number, key: Key, value: BuilderTarget[Key]) => {
+    setBuilderFormPreview((current) => ({
+      ...current,
+      targets: current.targets.map((target, targetIndex) => (targetIndex === index ? { ...target, [key]: value } : target)),
+    }));
+  };
+
+  const setBuilderScenarioAndReset = (scenario: BuilderPreviewScenario) => {
+    setBuilderScenario(scenario);
+    setBuilderFormPreview(buildPreviewScenarioForm(scenario));
+    setBuilderActiveTargetIndex(0);
+    setBuilderStepPreview("identity");
+  };
+
+  const goBuilderPreviewBack = () => {
+    if (builderStepIndex <= 0) {
+      return;
+    }
+    setBuilderStepPreview(builderSteps[builderStepIndex - 1]);
+  };
+
+  const goBuilderPreviewNext = () => {
+    if (builderFinalStep) {
+      return;
+    }
+    const currentIssues = builderStepIssueMap[builderStepPreview];
+    if (currentIssues.length > 0) {
+      onToast("warning", appText("builder.validation.blockedStep", {
+        step: appText(`builder.steps.${builderStepPreview}`),
+        count: currentIssues.length,
+      }));
+      return;
+    }
+    setBuilderStepPreview(builderSteps[builderStepIndex + 1]);
+  };
 
   return (
     <Panel showCornerClose cornerCloseTitle={appText("debugLab.back")} onCornerClose={onBackToSettingsDebug}>
@@ -229,6 +430,86 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
         </section>
 
         <section class={section}>
+          <div class={actionBar}>
+            <Button onClick={() => setBuilderScenarioAndReset("clean")}>{appText("debugLab.builder.scenario.clean")}</Button>
+            <Button onClick={() => setBuilderScenarioAndReset("missingIdentity")}>{appText("debugLab.builder.scenario.identity")}</Button>
+            <Button onClick={() => setBuilderScenarioAndReset("cliMissingCommand")}>{appText("debugLab.builder.scenario.cli")}</Button>
+            <Button onClick={() => setBuilderScenarioAndReset("ambiguousTargets")}>{appText("debugLab.builder.scenario.targets")}</Button>
+            <Button onClick={() => setBuilderScenarioAndReset("assetErrors")}>{appText("debugLab.builder.scenario.assets")}</Button>
+          </div>
+
+          <div class={workspace}>
+            <BuilderStepStatusNav
+              steps={builderSteps}
+              currentStep={builderStepPreview}
+              onSelectStep={setBuilderStepPreview}
+              stepIssueMap={builderStepIssueMap}
+              ariaLabel={appText("builder.steps.aria")}
+            />
+            <div class={editorCard}>
+              <div class={targetListActions}>
+                <h3>{appText(`builder.steps.${builderStepPreview}`)}</h3>
+                <div class={row}>
+                  <Button onClick={() => setShowBuilderChecklistPreview(true)}>{appText("builder.checklist.title")}</Button>
+                  <Button onClick={() => setShowBuilderManifestPreview(true)}>{appText("builder.previewOpen")}</Button>
+                </div>
+              </div>
+
+              {builderStepIssueMap[builderStepPreview].length > 0 ? (
+                <div class={targetDuplicateWarning}>
+                  <strong>{appText("builder.validation.title")}</strong>
+                  <ul class={targetValidationList}>
+                    {builderStepIssueMap[builderStepPreview].map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {builderStepPreview === "targets" ? (
+                <div class={targetList}>
+                  {builderFormPreview.targets.map((target, index) => (
+                    <BuilderTargetCard
+                      key={`${builderTargetIds[index]}-${index}`}
+                      index={index}
+                      target={target}
+                      targetId={builderTargetIds[index] ?? ""}
+                      isActive={builderActiveTargetIndex === index}
+                      canRemove={false}
+                      isBusy={false}
+                      hasGui={builderFormPreview.hasGui}
+                      hasCli={builderFormPreview.hasCli}
+                      payloadRoot={payloadRootForTarget(target)}
+                      onToggle={() => setBuilderActiveTargetIndex(builderActiveTargetIndex === index ? -1 : index)}
+                      onRemove={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
+                      onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
+                      onSetField={(key, value) => setPreviewTargetField(index, key, value)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <MessagePanel tone="info" title={appText("debugLab.builder.placeholderTitle")}>
+                  {appText("debugLab.builder.placeholderBody", { step: appText(`builder.steps.${builderStepPreview}`) })}
+                </MessagePanel>
+              )}
+
+              <div class={wizardFooter}>
+                <span>{appText("builder.footer.step", { current: builderStepIndex + 1, total: builderSteps.length })}</span>
+                <div class={wizardFooterActions}>
+                  <Button onClick={goBuilderPreviewBack} disabled={builderStepIndex === 0}>{appText("builder.back")}</Button>
+                  {!builderFinalStep ? (
+                    <Button variant="primary" onClick={goBuilderPreviewNext}>{appText("builder.next")}</Button>
+                  ) : (
+                    <Button variant="primary" onClick={() => setShowBuilderChecklistPreview(true)}>{appText("builder.build")}</Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class={sectionDescription}>{appText("debugLab.builder.activeScenario", { scenario: appText(`debugLab.builder.scenario.${builderScenario}`) })}</p>
+        </section>
+
+        <section class={section}>
           <h2 class={sectionTitle}>{appText("debugLab.list.title")}</h2>
           <p class={sectionDescription}>{appText("debugLab.list.body")}</p>
           <div class={listRowPreview}>
@@ -324,6 +605,23 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
           </section>
         </ModalShell>
       ) : null}
+
+      <BuilderSaveChecklistModal
+        isOpen={showBuilderChecklistPreview}
+        steps={builderSteps}
+        stepIssueMap={builderStepIssueMap}
+        canContinue={builderAllIssues.length === 0}
+        isBusy={false}
+        intent="build"
+        onClose={() => setShowBuilderChecklistPreview(false)}
+        onContinue={() => onToast("success", appText("debugLab.builder.checklistContinue"))}
+      />
+
+      <BuilderManifestPreviewModal
+        isOpen={showBuilderManifestPreview}
+        manifestPreview={builderManifestPreview}
+        onClose={() => setShowBuilderManifestPreview(false)}
+      />
     </Panel>
   );
 };

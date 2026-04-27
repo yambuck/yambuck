@@ -5,7 +5,6 @@ import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Panel } from "../../components/ui/Panel";
 import { PanelHeader } from "../../components/ui/PanelHeader";
-import { SelectField } from "../../components/ui/SelectField";
 import { TextField } from "../../components/ui/TextField";
 import { appText } from "../../i18n/app";
 import { logUiAction, logUiError } from "../../lib/ui-log";
@@ -19,75 +18,55 @@ import {
 } from "../../lib/tauri/api";
 import type { BuilderStagedFile } from "../../types/app";
 import {
+  buildTargetIdList,
+  collectBuilderValidation,
+  linuxDesktopListForTarget,
+  payloadRootForTarget,
+  sanitizeTargetSegment,
+} from "./builderValidation";
+import {
+  builderSteps,
+  type BuilderArch,
+  type BuilderFormState,
+  type BuilderStep,
+  type BuilderTarget,
+} from "./builderTypes";
+import { ModalShell } from "../../components/ui/ModalShell";
+import { WizardStepper, type WizardStepperStep } from "../../components/ui/WizardStepper";
+import { BuilderManifestPreviewModal } from "./components/BuilderManifestPreviewModal";
+import { BuilderFieldLabel } from "./components/BuilderFieldLabel";
+import { BuilderSaveChecklistModal } from "./components/BuilderSaveChecklistModal";
+import { BuilderTargetCard } from "./components/BuilderTargetCard";
+import {
   actionBar,
-  editorCard,
   field,
+  fieldControlRow,
   fieldGrid,
-  fieldLabel,
   fieldStack,
   importTextarea,
   pagePanel,
-  previewCard,
-  previewCode,
   previewTitle,
   sectionBody,
+  targetDuplicateWarning,
+  targetValidationList,
   stagedAssetItem,
   stagedAssetList,
   stagedAssetMeta,
   stagedAssetPath,
-  stagedAssetsCard,
   startActions,
   startCard,
   statusBadge,
-  stepButton,
-  stepButtonActive,
-  stepList,
   targetList,
   targetListActions,
-  targetListItem,
-  targetListItemActive,
   workspace,
-  wipBanner,
+  wizardFooter,
+  wizardFooterActions,
 } from "./packageBuilderPage.css";
 
 type ToastTone = "info" | "success" | "warning" | "error";
 
-type BuilderStep = "identity" | "metadata" | "interfaces" | "targets" | "assets" | "review";
 type BuilderMode = "start" | "new";
-
-type BuilderArch = "x86_64" | "aarch64" | "riscv64";
-
-type BuilderTarget = {
-  id: string;
-  arch: BuilderArch;
-  variant: string;
-  payloadRoot: string;
-  guiEntrypoint: string;
-  cliEntrypoint: string;
-};
-
-type BuilderFormState = {
-  appId: string;
-  appUuid: string;
-  packageUuid: string;
-  displayName: string;
-  description: string;
-  longDescription: string;
-  version: string;
-  publisher: string;
-  homepageUrl: string;
-  supportUrl: string;
-  license: string;
-  licenseFile: string;
-  requiresLicenseAcceptance: boolean;
-  hasGui: boolean;
-  hasCli: boolean;
-  commandName: string;
-  usageHint: string;
-  iconPath: string;
-  screenshotsText: string;
-  targets: BuilderTarget[];
-};
+type SaveIntent = "save" | "saveAs" | "build";
 
 type StagedAsset = {
   id: string;
@@ -101,15 +80,12 @@ type PackageBuilderPageProps = {
   onToast: (tone: ToastTone, message: string, durationMs?: number) => void;
 };
 
-const builderSteps: BuilderStep[] = ["identity", "metadata", "interfaces", "targets", "assets", "review"];
-
 const defaultTarget = (arch: BuilderArch, index = 0): BuilderTarget => {
-  const variant = "default";
+  const variant = index === 0 ? "default" : `variant-${index + 1}`;
   return {
-    id: `linux-${arch}-${variant}-${index + 1}`,
     arch,
     variant,
-    payloadRoot: `payloads/linux/${arch}/${variant}`,
+    desktopEnvironment: "all",
     guiEntrypoint: "app/bin/example-app",
     cliEntrypoint: "app/bin/example-app",
   };
@@ -180,6 +156,23 @@ const fileBaseName = (path: string): string => {
   return parts[parts.length - 1] || path;
 };
 
+const generateUuid = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 14)}`;
+};
+
 const toPathList = (value: string | string[] | null): string[] => {
   if (!value) {
     return [];
@@ -204,12 +197,23 @@ const normalizeTargets = (value: unknown): BuilderTarget[] => {
       const entrypoints = (target.entrypoints ?? {}) as Record<string, unknown>;
       const arch = normalizeArch(target.arch);
       const variant = firstNonEmpty(target.variant, "default");
+      const linux = (target.linux ?? {}) as Record<string, unknown>;
+      const desktops = Array.isArray(linux.desktopEnvironments)
+        ? linux.desktopEnvironments.filter((item) => typeof item === "string").map((item) => item.toLowerCase())
+        : [];
+
+      let desktopEnvironment: BuilderTarget["desktopEnvironment"] = "all";
+      if (desktops.length === 1 && desktops[0] === "x11") {
+        desktopEnvironment = "x11";
+      }
+      if (desktops.length === 1 && desktops[0] === "wayland") {
+        desktopEnvironment = "wayland";
+      }
 
       return {
-        id: asText(target.id) || `linux-${arch}-${variant}-${index + 1}`,
         arch,
         variant,
-        payloadRoot: asText(target.payloadRoot) || `payloads/linux/${arch}/${variant}`,
+        desktopEnvironment,
         guiEntrypoint: firstNonEmpty(entrypoints.gui, "app/bin/example-app"),
         cliEntrypoint: firstNonEmpty(entrypoints.cli, "app/bin/example-app"),
       };
@@ -260,6 +264,8 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [isDirty, setIsDirty] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [isManifestModalOpen, setIsManifestModalOpen] = useState(false);
+  const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null);
 
   const activeTarget = form.targets[activeTargetIndex] ?? null;
 
@@ -292,10 +298,69 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     [form.screenshotsText],
   );
 
-  const manifestPreview = useMemo(() => {
+  const targetIdList = useMemo(() => buildTargetIdList(form.targets), [form.targets]);
+
+  const stepIssueMap = useMemo(
+    () => collectBuilderValidation({ form, screenshots, t: appText }),
+    [form, screenshots],
+  );
+
+  const wizardSteps: WizardStepperStep[] = useMemo(() => [
+    { id: "start", label: appText("builder.steps.start") },
+    ...builderSteps.map((step) => ({ id: step, label: appText(`builder.steps.${step}`) })),
+  ], []);
+
+  const currentStepperStep = mode === "start" ? "start" : step;
+
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showAppUuidConfirm, setShowAppUuidConfirm] = useState(false);
+
+  const confirmBackToStart = () => {
+    if (isDirty) {
+      setShowDiscardConfirm(true);
+    } else {
+      setMode("start");
+    }
+  };
+
+  const handleDiscard = async () => {
+    if (sessionId) {
+      await discardBuilderSession(sessionId);
+    }
+    setForm(defaultBuilderForm());
+    setIsDirty(false);
+    setSessionId(null);
+    setOpenedPackageFile(null);
+    setShowDiscardConfirm(false);
+    setMode("start");
+  };
+
+  const applyGeneratedAppUuid = () => {
+    setField("appUuid", generateUuid());
+    setShowAppUuidConfirm(false);
+  };
+
+  const requestGeneratedAppUuid = () => {
+    if (form.appUuid.trim().length > 0) {
+      setShowAppUuidConfirm(true);
+      return;
+    }
+    applyGeneratedAppUuid();
+  };
+
+  const targetValidationIssues = stepIssueMap.targets;
+
+  const allValidationIssues = useMemo(
+    () => builderSteps.flatMap((builderStep) => stepIssueMap[builderStep]),
+    [stepIssueMap],
+  );
+  const currentStepIndex = builderSteps.indexOf(step);
+  const isFinalStep = currentStepIndex === builderSteps.length - 1;
+
+  const buildManifestPreview = (packageUuid = form.packageUuid): string => {
     const nextManifest: Record<string, unknown> = {
       manifestVersion: "1.0.0",
-      packageUuid: form.packageUuid,
+      packageUuid,
       appId: form.appId,
       appUuid: form.appUuid,
       displayName: form.displayName,
@@ -313,18 +378,18 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           usageHint: form.usageHint,
         },
       },
-      targets: form.targets.map((target) => ({
-        id: target.id,
+      targets: form.targets.map((target, index) => ({
+        id: targetIdList[index] ?? "",
         os: "linux",
         arch: target.arch,
-        variant: target.variant.trim() || "default",
-        payloadRoot: target.payloadRoot,
+        variant: sanitizeTargetSegment(target.variant, "default"),
+        payloadRoot: payloadRootForTarget(target),
         entrypoints: {
           gui: target.guiEntrypoint,
           cli: target.cliEntrypoint,
         },
         linux: {
-          desktopEnvironments: ["x11", "wayland"],
+          desktopEnvironments: linuxDesktopListForTarget(target),
         },
       })),
     };
@@ -346,7 +411,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     }
 
     return JSON.stringify(nextManifest, null, 2);
-  }, [form, screenshots]);
+  };
+
+  const manifestPreview = useMemo(() => buildManifestPreview(), [form, screenshots, targetIdList]);
 
   const setField = <Key extends keyof BuilderFormState>(key: Key, value: BuilderFormState[Key]) => {
     const detailValue = typeof value === "string" ? value.length : value ? 1 : 0;
@@ -398,6 +465,22 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     logUiError("builder-session-missing");
     notify("error", "builder.sessionError");
     return null;
+  };
+
+  const openSaveChecklist = (intent: SaveIntent) => {
+    const activeSessionId = ensureSessionId();
+    if (!activeSessionId) {
+      return;
+    }
+    logUiAction("builder-save-checklist-open", { intent, issueCount: allValidationIssues.length });
+    if (allValidationIssues.length > 0) {
+      const firstIssueStep = builderSteps.find((builderStep) => stepIssueMap[builderStep].length > 0);
+      if (firstIssueStep) {
+        setStep(firstIssueStep);
+      }
+      notify("warning", "builder.validation.blockedSave", { count: allValidationIssues.length });
+    }
+    setPendingSaveIntent(intent);
   };
 
   const replaceStagedAssets = (predicate: (item: StagedAsset) => boolean, nextItems: StagedAsset[]) => {
@@ -516,13 +599,13 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     }
   };
 
-  const handleSaveAs = async () => {
+  const executeSaveAs = async () => {
     const activeSessionId = ensureSessionId();
     if (!activeSessionId) {
       return;
     }
 
-    logUiAction("builder-save-as-clicked", { dirty: isDirty });
+    logUiAction("builder-save-as-clicked", { dirty: isDirty, issueCount: allValidationIssues.length });
 
     setIsBusy(true);
     setStatusMessage(null);
@@ -539,7 +622,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         return;
       }
 
-      await saveBuilderSessionAs(activeSessionId, outputPath, manifestPreview);
+      const nextPackageUuid = generateUuid();
+      const nextManifestPreview = buildManifestPreview(nextPackageUuid);
+      await saveBuilderSessionAs(activeSessionId, outputPath, nextManifestPreview);
+      setForm((current) => ({ ...current, packageUuid: nextPackageUuid }));
       setIsDirty(false);
       logUiAction("builder-save-as-success", { file: fileBaseName(outputPath) });
       notify("success", "builder.saveAsSuccess", { fileName: fileBaseName(outputPath) });
@@ -547,29 +633,37 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       logUiError("builder-save-as-failed", {
         error: error instanceof Error ? error.message : "unknown",
       });
-      notify("error", "builder.saveError");
+      const detail = error instanceof Error ? error.message : "unknown";
+      notify("error", "builder.saveErrorDetailed", { details: detail });
     } finally {
       setIsBusy(false);
     }
   };
 
-  const handleSave = async () => {
+  const executeSave = async () => {
     const activeSessionId = ensureSessionId();
     if (!activeSessionId) {
       return;
     }
 
-    logUiAction("builder-save-clicked", { dirty: isDirty, hasOriginalPackage: Boolean(openedPackageFile) });
+    logUiAction("builder-save-clicked", {
+      dirty: isDirty,
+      hasOriginalPackage: Boolean(openedPackageFile),
+      issueCount: allValidationIssues.length,
+    });
 
     if (!openedPackageFile) {
-      await handleSaveAs();
+      await executeSaveAs();
       return;
     }
 
     setIsBusy(true);
     setStatusMessage(null);
     try {
-      await saveBuilderSession(activeSessionId, manifestPreview);
+      const nextPackageUuid = generateUuid();
+      const nextManifestPreview = buildManifestPreview(nextPackageUuid);
+      await saveBuilderSession(activeSessionId, nextManifestPreview);
+      setForm((current) => ({ ...current, packageUuid: nextPackageUuid }));
       setIsDirty(false);
       logUiAction("builder-save-success", { file: fileBaseName(openedPackageFile) });
       notify("success", "builder.saveSuccess");
@@ -577,10 +671,24 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       logUiError("builder-save-failed", {
         error: error instanceof Error ? error.message : "unknown",
       });
-      notify("error", "builder.saveError");
+      const detail = error instanceof Error ? error.message : "unknown";
+      notify("error", "builder.saveErrorDetailed", { details: detail });
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const continueSaveFromChecklist = async () => {
+    if (!pendingSaveIntent || allValidationIssues.length > 0) {
+      return;
+    }
+    const intent = pendingSaveIntent;
+    setPendingSaveIntent(null);
+    if (intent === "save") {
+      await executeSave();
+      return;
+    }
+    await executeSaveAs();
   };
 
   const browseIcon = async () => {
@@ -665,7 +773,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return;
     }
 
-    logUiAction("builder-browse-binary-clicked", { arch: activeTarget.arch, target: activeTarget.id });
+    logUiAction("builder-browse-binary-clicked", {
+      arch: activeTarget.arch,
+      target: targetIdList[activeTargetIndex] ?? "unknown",
+    });
     let sourcePath: string | undefined;
     try {
       const selected = await open({ multiple: false });
@@ -685,11 +796,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     const sourceName = fileBaseName(sourcePath);
     const binaryName = sanitizeFileName(sourceName);
     const entrypoint = `app/bin/${binaryName}`;
-    const payloadRoot = activeTarget.payloadRoot || `payloads/linux/${activeTarget.arch}/${activeTarget.variant || "default"}`;
+    const payloadRoot = payloadRootForTarget(activeTarget);
     const targetPath = `${payloadRoot}/${entrypoint}`;
 
-    setTargetField(activeTargetIndex, "payloadRoot", payloadRoot);
-    setTargetField(activeTargetIndex, "id", activeTarget.id || `linux-${activeTarget.arch}-${activeTarget.variant || "default"}`);
     if (form.hasGui) {
       setTargetField(activeTargetIndex, "guiEntrypoint", entrypoint);
     }
@@ -754,63 +863,65 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           <h3 class={previewTitle}>{appText("builder.targets.title")}</h3>
           <Button onClick={addTarget} disabled={isBusy}>{appText("builder.targets.add")}</Button>
         </div>
-        <div class={targetList} role="tablist" aria-label={appText("builder.targets.listAria")}>
+        {targetValidationIssues.length > 0 ? (
+          <div class={targetDuplicateWarning}>
+            <strong>{appText("builder.validation.title")}</strong>
+            <ul class={targetValidationList}>
+              {targetValidationIssues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <div class={targetList} role="list" aria-label={appText("builder.targets.listAria")}>
           {form.targets.map((target, index) => (
-            <div key={`${target.id}-${index}`} class={targetListItem}>
-              <button
-                type="button"
-                class={`${stepButton}${index === activeTargetIndex ? ` ${targetListItemActive}` : ""}`}
-                onClick={() => {
-                  logUiAction("builder-target-select", { index, target: target.id });
-                  setActiveTargetIndex(index);
-                }}
-              >
-                {appText("builder.targets.item", { index: index + 1 })} - {target.arch}
-              </button>
-              <Button onClick={() => removeTarget(index)} disabled={isBusy || form.targets.length <= 1}>
-                {appText("builder.targets.remove")}
-              </Button>
-            </div>
+            <BuilderTargetCard
+              key={`${targetIdList[index]}-${index}`}
+              index={index}
+              target={target}
+              targetId={targetIdList[index] ?? ""}
+              isActive={index === activeTargetIndex}
+              canRemove={form.targets.length > 1}
+              isBusy={isBusy}
+              hasGui={form.hasGui}
+              hasCli={form.hasCli}
+              payloadRoot={payloadRootForTarget(target)}
+              onToggle={() => {
+                logUiAction("builder-target-select", { index, target: targetIdList[index] });
+                setActiveTargetIndex(index === activeTargetIndex ? -1 : index);
+              }}
+              onRemove={() => removeTarget(index)}
+              onBrowseBinary={() => void browseBinary()}
+              onSetField={(key, value) => setTargetField(index, key, value)}
+            />
           ))}
         </div>
-
-        <label class={fieldStack}>
-          <span class={fieldLabel}>{appText("builder.fields.targetId")}</span>
-          <TextField value={activeTarget.id} onInput={(value) => setTargetField(activeTargetIndex, "id", value)} />
-        </label>
-        <label class={fieldStack}>
-          <span class={fieldLabel}>{appText("builder.fields.arch")}</span>
-          <SelectField
-            value={activeTarget.arch}
-            onValueChange={(value) => setTargetField(activeTargetIndex, "arch", value as BuilderArch)}
-            options={[
-              { value: "x86_64", label: "x86_64" },
-              { value: "aarch64", label: "aarch64" },
-              { value: "riscv64", label: "riscv64" },
-            ]}
-          />
-        </label>
-        <label class={fieldStack}>
-          <span class={fieldLabel}>{appText("builder.fields.variant")}</span>
-          <TextField value={activeTarget.variant} onInput={(value) => setTargetField(activeTargetIndex, "variant", value)} />
-        </label>
-        <label class={fieldStack}>
-          <span class={fieldLabel}>{appText("builder.fields.payloadRoot")}</span>
-          <TextField value={activeTarget.payloadRoot} onInput={(value) => setTargetField(activeTargetIndex, "payloadRoot", value)} />
-        </label>
-        <label class={fieldStack}>
-          <span class={fieldLabel}>{appText("builder.fields.guiEntrypoint")}</span>
-          <TextField value={activeTarget.guiEntrypoint} onInput={(value) => setTargetField(activeTargetIndex, "guiEntrypoint", value)} />
-        </label>
-        <label class={fieldStack}>
-          <span class={fieldLabel}>{appText("builder.fields.cliEntrypoint")}</span>
-          <TextField value={activeTarget.cliEntrypoint} onInput={(value) => setTargetField(activeTargetIndex, "cliEntrypoint", value)} />
-        </label>
-        <div class={fieldStack}>
-          <span class={fieldLabel}>{appText("builder.fields.binaryUpload")}</span>
-          <Button onClick={() => void browseBinary()} disabled={isBusy}>{appText("builder.files.browseBinary")}</Button>
-        </div>
+        {renderStagedAssets(["binary"])}
       </>
+    );
+  };
+
+  const renderStagedAssets = (kinds: StagedAsset["kind"][]) => {
+    const visible = stagedAssets.filter((item) => kinds.includes(item.kind));
+    return (
+      <section>
+        <h3 class={previewTitle}>{appText("builder.files.stagedTitle")}</h3>
+        {visible.length === 0 ? <p class={sectionBody}>{appText("builder.files.stagedEmpty")}</p> : null}
+        {visible.length > 0 ? (
+          <ul class={stagedAssetList}>
+            {visible.map((asset) => (
+              <li key={asset.id} class={stagedAssetItem}>
+                <div class={stagedAssetMeta}>
+                  <strong>{appText(`builder.files.kind.${asset.kind}`)}</strong>
+                  <span>{asset.sourceName}</span>
+                  {asset.arch ? <span>{asset.arch}</span> : null}
+                </div>
+                <code class={stagedAssetPath}>{asset.targetPath}</code>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
     );
   };
 
@@ -820,15 +931,18 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.identity")}</p>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.appId")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.appId")} help={appText("builder.help.appId")} />
             <TextField value={form.appId} onInput={(value) => setField("appId", value)} />
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.appUuid")}</span>
-            <TextField value={form.appUuid} onInput={(value) => setField("appUuid", value)} />
+            <BuilderFieldLabel label={appText("builder.fields.appUuid")} help={appText("builder.help.appUuid")} />
+            <div class={fieldControlRow}>
+              <TextField value={form.appUuid} onInput={(value) => setField("appUuid", value)} />
+              <Button onClick={requestGeneratedAppUuid} disabled={isBusy}>{appText("builder.generateUuid")}</Button>
+            </div>
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.packageUuid")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.packageUuid")} help={appText("builder.help.packageUuid")} />
             <TextField value={form.packageUuid} onInput={(value) => setField("packageUuid", value)} />
           </label>
         </div>
@@ -840,15 +954,15 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.metadata")}</p>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.displayName")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.displayName")} help={appText("builder.help.displayName")} />
             <TextField value={form.displayName} onInput={(value) => setField("displayName", value)} />
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.description")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.description")} help={appText("builder.help.description")} />
             <TextField value={form.description} onInput={(value) => setField("description", value)} />
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.longDescription")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.longDescription")} help={appText("builder.help.longDescription")} />
             <textarea
               class={importTextarea}
               value={form.longDescription}
@@ -856,23 +970,24 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
             />
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.version")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.version")} help={appText("builder.help.version")} />
             <TextField value={form.version} onInput={(value) => setField("version", value)} />
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.publisher")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.publisher")} help={appText("builder.help.publisher")} />
             <TextField value={form.publisher} onInput={(value) => setField("publisher", value)} />
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.homepageUrl")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.homepageUrl")} help={appText("builder.help.homepageUrl")} />
             <TextField value={form.homepageUrl} onInput={(value) => setField("homepageUrl", value)} />
           </label>
+          <p class={sectionBody}>{appText("builder.hints.urls")}</p>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.supportUrl")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.supportUrl")} help={appText("builder.help.supportUrl")} />
             <TextField value={form.supportUrl} onInput={(value) => setField("supportUrl", value)} />
           </label>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.license")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.license")} help={appText("builder.help.license")} />
             <TextField value={form.license} onInput={(value) => setField("license", value)} />
           </label>
         </div>
@@ -885,14 +1000,18 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           <p class={sectionBody}>{appText("builder.section.interfaces")}</p>
           <CheckboxField checked={form.hasGui} onChange={(checked) => setField("hasGui", checked)}>{appText("builder.fields.hasGui")}</CheckboxField>
           <CheckboxField checked={form.hasCli} onChange={(checked) => setField("hasCli", checked)}>{appText("builder.fields.hasCli")}</CheckboxField>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.commandName")}</span>
-            <TextField value={form.commandName} onInput={(value) => setField("commandName", value)} />
-          </label>
-          <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.usageHint")}</span>
-            <TextField value={form.usageHint} onInput={(value) => setField("usageHint", value)} />
-          </label>
+          {form.hasCli ? (
+            <>
+              <label class={fieldStack}>
+                <BuilderFieldLabel label={appText("builder.fields.commandName")} help={appText("builder.help.commandName")} />
+                <TextField value={form.commandName} onInput={(value) => setField("commandName", value)} />
+              </label>
+              <label class={fieldStack}>
+                <BuilderFieldLabel label={appText("builder.fields.usageHint")} help={appText("builder.help.usageHint")} />
+                <TextField value={form.usageHint} onInput={(value) => setField("usageHint", value)} />
+              </label>
+            </>
+          ) : null}
         </div>
       );
     }
@@ -911,31 +1030,32 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.assets")}</p>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.iconPath")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.iconPath")} help={appText("builder.help.iconPath")} />
             <TextField value={form.iconPath} onInput={(value) => setField("iconPath", value)} />
           </label>
           <div class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.iconUpload")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.iconUpload")} help={appText("builder.help.iconUpload")} />
             <Button onClick={() => void browseIcon()} disabled={isBusy}>{appText("builder.files.browseIcon")}</Button>
           </div>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.screenshots")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.screenshots")} help={appText("builder.help.screenshots")} />
             <textarea
               class={importTextarea}
               value={form.screenshotsText}
               onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("screenshotsText", event.currentTarget.value)}
             />
           </label>
+          <p class={sectionBody}>{appText("builder.hints.screenshots", { count: screenshots.length })}</p>
           <div class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.screenshotUpload")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.screenshotUpload")} help={appText("builder.help.screenshotUpload")} />
             <Button onClick={() => void browseScreenshots()} disabled={isBusy}>{appText("builder.files.browseScreenshots")}</Button>
           </div>
           <label class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.licenseFile")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.licenseFile")} help={appText("builder.help.licenseFile")} />
             <TextField value={form.licenseFile} onInput={(value) => setField("licenseFile", value)} />
           </label>
           <div class={fieldStack}>
-            <span class={fieldLabel}>{appText("builder.fields.licenseUpload")}</span>
+            <BuilderFieldLabel label={appText("builder.fields.licenseUpload")} help={appText("builder.help.licenseUpload")} />
             <Button onClick={() => void browseLicenseFile()} disabled={isBusy}>{appText("builder.files.browseLicense")}</Button>
           </div>
           <CheckboxField
@@ -944,6 +1064,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           >
             {appText("builder.fields.requiresLicenseAcceptance")}
           </CheckboxField>
+          {renderStagedAssets(["icon", "screenshot", "license"])}
         </div>
       );
     }
@@ -956,14 +1077,37 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     setStep(nextStep);
   };
 
+  const goToPreviousStep = () => {
+    if (currentStepIndex <= 0) {
+      return;
+    }
+    selectStep(builderSteps[currentStepIndex - 1]);
+  };
+
+  const goToNextStep = () => {
+    if (isFinalStep) {
+      return;
+    }
+    const currentIssues = stepIssueMap[step];
+    if (currentIssues.length > 0) {
+      notify("warning", "builder.validation.blockedStep", {
+        step: appText(`builder.steps.${step}`),
+        count: currentIssues.length,
+      });
+      return;
+    }
+    selectStep(builderSteps[currentStepIndex + 1]);
+  };
+
   if (mode === "start") {
     return (
       <Panel class={pagePanel}>
         <PanelHeader title={appText("builder.title")}>{appText("builder.subtitle")}</PanelHeader>
-        <section class={wipBanner}>
-          <h2>{appText("builder.wip.title")}</h2>
-          <p>{appText("builder.wip.body")}</p>
-        </section>
+        <WizardStepper
+          steps={wizardSteps}
+          currentStepId={currentStepperStep}
+          align="center"
+        />
         <section class={startCard}>
           <h2>{appText("builder.startTitle")}</h2>
           <p>{appText("builder.startBody")}</p>
@@ -980,60 +1124,77 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   return (
     <Panel class={pagePanel}>
       <PanelHeader title={appText("builder.title")}>{appText("builder.subtitle")}</PanelHeader>
-
-      <section class={wipBanner}>
-        <h2>{appText("builder.wip.title")}</h2>
-        <p>{appText("builder.wip.body")}</p>
-      </section>
-
       <div class={actionBar}>
         <span class={statusBadge}>{isDirty ? appText("builder.dirty") : appText("builder.clean")}</span>
         <Button onClick={() => void handleOpenPackage()} disabled={isBusy}>{appText("builder.openPackage")}</Button>
-        <Button onClick={() => void handleSave()} disabled={isBusy || !sessionId || !openedPackageFile}>{appText("builder.save")}</Button>
-        <Button variant="primary" onClick={() => void handleSaveAs()} disabled={isBusy || !sessionId}>{appText("builder.saveAs")}</Button>
       </div>
       {statusMessage ? <p class={field}>{statusMessage}</p> : null}
 
       <section class={workspace}>
-        <nav class={stepList} aria-label={appText("builder.steps.aria")}>
-          {builderSteps.map((item) => (
-            <button
-              type="button"
-              key={item}
-              class={`${stepButton}${item === step ? ` ${stepButtonActive}` : ""}`}
-              onClick={() => selectStep(item)}
-            >
-              {appText(`builder.steps.${item}`)}
-            </button>
-          ))}
-        </nav>
-        <div class={editorCard}>
-          {renderStepEditor()}
+        <WizardStepper
+          steps={wizardSteps}
+          currentStepId={currentStepperStep}
+          align="center"
+        />
+        {renderStepEditor()}
+
+        <div class={wizardFooter}>
+          <div class={wizardFooterActions}>
+            <Button onClick={() => (currentStepIndex === 0 ? confirmBackToStart() : goToPreviousStep())} disabled={isBusy}>{appText("builder.back")}</Button>
+            {!isFinalStep ? (
+              <Button variant="primary" onClick={goToNextStep} disabled={isBusy}>{appText("builder.next")}</Button>
+            ) : (
+              <>
+                <Button onClick={() => setIsManifestModalOpen(true)} disabled={isBusy || !sessionId}>{appText("builder.previewOpen")}</Button>
+                <Button onClick={() => openSaveChecklist("save")} disabled={isBusy || !sessionId || !openedPackageFile}>{appText("builder.save")}</Button>
+                <Button onClick={() => openSaveChecklist("saveAs")} disabled={isBusy || !sessionId}>{appText("builder.saveAs")}</Button>
+                <Button variant="primary" onClick={() => openSaveChecklist("build")} disabled={isBusy || !sessionId}>{appText("builder.build")}</Button>
+              </>
+            )}
+          </div>
         </div>
-        <aside class={previewCard}>
-          <h3 class={previewTitle}>{appText("builder.previewTitle")}</h3>
-          <pre class={previewCode}>{manifestPreview}</pre>
-        </aside>
       </section>
 
-      <section class={stagedAssetsCard}>
-        <h3 class={previewTitle}>{appText("builder.files.stagedTitle")}</h3>
-        {stagedAssets.length === 0 ? <p class={sectionBody}>{appText("builder.files.stagedEmpty")}</p> : null}
-        {stagedAssets.length > 0 ? (
-          <ul class={stagedAssetList}>
-            {stagedAssets.map((asset) => (
-              <li key={asset.id} class={stagedAssetItem}>
-                <div class={stagedAssetMeta}>
-                  <strong>{appText(`builder.files.kind.${asset.kind}`)}</strong>
-                  <span>{asset.sourceName}</span>
-                  {asset.arch ? <span>{asset.arch}</span> : null}
-                </div>
-                <code class={stagedAssetPath}>{asset.targetPath}</code>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
+      <BuilderSaveChecklistModal
+        isOpen={Boolean(pendingSaveIntent)}
+        steps={builderSteps}
+        stepIssueMap={stepIssueMap}
+        canContinue={allValidationIssues.length === 0}
+        isBusy={isBusy}
+        intent={pendingSaveIntent ?? "saveAs"}
+        onClose={() => setPendingSaveIntent(null)}
+        onContinue={() => void continueSaveFromChecklist()}
+      />
+
+      <BuilderManifestPreviewModal
+        isOpen={isManifestModalOpen}
+        manifestPreview={manifestPreview}
+        onClose={() => setIsManifestModalOpen(false)}
+      />
+      {showAppUuidConfirm ? (
+        <ModalShell onClose={() => setShowAppUuidConfirm(false)}>
+          <section>
+            <h2>{appText("builder.uuidConfirm.appUuidTitle")}</h2>
+            <p>{appText("builder.uuidConfirm.appUuidBody")}</p>
+            <div class="modal-actions">
+              <Button onClick={() => setShowAppUuidConfirm(false)}>{appText("builder.uuidConfirm.cancel")}</Button>
+              <Button variant="primary" onClick={applyGeneratedAppUuid}>{appText("builder.uuidConfirm.confirm")}</Button>
+            </div>
+          </section>
+        </ModalShell>
+      ) : null}
+      {showDiscardConfirm && (
+        <ModalShell onClose={() => setShowDiscardConfirm(false)}>
+          <section>
+            <h2>{appText("builder.confirmDiscard.title")}</h2>
+            <p>{appText("builder.confirmDiscard.body")}</p>
+            <div class="modal-actions">
+              <Button onClick={() => setShowDiscardConfirm(false)}>{appText("builder.confirmDiscard.cancel")}</Button>
+              <Button variant="danger" onClick={() => void handleDiscard()}>{appText("builder.confirmDiscard.discard")}</Button>
+            </div>
+          </section>
+        </ModalShell>
+      )}
     </Panel>
   );
 };

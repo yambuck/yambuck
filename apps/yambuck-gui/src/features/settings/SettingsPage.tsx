@@ -32,6 +32,7 @@ type SettingsPageProps = {
   onCopySystemInfo: () => void;
   onOpenMockPreview: () => void;
   onOpenMockInstalledApps: () => void;
+  onOpenMockPackageBuilder: () => void;
   onOpenUiDebugLab: () => void;
   onCopyLogs: () => void;
   onClearLogs: () => void;
@@ -49,6 +50,7 @@ export const SettingsPage = ({
   onCopySystemInfo,
   onOpenMockPreview,
   onOpenMockInstalledApps,
+  onOpenMockPackageBuilder,
   onOpenUiDebugLab,
   onCopyLogs,
   onClearLogs,
@@ -145,6 +147,7 @@ export const SettingsPage = ({
           <div class={`actions start compact ${actions} ${actionsStart} ${actionsCompact}`}>
             <Button onClick={onOpenMockPreview}>{appText("settings.debug.openMockApp")}</Button>
             <Button onClick={onOpenMockInstalledApps}>{appText("settings.debug.openMockInstalled")}</Button>
+            <Button onClick={onOpenMockPackageBuilder}>{appText("settings.debug.openMockPackageBuilder")}</Button>
             <Button onClick={onOpenUiDebugLab}>{appText("settings.debug.openUiLab")}</Button>
           </div>
         </section>

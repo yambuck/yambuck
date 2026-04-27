@@ -10,9 +10,10 @@ type WizardStepperProps = {
   steps: WizardStepperStep[];
   currentStepId: string;
   align?: "start" | "center";
+  onSelectStep?: (id: string) => void;
 };
 
-export const WizardStepper = ({ steps, currentStepId, align = "start" }: WizardStepperProps) => {
+export const WizardStepper = ({ steps, currentStepId, align = "start", onSelectStep }: WizardStepperProps) => {
   const currentIndex = Math.max(0, steps.findIndex((step) => step.id === currentStepId));
 
   return (
@@ -22,7 +23,11 @@ export const WizardStepper = ({ steps, currentStepId, align = "start" }: WizardS
         return (
           <Fragment key={step.id}>
             <li class={item} data-state={state}>
-              <span class={marker}>{index + 1}</span>
+              {onSelectStep ? (
+                <button type="button" class={marker} onClick={() => onSelectStep(step.id)}>{index + 1}</button>
+              ) : (
+                <span class={marker}>{index + 1}</span>
+              )}
               <span class={label}>{step.label}</span>
             </li>
             {index < steps.length - 1 ? <li class={separator} aria-hidden="true" /> : null}
