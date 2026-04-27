@@ -1,5 +1,7 @@
 import type { JSX } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
+import { IconLayoutGrid, IconPhoto, IconX } from "@tabler/icons-preact";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
@@ -19,12 +21,13 @@ import {
 import type { BuilderStagedFile } from "../../types/app";
 import {
   buildTargetIdList,
-  collectBuilderValidation,
+  collectBuilderValidationResult,
   linuxDesktopListForTarget,
   payloadRootForTarget,
   sanitizeTargetSegment,
 } from "./builderValidation";
 import {
+  builderMaxScreenshots,
   builderSteps,
   type BuilderArch,
   type BuilderFormState,
@@ -42,7 +45,12 @@ import {
   field,
   fieldControlRow,
   fieldGrid,
+  fieldInvalid,
+  fieldStackInvalid,
   fieldStack,
+  assetSection,
+  inlineActionButton,
+  compactCheckbox,
   importTextarea,
   pagePanel,
   previewTitle,
@@ -53,6 +61,15 @@ import {
   stagedAssetList,
   stagedAssetMeta,
   stagedAssetPath,
+  stepIssueList,
+  stepIssuePanel,
+  assetThumbGrid,
+  assetThumbTile,
+  assetThumbImage,
+  assetThumbPlaceholder,
+  assetThumbSlotText,
+  assetThumbRemove,
+  assetActionRow,
   startActions,
   startCard,
   statusBadge,
@@ -73,6 +90,7 @@ type StagedAsset = {
   kind: "icon" | "screenshot" | "binary" | "license";
   sourceName: string;
   targetPath: string;
+  sourcePath?: string;
   arch?: string;
 };
 
@@ -255,7 +273,7 @@ const formFromManifest = (manifest: Record<string, unknown>): BuilderFormState =
 
 export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
-  const [step, setStep] = useState<BuilderStep>("identity");
+  const [step, setStep] = useState<BuilderStep>("interfaces");
   const [form, setForm] = useState<BuilderFormState>(() => defaultBuilderForm());
   const [activeTargetIndex, setActiveTargetIndex] = useState(0);
   const [stagedAssets, setStagedAssets] = useState<StagedAsset[]>([]);
@@ -266,6 +284,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [isBusy, setIsBusy] = useState(false);
   const [isManifestModalOpen, setIsManifestModalOpen] = useState(false);
   const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null);
+  const [licensePreviewText, setLicensePreviewText] = useState<string | null>(null);
 
   const activeTarget = form.targets[activeTargetIndex] ?? null;
 
@@ -300,10 +319,13 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
 
   const targetIdList = useMemo(() => buildTargetIdList(form.targets), [form.targets]);
 
-  const stepIssueMap = useMemo(
-    () => collectBuilderValidation({ form, screenshots, t: appText }),
+  const validation = useMemo(
+    () => collectBuilderValidationResult({ form, screenshots, t: appText }),
     [form, screenshots],
   );
+
+  const stepIssueMap = validation.stepIssues;
+  const fieldIssues = validation.fieldIssues;
 
   const wizardSteps: WizardStepperStep[] = useMemo(() => [
     { id: "start", label: appText("builder.steps.start") },
@@ -529,10 +551,13 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       logUiAction("builder-create-new-success", { sessionId: session.sessionId });
       setSessionId(session.sessionId);
       setOpenedPackageFile(null);
-      setForm(defaultBuilderForm());
+      setForm({
+        ...defaultBuilderForm(),
+        packageUuid: generateUuid(),
+      });
       setActiveTargetIndex(0);
       setStagedAssets([]);
-      setStep("identity");
+      setStep("interfaces");
       setMode("new");
       setIsDirty(true);
     } catch (error) {
@@ -576,12 +601,15 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       }
 
       const nextForm = formFromManifest(parsed as Record<string, unknown>);
+      if (!nextForm.packageUuid.trim()) {
+        nextForm.packageUuid = generateUuid();
+      }
       setSessionId(session.sessionId);
       setOpenedPackageFile(session.packageFile ?? packagePath);
       setForm(nextForm);
       setActiveTargetIndex(0);
       setStagedAssets([]);
-      setStep("identity");
+      setStep("interfaces");
       setMode("new");
       setIsDirty(false);
       logUiAction("builder-open-package-success", {
@@ -719,13 +747,19 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
 
     await stageSelectedFiles(
       [{ sourcePath, targetPath }],
-      [{ id: "icon", kind: "icon", sourceName, targetPath }],
+      [{ id: "icon", kind: "icon", sourceName, targetPath, sourcePath }],
       (item) => item.kind === "icon",
     );
   };
 
   const browseScreenshots = async () => {
     logUiAction("builder-browse-screenshots-clicked");
+    const remainingSlots = builderMaxScreenshots - screenshotAssets.length;
+    if (remainingSlots <= 0) {
+      notify("info", "builder.files.screenshotLimitReached", { max: builderMaxScreenshots });
+      return;
+    }
+
     let sourcePaths: string[] = [];
     try {
       const selected = await open({
@@ -745,24 +779,35 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return;
     }
 
-    const nextAssets = sourcePaths.map((sourcePath, index) => {
+    const acceptedSourcePaths = sourcePaths.slice(0, remainingSlots);
+    if (sourcePaths.length > acceptedSourcePaths.length) {
+      notify("info", "builder.files.screenshotTrimmed", {
+        accepted: acceptedSourcePaths.length,
+        dropped: sourcePaths.length - acceptedSourcePaths.length,
+        max: builderMaxScreenshots,
+      });
+    }
+
+    const nextAssets = acceptedSourcePaths.map((sourcePath, index) => {
       const sourceName = fileBaseName(sourcePath);
       const normalizedName = sanitizeFileName(sourceName);
       return {
-        id: `screenshot-${index}-${normalizedName}`,
+        id: `screenshot-${Date.now()}-${index}-${normalizedName}`,
         kind: "screenshot" as const,
         sourceName,
         targetPath: `assets/screenshots/${normalizedName}`,
+        sourcePath,
       };
     });
 
-    setField("screenshotsText", nextAssets.map((item) => item.targetPath).join("\n"));
+    const mergedAssets = [...screenshotAssets, ...nextAssets];
+    setField("screenshotsText", mergedAssets.map((item) => item.targetPath).join("\n"));
     await stageSelectedFiles(
       nextAssets.map((item, index) => ({
-        sourcePath: sourcePaths[index],
+        sourcePath: acceptedSourcePaths[index],
         targetPath: item.targetPath,
       })),
-      nextAssets,
+      mergedAssets,
       (item) => item.kind === "screenshot",
     );
   };
@@ -847,9 +892,78 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
 
     await stageSelectedFiles(
       [{ sourcePath, targetPath }],
-      [{ id: "license", kind: "license", sourceName, targetPath }],
+      [{ id: "license", kind: "license", sourceName, targetPath, sourcePath }],
       (item) => item.kind === "license",
     );
+  };
+
+  const screenshotAssets = useMemo(
+    () => stagedAssets.filter((item) => item.kind === "screenshot"),
+    [stagedAssets],
+  );
+
+  const screenshotSlots = useMemo(
+    () => Array.from({ length: builderMaxScreenshots }, (_, index) => screenshotAssets[index] ?? null),
+    [screenshotAssets],
+  );
+
+  const iconPreviewSrc = useMemo(() => {
+    const iconAsset = [...stagedAssets].reverse().find((item) => item.kind === "icon");
+    if (iconAsset?.sourcePath) {
+      try {
+        return convertFileSrc(iconAsset.sourcePath);
+      } catch {
+        // fallback below
+      }
+    }
+    return null;
+  }, [stagedAssets]);
+
+  const screenshotPreviewSrc = (asset: StagedAsset): string | null => {
+    if (asset.sourcePath) {
+      try {
+        return convertFileSrc(asset.sourcePath);
+      } catch {
+        // fallback below
+      }
+    }
+    return null;
+  };
+
+  const removeScreenshotAsset = (assetId: string) => {
+    const nextAssets = stagedAssets.filter((item) => item.id !== assetId);
+    const nextScreenshotPaths = nextAssets.filter((item) => item.kind === "screenshot").map((item) => item.targetPath);
+    setStagedAssets(nextAssets);
+    setField("screenshotsText", nextScreenshotPaths.join("\n"));
+  };
+
+  const clearIconAsset = () => {
+    setStagedAssets((current) => current.filter((item) => item.kind !== "icon"));
+    setField("iconPath", "");
+  };
+
+  const clearLicenseAsset = () => {
+    setStagedAssets((current) => current.filter((item) => item.kind !== "license"));
+    setField("licenseFile", "");
+  };
+
+  const viewLicenseText = async () => {
+    const licenseAsset = [...stagedAssets].reverse().find((item) => item.kind === "license");
+    if (!licenseAsset?.sourcePath) {
+      notify("warning", "builder.files.licensePreviewUnavailable");
+      return;
+    }
+
+    try {
+      const response = await fetch(convertFileSrc(licenseAsset.sourcePath));
+      if (!response.ok) {
+        throw new Error(`http ${response.status}`);
+      }
+      const text = await response.text();
+      setLicensePreviewText(text);
+    } catch {
+      notify("error", "builder.files.licensePreviewError");
+    }
   };
 
   const renderTargetsEditor = () => {
@@ -925,25 +1039,51 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     );
   };
 
+  const hasFieldIssue = (key: string): boolean => Boolean(fieldIssues[key]);
+
+  const stackClass = (key: string): string =>
+    `${fieldStack}${hasFieldIssue(key) ? ` ${fieldStackInvalid}` : ""}`;
+
+  const inputClass = (key: string): string | undefined =>
+    hasFieldIssue(key) ? fieldInvalid : undefined;
+
+  const renderCurrentStepIssues = () => {
+    const issues = stepIssueMap[step];
+    if (issues.length === 0) {
+      return null;
+    }
+    return (
+      <section class={stepIssuePanel}>
+        <strong>{appText("builder.validation.title")}</strong>
+        <ul class={stepIssueList}>
+          {issues.map((issue) => (
+            <li key={`step-${step}-${issue}`}>{issue}</li>
+          ))}
+        </ul>
+      </section>
+    );
+  };
+
   const renderStepEditor = () => {
     if (step === "identity") {
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.identity")}</p>
-          <label class={fieldStack}>
+          {renderCurrentStepIssues()}
+          <label class={stackClass("appId")}>
             <BuilderFieldLabel label={appText("builder.fields.appId")} help={appText("builder.help.appId")} />
-            <TextField value={form.appId} onInput={(value) => setField("appId", value)} />
+            <TextField class={inputClass("appId")} value={form.appId} onInput={(value) => setField("appId", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("appUuid")}>
             <BuilderFieldLabel label={appText("builder.fields.appUuid")} help={appText("builder.help.appUuid")} />
             <div class={fieldControlRow}>
-              <TextField value={form.appUuid} onInput={(value) => setField("appUuid", value)} />
+              <TextField class={inputClass("appUuid")} value={form.appUuid} onInput={(value) => setField("appUuid", value)} />
               <Button onClick={requestGeneratedAppUuid} disabled={isBusy}>{appText("builder.generateUuid")}</Button>
             </div>
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("packageUuid")}>
             <BuilderFieldLabel label={appText("builder.fields.packageUuid")} help={appText("builder.help.packageUuid")} />
-            <TextField value={form.packageUuid} onInput={(value) => setField("packageUuid", value)} />
+            <TextField value={form.packageUuid} readOnly disabled />
           </label>
         </div>
       );
@@ -953,42 +1093,42 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.metadata")}</p>
-          <label class={fieldStack}>
+          {renderCurrentStepIssues()}
+          <label class={stackClass("displayName")}>
             <BuilderFieldLabel label={appText("builder.fields.displayName")} help={appText("builder.help.displayName")} />
-            <TextField value={form.displayName} onInput={(value) => setField("displayName", value)} />
+            <TextField class={inputClass("displayName")} value={form.displayName} onInput={(value) => setField("displayName", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("description")}>
             <BuilderFieldLabel label={appText("builder.fields.description")} help={appText("builder.help.description")} />
-            <TextField value={form.description} onInput={(value) => setField("description", value)} />
+            <TextField class={inputClass("description")} value={form.description} onInput={(value) => setField("description", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("longDescription")}>
             <BuilderFieldLabel label={appText("builder.fields.longDescription")} help={appText("builder.help.longDescription")} />
             <textarea
-              class={importTextarea}
+              class={`${importTextarea}${inputClass("longDescription") ? ` ${inputClass("longDescription")}` : ""}`}
               value={form.longDescription}
               onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("longDescription", event.currentTarget.value)}
             />
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("version")}>
             <BuilderFieldLabel label={appText("builder.fields.version")} help={appText("builder.help.version")} />
-            <TextField value={form.version} onInput={(value) => setField("version", value)} />
+            <TextField class={inputClass("version")} value={form.version} onInput={(value) => setField("version", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("publisher")}>
             <BuilderFieldLabel label={appText("builder.fields.publisher")} help={appText("builder.help.publisher")} />
-            <TextField value={form.publisher} onInput={(value) => setField("publisher", value)} />
+            <TextField class={inputClass("publisher")} value={form.publisher} onInput={(value) => setField("publisher", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("homepageUrl")}>
             <BuilderFieldLabel label={appText("builder.fields.homepageUrl")} help={appText("builder.help.homepageUrl")} />
-            <TextField value={form.homepageUrl} onInput={(value) => setField("homepageUrl", value)} />
+            <TextField class={inputClass("homepageUrl")} value={form.homepageUrl} onInput={(value) => setField("homepageUrl", value)} />
           </label>
-          <p class={sectionBody}>{appText("builder.hints.urls")}</p>
-          <label class={fieldStack}>
+          <label class={stackClass("supportUrl")}>
             <BuilderFieldLabel label={appText("builder.fields.supportUrl")} help={appText("builder.help.supportUrl")} />
-            <TextField value={form.supportUrl} onInput={(value) => setField("supportUrl", value)} />
+            <TextField class={inputClass("supportUrl")} value={form.supportUrl} onInput={(value) => setField("supportUrl", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={stackClass("license")}>
             <BuilderFieldLabel label={appText("builder.fields.license")} help={appText("builder.help.license")} />
-            <TextField value={form.license} onInput={(value) => setField("license", value)} />
+            <TextField class={inputClass("license")} value={form.license} onInput={(value) => setField("license", value)} />
           </label>
         </div>
       );
@@ -998,13 +1138,14 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.interfaces")}</p>
-          <CheckboxField checked={form.hasGui} onChange={(checked) => setField("hasGui", checked)}>{appText("builder.fields.hasGui")}</CheckboxField>
-          <CheckboxField checked={form.hasCli} onChange={(checked) => setField("hasCli", checked)}>{appText("builder.fields.hasCli")}</CheckboxField>
+          {renderCurrentStepIssues()}
+          <CheckboxField class={`${compactCheckbox}${hasFieldIssue("hasGui") ? ` ${fieldStackInvalid}` : ""}`} checked={form.hasGui} onChange={(checked) => setField("hasGui", checked)}>{appText("builder.fields.hasGui")}</CheckboxField>
+          <CheckboxField class={`${compactCheckbox}${hasFieldIssue("hasCli") ? ` ${fieldStackInvalid}` : ""}`} checked={form.hasCli} onChange={(checked) => setField("hasCli", checked)}>{appText("builder.fields.hasCli")}</CheckboxField>
           {form.hasCli ? (
             <>
-              <label class={fieldStack}>
+              <label class={stackClass("commandName")}>
                 <BuilderFieldLabel label={appText("builder.fields.commandName")} help={appText("builder.help.commandName")} />
-                <TextField value={form.commandName} onInput={(value) => setField("commandName", value)} />
+                <TextField class={inputClass("commandName")} value={form.commandName} onInput={(value) => setField("commandName", value)} />
               </label>
               <label class={fieldStack}>
                 <BuilderFieldLabel label={appText("builder.fields.usageHint")} help={appText("builder.help.usageHint")} />
@@ -1020,6 +1161,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.targets")}</p>
+          {renderCurrentStepIssues()}
           {renderTargetsEditor()}
         </div>
       );
@@ -1029,34 +1171,47 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.assets")}</p>
-          <label class={fieldStack}>
-            <BuilderFieldLabel label={appText("builder.fields.iconPath")} help={appText("builder.help.iconPath")} />
-            <TextField value={form.iconPath} onInput={(value) => setField("iconPath", value)} />
-          </label>
-          <div class={fieldStack}>
+          {renderCurrentStepIssues()}
+          <div class={`${assetSection} ${stackClass("iconPath")}`}>
             <BuilderFieldLabel label={appText("builder.fields.iconUpload")} help={appText("builder.help.iconUpload")} />
-            <Button onClick={() => void browseIcon()} disabled={isBusy}>{appText("builder.files.browseIcon")}</Button>
+            <div class={assetActionRow}>
+              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={() => void browseIcon()} disabled={isBusy}>{appText("builder.files.browseIcon")}</Button>
+              {form.iconPath ? <Button onClick={clearIconAsset} disabled={isBusy}>{appText("builder.files.remove")}</Button> : null}
+            </div>
           </div>
-          <label class={fieldStack}>
-            <BuilderFieldLabel label={appText("builder.fields.screenshots")} help={appText("builder.help.screenshots")} />
-            <textarea
-              class={importTextarea}
-              value={form.screenshotsText}
-              onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("screenshotsText", event.currentTarget.value)}
-            />
-          </label>
-          <p class={sectionBody}>{appText("builder.hints.screenshots", { count: screenshots.length })}</p>
-          <div class={fieldStack}>
+          <div class={`${assetSection} ${stackClass("screenshots")}`}>
             <BuilderFieldLabel label={appText("builder.fields.screenshotUpload")} help={appText("builder.help.screenshotUpload")} />
-            <Button onClick={() => void browseScreenshots()} disabled={isBusy}>{appText("builder.files.browseScreenshots")}</Button>
+            <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={() => void browseScreenshots()} disabled={isBusy}>{appText("builder.files.browseScreenshots")}</Button>
+            <p class={sectionBody}>{appText("builder.files.screenshotSlots", { count: screenshotAssets.length, max: builderMaxScreenshots })}</p>
+            <div class={assetThumbGrid}>
+              {screenshotSlots.map((asset, index) => (
+                <div key={asset ? asset.id : `screenshot-slot-${index}`} class={assetThumbTile}>
+                  {asset && screenshotPreviewSrc(asset) ? (
+                    <img class={assetThumbImage} src={screenshotPreviewSrc(asset)!} alt={appText("package.screenshot.alt", { index: index + 1 })} />
+                  ) : (
+                    <div class={assetThumbPlaceholder}>
+                      <IconPhoto size={24} stroke={1.8} />
+                      <span class={assetThumbSlotText}>{appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}</span>
+                    </div>
+                  )}
+                  {asset ? (
+                    <button class={assetThumbRemove} type="button" onClick={() => removeScreenshotAsset(asset.id)} title={appText("builder.files.removeScreenshot")}>
+                      <IconX size={14} stroke={2.4} />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           </div>
-          <label class={fieldStack}>
-            <BuilderFieldLabel label={appText("builder.fields.licenseFile")} help={appText("builder.help.licenseFile")} />
-            <TextField value={form.licenseFile} onInput={(value) => setField("licenseFile", value)} />
-          </label>
-          <div class={fieldStack}>
+          <p class={sectionBody}>{appText("builder.hints.screenshots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
+          <div class={`${assetSection} ${stackClass("licenseFile")}`}>
             <BuilderFieldLabel label={appText("builder.fields.licenseUpload")} help={appText("builder.help.licenseUpload")} />
-            <Button onClick={() => void browseLicenseFile()} disabled={isBusy}>{appText("builder.files.browseLicense")}</Button>
+            <div class={assetActionRow}>
+              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={() => void browseLicenseFile()} disabled={isBusy}>{appText("builder.files.browseLicense")}</Button>
+              {form.licenseFile ? <Button onClick={() => void viewLicenseText()} disabled={isBusy}>{appText("builder.files.viewLicense")}</Button> : null}
+              {form.licenseFile ? <Button onClick={clearLicenseAsset} disabled={isBusy}>{appText("builder.files.remove")}</Button> : null}
+            </div>
+            {!form.licenseFile ? <p class={sectionBody}>{appText("builder.files.noneSelected")}</p> : null}
           </div>
           <CheckboxField
             checked={form.requiresLicenseAcceptance}
@@ -1094,6 +1249,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         step: appText(`builder.steps.${step}`),
         count: currentIssues.length,
       });
+      onToast("warning", currentIssues[0]);
       return;
     }
     selectStep(builderSteps[currentStepIndex + 1]);
@@ -1123,7 +1279,15 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
 
   return (
     <Panel class={pagePanel}>
-      <PanelHeader title={appText("builder.title")}>{appText("builder.subtitle")}</PanelHeader>
+      <PanelHeader
+        variant="app"
+        title={form.displayName || appText("builder.title")}
+        iconSrc={iconPreviewSrc ?? undefined}
+        iconAlt={appText("package.iconAlt", { appName: form.displayName || appText("builder.title") })}
+        iconPlaceholder={<IconLayoutGrid size={32} stroke={1.9} />}
+      >
+        {appText("builder.subtitle")}
+      </PanelHeader>
       <div class={actionBar}>
         <span class={statusBadge}>{isDirty ? appText("builder.dirty") : appText("builder.clean")}</span>
         <Button onClick={() => void handleOpenPackage()} disabled={isBusy}>{appText("builder.openPackage")}</Button>
@@ -1171,6 +1335,14 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         manifestPreview={manifestPreview}
         onClose={() => setIsManifestModalOpen(false)}
       />
+      {licensePreviewText ? (
+        <ModalShell onClose={() => setLicensePreviewText(null)} closeTitle={appText("modal.close.license")}>
+          <section>
+            <h2>{appText("builder.files.viewLicense")}</h2>
+            <pre class={importTextarea}>{licensePreviewText}</pre>
+          </section>
+        </ModalShell>
+      ) : null}
       {showAppUuidConfirm ? (
         <ModalShell onClose={() => setShowAppUuidConfirm(false)}>
           <section>

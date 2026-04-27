@@ -245,6 +245,18 @@ export const fieldStack = style({
   gap: "0.35rem",
 });
 
+export const assetSection = style({
+  selectors: {
+    '& + &': {
+      marginTop: "0.6rem",
+    },
+  },
+});
+
+export const compactCheckbox = style({
+  marginTop: 0,
+});
+
 export const fieldLabel = style({
   fontSize: "0.78rem",
   textTransform: "uppercase",
@@ -284,6 +296,16 @@ export const fieldControlRow = style({
   },
 });
 
+export const inlineActionButton = style({
+  justifySelf: "start",
+  '@media': {
+    '(max-width: 720px)': {
+      width: "fit-content",
+      alignSelf: "start",
+    },
+  },
+});
+
 export const field = style({
   color: "var(--colors-style-color046)",
   margin: 0,
@@ -292,6 +314,34 @@ export const field = style({
 export const sectionBody = style({
   margin: 0,
   color: "var(--colors-style-color070)",
+});
+
+export const stepIssuePanel = style({
+  border: "1px solid var(--colors-style-color079)",
+  background: "var(--colors-style-color072)",
+  color: "var(--colors-style-color074)",
+  borderRadius: "10px",
+  padding: "0.55rem 0.7rem",
+  display: "grid",
+  gap: "0.35rem",
+});
+
+export const stepIssueList = style({
+  margin: 0,
+  paddingLeft: "1rem",
+  display: "grid",
+  gap: "0.2rem",
+});
+
+export const fieldInvalid = style({
+  borderColor: "var(--colors-style-color079)",
+  boxShadow: "0 0 0 3px color-mix(in srgb, var(--colors-style-color079) 28%, transparent)",
+});
+
+export const fieldStackInvalid = style({
+  borderRadius: "10px",
+  padding: "0.35rem 0.45rem",
+  background: "color-mix(in srgb, var(--colors-style-color072) 55%, transparent)",
 });
 
 export const previewTitle = style({
@@ -437,4 +487,73 @@ export const stagedAssetPath = style({
   fontSize: "0.74rem",
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
+});
+
+export const assetActionRow = style({
+  display: "flex",
+  gap: "0.5rem",
+  alignItems: "center",
+  flexWrap: "wrap",
+});
+
+export const assetThumbGrid = style({
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "0.55rem",
+});
+
+export const assetThumbTile = style({
+  position: "relative",
+  borderRadius: "12px",
+  background: "var(--colors-style-color015)",
+  boxShadow: "0 8px 18px var(--colors-panel-shadow)",
+  overflow: "hidden",
+  minHeight: "120px",
+});
+
+export const assetThumbImage = style({
+  display: "block",
+  width: "100%",
+  height: "100%",
+  maxHeight: "220px",
+  objectFit: "cover",
+});
+
+export const assetThumbPlaceholder = style({
+  minHeight: "120px",
+  display: "grid",
+  placeItems: "center",
+  gap: "0.25rem",
+  textAlign: "center",
+  color: "var(--colors-style-color070)",
+});
+
+export const assetThumbSlotText = style({
+  fontSize: "0.72rem",
+  color: "var(--colors-style-color070)",
+});
+
+export const assetThumbRemove = style({
+  position: "absolute",
+  top: "0.35rem",
+  right: "0.35rem",
+  width: "1.45rem",
+  height: "1.45rem",
+  border: "1px solid var(--colors-style-color073)",
+  borderRadius: "999px",
+  background: "rgba(9, 26, 41, 0.74)",
+  color: "var(--colors-style-color080)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  selectors: {
+    '&:hover': {
+      background: "rgba(9, 26, 41, 0.9)",
+    },
+    '&:focus-visible': {
+      outline: "none",
+      boxShadow: "0 0 0 3px var(--colors-focus-ring)",
+    },
+  },
 });

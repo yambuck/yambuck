@@ -4,6 +4,7 @@ import {
   appText,
   appWrap,
   icon,
+  iconFallback,
   spacer,
   subtitle,
   wrap,
@@ -21,8 +22,9 @@ type StandardPanelHeaderProps = BasePanelHeaderProps & {
 
 type AppPanelHeaderProps = BasePanelHeaderProps & {
   variant: "app";
-  iconSrc: string;
-  iconAlt: string;
+  iconSrc?: string;
+  iconAlt?: string;
+  iconPlaceholder?: ComponentChildren;
   actions?: ComponentChildren;
 };
 
@@ -32,7 +34,13 @@ export const PanelHeader = ({ title, children, class: className, ...props }: Pan
   if (props.variant === "app") {
     return (
       <header class={`panel-header panel-header-app ${appWrap}${className ? ` ${className}` : ""}`}>
-        <img class={`panel-header-icon ${icon}`} src={props.iconSrc} alt={props.iconAlt} />
+        {props.iconSrc ? (
+          <img class={`panel-header-icon ${icon}`} src={props.iconSrc} alt={props.iconAlt ?? title} />
+        ) : (
+          <div class={`panel-header-icon panel-header-icon-fallback ${icon} ${iconFallback}`} aria-hidden="true">
+            {props.iconPlaceholder ?? null}
+          </div>
+        )}
         <div class={`panel-header-text ${appText}`}>
           <h1>{title}</h1>
           {children ? <div class={`panel-header-subtitle ${subtitle}`}>{children}</div> : null}

@@ -9,6 +9,7 @@ type ButtonProps = {
   variant?: ButtonVariant;
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
+  fullWidthOnSmall?: boolean;
   onClick?: JSX.MouseEventHandler<HTMLButtonElement>;
   class?: string;
   title?: string;
@@ -42,13 +43,14 @@ export const Button = ({
   variant = "ghost",
   type = "button",
   disabled = false,
+  fullWidthOnSmall: shouldFullWidthOnSmall = true,
   onClick,
   class: className,
   title,
   logLabel,
   disableClickLog = false,
 }: ButtonProps) => {
-  const classes = ["button", variant, base, variantClass[variant], fullWidthOnSmall, className].filter(Boolean).join(" ");
+  const classes = ["button", variant, base, variantClass[variant], shouldFullWidthOnSmall ? fullWidthOnSmall : undefined, className].filter(Boolean).join(" ");
 
   const handleClick: JSX.MouseEventHandler<HTMLButtonElement> = (event) => {
     if (!disableClickLog) {

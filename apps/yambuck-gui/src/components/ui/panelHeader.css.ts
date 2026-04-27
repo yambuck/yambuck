@@ -35,6 +35,15 @@ export const icon = style({
   },
 });
 
+export const iconFallback = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: "1px dashed var(--colors-style-color001)",
+  background: "var(--colors-style-color002)",
+  color: "var(--colors-style-color003)",
+});
+
 export const appText = style({
   minWidth: 0,
   textAlign: "center",

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
+import { IconLayoutGrid, IconPhoto, IconX } from "@tabler/icons-preact";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Panel } from "../../components/ui/Panel";
@@ -13,6 +14,7 @@ import {
   sanitizeTargetSegment,
 } from "../package-builder/builderValidation";
 import {
+  builderMaxScreenshots,
   builderSteps,
   type BuilderFormState,
   type BuilderStep,
@@ -29,6 +31,9 @@ import {
   fieldControlRow,
   fieldGrid,
   fieldStack,
+  assetSection,
+  inlineActionButton,
+  compactCheckbox,
   importTextarea,
   pagePanel,
   sectionBody,
@@ -36,6 +41,12 @@ import {
   targetList,
   targetListActions,
   targetValidationList,
+  assetThumbGrid,
+  assetThumbPlaceholder,
+  assetThumbSlotText,
+  assetThumbRemove,
+  assetThumbTile,
+  assetActionRow,
   wizardFooter,
   wizardFooterActions,
   workspace,
@@ -130,6 +141,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showAppUuidConfirm, setShowAppUuidConfirm] = useState(false);
+  const [licensePreviewText, setLicensePreviewText] = useState<string | null>(null);
 
   const confirmBackToStart = () => {
     setShowDiscardConfirm(true);
@@ -203,6 +215,8 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
     return JSON.stringify(nextManifest, null, 2);
   }, [form, screenshots, targetIdList]);
 
+  const iconPreviewSrc: string | null = null;
+
   const setField = <Key extends keyof BuilderFormState>(key: Key, value: BuilderFormState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
@@ -232,7 +246,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
           </label>
           <label class={fieldStack}>
             <BuilderFieldLabel label={appText("builder.fields.packageUuid")} help={appText("builder.help.packageUuid")} />
-            <TextField value={form.packageUuid} onInput={(value) => setField("packageUuid", value)} />
+            <TextField value={form.packageUuid} readOnly disabled />
           </label>
         </div>
       );
@@ -270,7 +284,6 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
             <BuilderFieldLabel label={appText("builder.fields.homepageUrl")} help={appText("builder.help.homepageUrl")} />
             <TextField value={form.homepageUrl} onInput={(value) => setField("homepageUrl", value)} />
           </label>
-          <p class={sectionBody}>{appText("builder.hints.urls")}</p>
           <label class={fieldStack}>
             <BuilderFieldLabel label={appText("builder.fields.supportUrl")} help={appText("builder.help.supportUrl")} />
             <TextField value={form.supportUrl} onInput={(value) => setField("supportUrl", value)} />
@@ -287,8 +300,8 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.interfaces")}</p>
-          <CheckboxField checked={form.hasGui} onChange={(checked) => setField("hasGui", checked)}>{appText("builder.fields.hasGui")}</CheckboxField>
-          <CheckboxField checked={form.hasCli} onChange={(checked) => setField("hasCli", checked)}>{appText("builder.fields.hasCli")}</CheckboxField>
+          <CheckboxField class={compactCheckbox} checked={form.hasGui} onChange={(checked) => setField("hasGui", checked)}>{appText("builder.fields.hasGui")}</CheckboxField>
+          <CheckboxField class={compactCheckbox} checked={form.hasCli} onChange={(checked) => setField("hasCli", checked)}>{appText("builder.fields.hasCli")}</CheckboxField>
           {form.hasCli ? (
             <>
               <label class={fieldStack}>
@@ -353,33 +366,94 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.assets")}</p>
-          <label class={fieldStack}>
-            <BuilderFieldLabel label={appText("builder.fields.iconPath")} help={appText("builder.help.iconPath")} />
-            <TextField value={form.iconPath} onInput={(value) => setField("iconPath", value)} />
-          </label>
-          <label class={fieldStack}>
-            <BuilderFieldLabel label={appText("builder.fields.screenshots")} help={appText("builder.help.screenshots")} />
-            <textarea
-              class={importTextarea}
-              value={form.screenshotsText}
-              onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("screenshotsText", event.currentTarget.value)}
-            />
-          </label>
-          <label class={fieldStack}>
-            <BuilderFieldLabel label={appText("builder.fields.licenseFile")} help={appText("builder.help.licenseFile")} />
-            <TextField value={form.licenseFile} onInput={(value) => setField("licenseFile", value)} />
-          </label>
+          <div class={`${assetSection} ${fieldStack}`}>
+            <BuilderFieldLabel label={appText("builder.fields.iconUpload")} help={appText("builder.help.iconUpload")} />
+            <div class={assetActionRow}>
+              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={mockBrowseIcon}>{appText("builder.files.browseIcon")}</Button>
+              {form.iconPath ? <Button onClick={() => setField("iconPath", "")}>{appText("builder.files.remove")}</Button> : null}
+            </div>
+          </div>
+          <div class={`${assetSection} ${fieldStack}`}>
+            <BuilderFieldLabel label={appText("builder.fields.screenshotUpload")} help={appText("builder.help.screenshotUpload")} />
+            <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={mockBrowseScreenshots}>{appText("builder.files.browseScreenshots")}</Button>
+            <p class={sectionBody}>{appText("builder.files.screenshotSlots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
+            <div class={assetThumbGrid}>
+              {screenshotSlots.map((path, index) => (
+                <div key={path ?? `mock-screenshot-slot-${index}`} class={assetThumbTile}>
+                  <div class={assetThumbPlaceholder}>
+                    <IconPhoto size={24} stroke={1.8} />
+                    {!path ? <span class={assetThumbSlotText}>{appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}</span> : null}
+                  </div>
+                  {path ? (
+                    <button class={assetThumbRemove} type="button" onClick={() => removeMockScreenshot(index)} title={appText("builder.files.removeScreenshot")}>
+                      <IconX size={14} stroke={2.4} />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div class={`${assetSection} ${fieldStack}`}>
+            <BuilderFieldLabel label={appText("builder.fields.licenseUpload")} help={appText("builder.help.licenseUpload")} />
+            <div class={assetActionRow}>
+              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={mockBrowseLicenseFile}>{appText("builder.files.browseLicense")}</Button>
+              {form.licenseFile ? <Button onClick={viewMockLicense}>{appText("builder.files.viewLicense")}</Button> : null}
+              {form.licenseFile ? <Button onClick={() => setField("licenseFile", "")}>{appText("builder.files.remove")}</Button> : null}
+            </div>
+            {!form.licenseFile ? <p class={sectionBody}>{appText("builder.files.noneSelected")}</p> : null}
+          </div>
           <CheckboxField
             checked={form.requiresLicenseAcceptance}
             onChange={(checked) => setField("requiresLicenseAcceptance", checked)}
           >
             {appText("builder.fields.requiresLicenseAcceptance")}
           </CheckboxField>
+          <p class={sectionBody}>{appText("builder.hints.screenshots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
         </div>
       );
     }
     
     return <p class={sectionBody}>{appText("builder.emptyReview")}</p>;
+  };
+
+  const mockBrowseIcon = () => {
+    setField("iconPath", "assets/icon-updated.png");
+    onToast("info", appText("builder.files.browseIcon"));
+  };
+
+  const mockBrowseScreenshots = () => {
+    const mockCandidates = [
+      "assets/screenshots/screen-a.png",
+      "assets/screenshots/screen-b.png",
+      "assets/screenshots/screen-c.png",
+      "assets/screenshots/screen-d.png",
+      "assets/screenshots/screen-e.png",
+      "assets/screenshots/screen-f.png",
+    ];
+    const remainingSlots = builderMaxScreenshots - screenshots.length;
+    if (remainingSlots <= 0) {
+      onToast("info", appText("builder.files.screenshotLimitReached", { max: builderMaxScreenshots }));
+      return;
+    }
+
+    const nextBatch = mockCandidates.filter((path) => !screenshots.includes(path)).slice(0, remainingSlots);
+    const nextScreenshots = [...screenshots, ...nextBatch];
+    setField("screenshotsText", nextScreenshots.join("\n"));
+    onToast("info", appText("builder.files.browseScreenshots"));
+  };
+
+  const removeMockScreenshot = (index: number) => {
+    const next = screenshots.filter((_, screenshotIndex) => screenshotIndex !== index);
+    setField("screenshotsText", next.join("\n"));
+  };
+
+  const mockBrowseLicenseFile = () => {
+    setField("licenseFile", "assets/licenses/LICENSE.txt");
+    onToast("info", appText("builder.files.browseLicense"));
+  };
+
+  const viewMockLicense = () => {
+    setLicensePreviewText("Mock license preview\n\nReplace this with staged license content in real mode.");
   };
 
   const handleStartMock = () => {
@@ -394,6 +468,11 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   const goToPreviousStep = () => {
     if (currentStepIndex > 0) selectStep(builderSteps[currentStepIndex - 1]);
   };
+
+  const screenshotSlots = useMemo(
+    () => Array.from({ length: builderMaxScreenshots }, (_, index) => screenshots[index] ?? null),
+    [screenshots],
+  );
 
   const goToNextStep = () => {
     if (isFinalStep) return;
@@ -440,7 +519,15 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
 
   return (
     <Panel class={pagePanel}>
-      <PanelHeader title={appText("builder.title")}>{appText("builder.subtitle")}</PanelHeader>
+      <PanelHeader
+        variant="app"
+        title={form.displayName || appText("builder.title")}
+        iconSrc={iconPreviewSrc ?? undefined}
+        iconAlt={appText("package.iconAlt", { appName: form.displayName || appText("builder.title") })}
+        iconPlaceholder={<IconLayoutGrid size={32} stroke={1.9} />}
+      >
+        {appText("builder.subtitle")}
+      </PanelHeader>
       <WizardStepper
         steps={wizardSteps}
         currentStepId={currentStepperStep}
@@ -488,6 +575,14 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
         manifestPreview={manifestPreview}
         onClose={() => setIsManifestModalOpen(false)}
       />
+      {licensePreviewText ? (
+        <ModalShell onClose={() => setLicensePreviewText(null)} closeTitle={appText("modal.close.license")}>
+          <section>
+            <h2>{appText("builder.files.viewLicense")}</h2>
+            <pre class={importTextarea}>{licensePreviewText}</pre>
+          </section>
+        </ModalShell>
+      ) : null}
       {showAppUuidConfirm ? (
         <ModalShell onClose={() => setShowAppUuidConfirm(false)}>
           <section>

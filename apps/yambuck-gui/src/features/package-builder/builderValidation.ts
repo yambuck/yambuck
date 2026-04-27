@@ -1,4 +1,10 @@
-import type { BuilderFormState, BuilderStep, BuilderTarget } from "./builderTypes";
+import {
+  builderMaxScreenshots,
+  builderMinScreenshots,
+  type BuilderFormState,
+  type BuilderStep,
+  type BuilderTarget,
+} from "./builderTypes";
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -38,13 +44,13 @@ export const buildTargetIdList = (targets: BuilderTarget[]): string[] => {
   });
 };
 
-const isValidHttpUrl = (value: string): boolean => {
+const isValidHttpsUrl = (value: string): boolean => {
   if (!value.trim()) {
     return true;
   }
   try {
     const parsed = new URL(value);
-    return parsed.protocol === "https:" || parsed.protocol === "http:";
+    return parsed.protocol === "https:";
   } catch {
     return false;
   }
@@ -57,48 +63,72 @@ type CollectBuilderValidationArgs = {
 };
 
 export type StepIssueMap = Record<BuilderStep, string[]>;
+export type FieldIssueMap = Record<string, boolean>;
 
-export const collectBuilderValidation = ({ form, screenshots, t }: CollectBuilderValidationArgs): StepIssueMap => {
+export type BuilderValidationResult = {
+  stepIssues: StepIssueMap;
+  fieldIssues: FieldIssueMap;
+};
+
+const markIssue = (fieldIssues: FieldIssueMap, key: string) => {
+  fieldIssues[key] = true;
+};
+
+export const collectBuilderValidationResult = ({ form, screenshots, t }: CollectBuilderValidationArgs): BuilderValidationResult => {
+  const fieldIssues: FieldIssueMap = {};
   const identityIssues: string[] = [];
   if (!form.appId.trim()) {
     identityIssues.push(t("builder.validation.missingAppId"));
+    markIssue(fieldIssues, "appId");
   }
   if (!form.appUuid.trim()) {
     identityIssues.push(t("builder.validation.missingAppUuid"));
+    markIssue(fieldIssues, "appUuid");
   }
   if (!form.packageUuid.trim()) {
     identityIssues.push(t("builder.validation.missingPackageUuid"));
+    markIssue(fieldIssues, "packageUuid");
   }
 
   const metadataIssues: string[] = [];
   if (!form.displayName.trim()) {
     metadataIssues.push(t("builder.validation.missingDisplayName"));
+    markIssue(fieldIssues, "displayName");
   }
   if (!form.description.trim()) {
     metadataIssues.push(t("builder.validation.missingDescription"));
+    markIssue(fieldIssues, "description");
   }
   if (!form.longDescription.trim()) {
     metadataIssues.push(t("builder.validation.missingLongDescription"));
+    markIssue(fieldIssues, "longDescription");
   }
   if (!form.version.trim()) {
     metadataIssues.push(t("builder.validation.missingVersion"));
+    markIssue(fieldIssues, "version");
   }
   if (!form.publisher.trim()) {
     metadataIssues.push(t("builder.validation.missingPublisher"));
+    markIssue(fieldIssues, "publisher");
   }
-  if (!isValidHttpUrl(form.homepageUrl)) {
+  if (!isValidHttpsUrl(form.homepageUrl)) {
     metadataIssues.push(t("builder.validation.invalidHomepageUrl"));
+    markIssue(fieldIssues, "homepageUrl");
   }
-  if (!isValidHttpUrl(form.supportUrl)) {
+  if (!isValidHttpsUrl(form.supportUrl)) {
     metadataIssues.push(t("builder.validation.invalidSupportUrl"));
+    markIssue(fieldIssues, "supportUrl");
   }
 
   const interfaceIssues: string[] = [];
   if (!form.hasGui && !form.hasCli) {
     interfaceIssues.push(t("builder.validation.interfaceRequired"));
+    markIssue(fieldIssues, "hasGui");
+    markIssue(fieldIssues, "hasCli");
   }
   if (form.hasCli && !form.commandName.trim()) {
     interfaceIssues.push(t("builder.validation.cliCommandRequired"));
+    markIssue(fieldIssues, "commandName");
   }
 
   const targetIssues: string[] = [];
@@ -110,6 +140,7 @@ export const collectBuilderValidation = ({ form, screenshots, t }: CollectBuilde
 
     if (target.variant.trim().length === 0) {
       targetIssues.push(t("builder.validation.targetVariantRequired", { target: label }));
+      markIssue(fieldIssues, `target:${index}:variant`);
     }
 
     const tupleKey = `linux/${target.arch}/${variant}`;
@@ -133,9 +164,11 @@ export const collectBuilderValidation = ({ form, screenshots, t }: CollectBuilde
     const cliEntrypoint = target.cliEntrypoint.trim();
     if (form.hasGui && guiEntrypoint.length === 0) {
       targetIssues.push(t("builder.validation.missingGuiEntrypoint", { target: label }));
+      markIssue(fieldIssues, `target:${index}:guiEntrypoint`);
     }
     if (form.hasCli && cliEntrypoint.length === 0) {
       targetIssues.push(t("builder.validation.missingCliEntrypoint", { target: label }));
+      markIssue(fieldIssues, `target:${index}:cliEntrypoint`);
     }
 
     for (const [entrypoint, key] of [[guiEntrypoint, "gui"], [cliEntrypoint, "cli"]] as const) {
@@ -171,22 +204,31 @@ export const collectBuilderValidation = ({ form, screenshots, t }: CollectBuilde
   const assetsIssues: string[] = [];
   if (!form.iconPath.trim()) {
     assetsIssues.push(t("builder.validation.iconRequired"));
+    markIssue(fieldIssues, "iconPath");
   }
-  if (screenshots.length < 1) {
+  if (screenshots.length < builderMinScreenshots) {
     assetsIssues.push(t("builder.validation.screenshotMin"));
+    markIssue(fieldIssues, "screenshots");
   }
-  if (screenshots.length > 6) {
+  if (screenshots.length > builderMaxScreenshots) {
     assetsIssues.push(t("builder.validation.screenshotMax", { count: screenshots.length }));
+    markIssue(fieldIssues, "screenshots");
   }
   if (form.requiresLicenseAcceptance && !form.licenseFile.trim()) {
     assetsIssues.push(t("builder.validation.licenseFileRequired"));
+    markIssue(fieldIssues, "licenseFile");
   }
 
-  return {
+  const stepIssues: StepIssueMap = {
     identity: identityIssues,
     metadata: metadataIssues,
     interfaces: interfaceIssues,
     targets: Array.from(new Set(targetIssues)),
     assets: assetsIssues,
   };
+
+  return { stepIssues, fieldIssues };
 };
+
+export const collectBuilderValidation = (args: CollectBuilderValidationArgs): StepIssueMap =>
+  collectBuilderValidationResult(args).stepIssues;

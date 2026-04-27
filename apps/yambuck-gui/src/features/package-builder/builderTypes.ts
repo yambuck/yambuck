@@ -1,5 +1,8 @@
 export type BuilderStep = "identity" | "metadata" | "interfaces" | "targets" | "assets";
 
+export const builderMinScreenshots = 1;
+export const builderMaxScreenshots = 6;
+
 export type BuilderArch = "x86_64" | "aarch64" | "riscv64";
 
 export type BuilderTarget = {
@@ -33,4 +36,4 @@ export type BuilderFormState = {
   targets: BuilderTarget[];
 };
 
-export const builderSteps: BuilderStep[] = ["identity", "metadata", "interfaces", "targets", "assets"];
+export const builderSteps: BuilderStep[] = ["interfaces", "metadata", "assets", "identity", "targets"];

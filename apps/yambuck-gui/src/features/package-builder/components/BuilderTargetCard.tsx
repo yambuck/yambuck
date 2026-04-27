@@ -6,6 +6,7 @@ import { BuilderFieldLabel } from "./BuilderFieldLabel";
 import type { BuilderArch, BuilderTarget } from "../builderTypes";
 import {
   fieldStack,
+  inlineActionButton,
   sectionBody,
   stepButton,
   stepButtonActive,
@@ -122,7 +123,7 @@ export const BuilderTargetCard = ({
 
         <div class={fieldStack}>
           <BuilderFieldLabel label={appText("builder.fields.binaryUpload")} help={appText("builder.help.binaryUpload")} />
-          <Button onClick={onBrowseBinary} disabled={isBusy}>{appText("builder.files.browseBinary")}</Button>
+          <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={onBrowseBinary} disabled={isBusy}>{appText("builder.files.browseBinary")}</Button>
         </div>
       </div>
     ) : null}
