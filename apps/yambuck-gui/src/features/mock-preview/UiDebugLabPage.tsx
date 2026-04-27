@@ -25,6 +25,7 @@ import {
 } from "../package-builder/builderValidation";
 import {
   builderSteps,
+  createBuilderTargetEditorId,
   type BuilderFormState,
   type BuilderStep,
   type BuilderTarget,
@@ -125,6 +126,7 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
   screenshotsText: "assets/screenshots/screen-a.png",
   targets: [
     {
+      editorId: createBuilderTargetEditorId("lab-target-1"),
       arch: "x86_64",
       variant: "default",
       desktopEnvironment: "all",
@@ -149,6 +151,7 @@ const buildPreviewScenarioForm = (scenario: BuilderPreviewScenario): BuilderForm
       ...base,
       targets: [
         {
+          editorId: createBuilderTargetEditorId("lab-target-1"),
           arch: "x86_64",
           variant: "default",
           desktopEnvironment: "all",
@@ -156,6 +159,7 @@ const buildPreviewScenarioForm = (scenario: BuilderPreviewScenario): BuilderForm
           cliEntrypoint: "app/bin/debug-app",
         },
         {
+          editorId: createBuilderTargetEditorId("lab-target-2"),
           arch: "x86_64",
           variant: "alt",
           desktopEnvironment: "x11",
@@ -189,7 +193,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const [showModalPreview, setShowModalPreview] = useState(false);
   const [builderScenario, setBuilderScenario] = useState<BuilderPreviewScenario>("clean");
   const [builderStepPreview, setBuilderStepPreview] = useState<BuilderStep>("targets");
-  const [builderActiveTargetIndex, setBuilderActiveTargetIndex] = useState(0);
+  const [builderActiveTargetIndex, setBuilderActiveTargetIndex] = useState(-1);
   const [builderFormPreview, setBuilderFormPreview] = useState<BuilderFormState>(() => buildPreviewScenarioForm("clean"));
   const [showBuilderChecklistPreview, setShowBuilderChecklistPreview] = useState(false);
   const [showBuilderManifestPreview, setShowBuilderManifestPreview] = useState(false);
@@ -261,7 +265,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const setBuilderScenarioAndReset = (scenario: BuilderPreviewScenario) => {
     setBuilderScenario(scenario);
     setBuilderFormPreview(buildPreviewScenarioForm(scenario));
-    setBuilderActiveTargetIndex(0);
+    setBuilderActiveTargetIndex(-1);
     setBuilderStepPreview("identity");
   };
 
@@ -470,19 +474,20 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                 <div class={targetList}>
                   {builderFormPreview.targets.map((target, index) => (
                     <BuilderTargetCard
-                      key={`${builderTargetIds[index]}-${index}`}
-                      index={index}
+                      key={target.editorId}
                       target={target}
-                      targetId={builderTargetIds[index] ?? ""}
                       isActive={builderActiveTargetIndex === index}
                       canRemove={false}
                       isBusy={false}
                       hasGui={builderFormPreview.hasGui}
                       hasCli={builderFormPreview.hasCli}
+                      binaryTargetPath={null}
+                      binarySourceName={null}
                       payloadRoot={payloadRootForTarget(target)}
                       onToggle={() => setBuilderActiveTargetIndex(builderActiveTargetIndex === index ? -1 : index)}
                       onRemove={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
                       onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
+                      onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
                       onSetField={(key, value) => setPreviewTargetField(index, key, value)}
                     />
                   ))}

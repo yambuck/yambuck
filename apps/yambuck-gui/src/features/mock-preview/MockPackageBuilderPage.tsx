@@ -1,5 +1,5 @@
 import { useMemo, useState } from "preact/hooks";
-import { IconLayoutGrid, IconPhoto, IconPlus, IconX } from "@tabler/icons-preact";
+import { IconFileText, IconLayoutGrid, IconPlus, IconX } from "@tabler/icons-preact";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { Panel } from "../../components/ui/Panel";
@@ -16,6 +16,7 @@ import {
 import {
   builderMaxScreenshots,
   builderSteps,
+  createBuilderTargetEditorId,
   type BuilderFormState,
   type BuilderStep,
   type BuilderTarget,
@@ -31,23 +32,30 @@ import {
   fieldControlRow,
   fieldGrid,
   fieldStack,
+  compactFieldStack,
   assetSection,
-  inlineActionButton,
   compactCheckbox,
+  descriptionTextarea,
   importTextarea,
   pagePanel,
   sectionBody,
   targetDuplicateWarning,
   targetList,
+  targetAddButton,
+  targetAddRow,
   targetListActions,
   targetValidationList,
   assetThumbGrid,
+  assetThumbGridCompact,
   assetThumbAdd,
+  assetThumbAddIcon,
+  assetThumbDocIcon,
+  assetThumbImage,
   assetThumbPlaceholder,
-  assetThumbSlotText,
+  assetThumbOpen,
   assetThumbRemove,
   assetThumbTile,
-  assetActionRow,
+  assetThumbTileCompact,
   wizardFooter,
   wizardFooterActions,
   workspace,
@@ -103,6 +111,7 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
   screenshotsText: "assets/screenshots/screen-a.png",
   targets: [
     {
+      editorId: createBuilderTargetEditorId("mock-target-1"),
       arch: "x86_64",
       variant: "default",
       desktopEnvironment: "all",
@@ -113,12 +122,12 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
 });
 
 const mockScreenshotCandidates = [
-  "assets/screenshots/screen-a.png",
-  "assets/screenshots/screen-b.png",
-  "assets/screenshots/screen-c.png",
-  "assets/screenshots/screen-d.png",
-  "assets/screenshots/screen-e.png",
-  "assets/screenshots/screen-f.png",
+  { manifestPath: "assets/screenshots/screen-a.png", previewSrc: "/mock/example-app-screenshot.png" },
+  { manifestPath: "assets/screenshots/screen-b.png", previewSrc: "/mock/example-app-screenshot.png" },
+  { manifestPath: "assets/screenshots/screen-c.png", previewSrc: "/mock/example-app-screenshot.png" },
+  { manifestPath: "assets/screenshots/screen-d.png", previewSrc: "/mock/example-app-screenshot.png" },
+  { manifestPath: "assets/screenshots/screen-e.png", previewSrc: "/mock/example-app-screenshot.png" },
+  { manifestPath: "assets/screenshots/screen-f.png", previewSrc: "/mock/example-app-screenshot.png" },
 ];
 
 const parseScreenshotsText = (value: string): string[] =>
@@ -135,6 +144,9 @@ const screenshotSlotsFromPaths = (paths: string[]): Array<string | null> => {
 const screenshotPathsFromSlots = (slots: Array<string | null>): string[] =>
   slots.flatMap((slot) => (slot ? [slot] : []));
 
+const mockScreenshotPreviewSrc = (path: string): string =>
+  mockScreenshotCandidates.find((entry) => entry.manifestPath === path)?.previewSrc ?? "/mock/example-app-screenshot.png";
+
 export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
   const [step, setStep] = useState<BuilderStep>(builderSteps[0]);
@@ -142,7 +154,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   const [screenshotSlots, setScreenshotSlots] = useState<Array<string | null>>(() =>
     screenshotSlotsFromPaths(parseScreenshotsText(defaultDebugBuilderForm().screenshotsText)),
   );
-  const [activeTargetIndex, setActiveTargetIndex] = useState(0);
+  const [activeTargetIndex, setActiveTargetIndex] = useState(-1);
   const [statusMessage] = useState<string | null>(null);
   const [isManifestModalOpen, setIsManifestModalOpen] = useState(false);
   const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null);
@@ -178,6 +190,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
     const nextForm = defaultDebugBuilderForm();
     setForm(nextForm);
     setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
+    setActiveTargetIndex(-1);
     setShowDiscardConfirm(false);
     setMode("start");
   };
@@ -244,7 +257,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
     return JSON.stringify(nextManifest, null, 2);
   }, [form, screenshots, targetIdList]);
 
-  const iconPreviewSrc: string | null = null;
+  const iconPreviewSrc: string | null = form.iconPath ? "/mock/example-app-icon.png" : null;
 
   const setField = <Key extends keyof BuilderFormState>(key: Key, value: BuilderFormState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -290,13 +303,17 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.metadata")}</p>
-          <label class={fieldStack}>
+          <label class={`${fieldStack} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.displayName")} help={appText("builder.help.displayName")} />
             <TextField value={form.displayName} onInput={(value) => setField("displayName", value)} />
           </label>
           <label class={fieldStack}>
             <BuilderFieldLabel label={appText("builder.fields.description")} help={appText("builder.help.description")} />
-            <TextField value={form.description} onInput={(value) => setField("description", value)} />
+            <textarea
+              class={descriptionTextarea}
+              value={form.description}
+              onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("description", event.currentTarget.value)}
+            />
           </label>
           <label class={fieldStack}>
             <BuilderFieldLabel label={appText("builder.fields.longDescription")} help={appText("builder.help.longDescription")} />
@@ -306,25 +323,21 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
               onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("longDescription", event.currentTarget.value)}
             />
           </label>
-          <label class={fieldStack}>
+          <label class={`${fieldStack} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.version")} help={appText("builder.help.version")} />
             <TextField value={form.version} onInput={(value) => setField("version", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={`${fieldStack} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.publisher")} help={appText("builder.help.publisher")} />
             <TextField value={form.publisher} onInput={(value) => setField("publisher", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={`${fieldStack} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.homepageUrl")} help={appText("builder.help.homepageUrl")} />
             <TextField value={form.homepageUrl} onInput={(value) => setField("homepageUrl", value)} />
           </label>
-          <label class={fieldStack}>
+          <label class={`${fieldStack} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.supportUrl")} help={appText("builder.help.supportUrl")} />
             <TextField value={form.supportUrl} onInput={(value) => setField("supportUrl", value)} />
-          </label>
-          <label class={fieldStack}>
-            <BuilderFieldLabel label={appText("builder.fields.license")} help={appText("builder.help.license")} />
-            <TextField value={form.license} onInput={(value) => setField("license", value)} />
           </label>
         </div>
       );
@@ -359,7 +372,6 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
           <div>
             <div class={targetListActions}>
               <h3>{appText("builder.targets.title")}</h3>
-              <Button onClick={() => onToast("info", "Target add disabled in mock mode")} disabled={false}>{appText("builder.targets.add")}</Button>
             </div>
             {targetValidationIssues.length > 0 ? (
               <div class={targetDuplicateWarning}>
@@ -374,22 +386,34 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
             <div class={targetList}>
               {form.targets.map((target, index) => (
                 <BuilderTargetCard
-                  key={`${targetIdList[index]}-${index}`}
-                  index={index}
+                  key={target.editorId}
                   target={target}
-                  targetId={targetIdList[index] ?? ""}
                   isActive={index === activeTargetIndex}
                   canRemove={form.targets.length > 1}
                   isBusy={false}
                   hasGui={form.hasGui}
                   hasCli={form.hasCli}
+                  binaryTargetPath={null}
+                  binarySourceName={null}
                   payloadRoot={payloadRootForTarget(target)}
                   onToggle={() => setActiveTargetIndex(index === activeTargetIndex ? -1 : index)}
                   onRemove={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
                   onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
+                  onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
                   onSetField={(key, value) => setTargetField(index, key, value)}
                 />
               ))}
+            </div>
+            <div class={targetAddRow}>
+              <button
+                type="button"
+                class={targetAddButton}
+                onClick={() => onToast("info", "Target add disabled in mock mode")}
+                title={appText("builder.targets.add")}
+              >
+                <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
+                <span>{appText("builder.targets.add")}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -402,23 +426,31 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
           <p class={sectionBody}>{appText("builder.section.assets")}</p>
           <div class={`${assetSection} ${fieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.iconUpload")} help={appText("builder.help.iconUpload")} />
-            <div class={assetActionRow}>
-              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={mockBrowseIcon}>{appText("builder.files.browseIcon")}</Button>
-              {form.iconPath ? <Button onClick={() => setField("iconPath", "")}>{appText("builder.files.remove")}</Button> : null}
+            <div class={assetThumbGridCompact}>
+              <div class={`${assetThumbTile} ${assetThumbTileCompact}`}>
+                {form.iconPath ? (
+                  <img class={assetThumbImage} src="/mock/example-app-icon.png" alt={appText("builder.fields.iconUpload")} />
+                ) : null}
+                {form.iconPath ? (
+                  <button class={assetThumbRemove} type="button" onClick={() => setField("iconPath", "")} title={appText("builder.files.remove")}>
+                    <IconX size={14} stroke={2.4} />
+                  </button>
+                ) : (
+                  <button class={assetThumbAdd} type="button" onClick={mockBrowseIcon} title={appText("builder.files.browseIcon")}>
+                    <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div class={`${assetSection} ${fieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.screenshotUpload")} help={appText("builder.help.screenshotUpload")} />
-            <p class={sectionBody}>{appText("builder.files.screenshotSlots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
             <div class={assetThumbGrid}>
               {screenshotSlots.map((path, index) => (
                 <div key={path ?? `mock-screenshot-slot-${index}`} class={assetThumbTile}>
-                  <div class={assetThumbPlaceholder}>
-                    <IconPhoto size={24} stroke={1.8} />
-                    <span class={assetThumbSlotText}>
-                      {path ? path.split(/[\\/]/).pop() ?? path : appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}
-                    </span>
-                  </div>
+                  {path ? (
+                    <img class={assetThumbImage} src={mockScreenshotPreviewSrc(path)} alt={appText("package.screenshot.alt", { index: index + 1 })} />
+                  ) : null}
                   {path ? (
                     <button class={assetThumbRemove} type="button" onClick={() => removeMockScreenshot(index)} title={appText("builder.files.removeScreenshot")}>
                       <IconX size={14} stroke={2.4} />
@@ -430,8 +462,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
                       onClick={() => addMockScreenshotAtSlot(index)}
                       title={appText("builder.files.addScreenshotSlot", { index: index + 1 })}
                     >
-                      <IconPlus size={20} stroke={2.2} />
-                      <span class={assetThumbSlotText}>{appText("builder.files.addScreenshot")}</span>
+                      <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
                     </button>
                   )}
                 </div>
@@ -439,13 +470,31 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
             </div>
           </div>
           <div class={`${assetSection} ${fieldStack}`}>
+            <label class={`${fieldStack} ${compactFieldStack}`}>
+              <BuilderFieldLabel label={appText("builder.fields.license")} help={appText("builder.help.license")} />
+              <TextField value={form.license} onInput={(value) => setField("license", value)} />
+            </label>
             <BuilderFieldLabel label={appText("builder.fields.licenseUpload")} help={appText("builder.help.licenseUpload")} />
-            <div class={assetActionRow}>
-              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={mockBrowseLicenseFile}>{appText("builder.files.browseLicense")}</Button>
-              {form.licenseFile ? <Button onClick={viewMockLicense}>{appText("builder.files.viewLicense")}</Button> : null}
-              {form.licenseFile ? <Button onClick={() => setField("licenseFile", "")}>{appText("builder.files.remove")}</Button> : null}
+            <div class={assetThumbGridCompact}>
+              <div class={`${assetThumbTile} ${assetThumbTileCompact}`}>
+                {form.licenseFile ? (
+                  <>
+                    <button class={assetThumbOpen} type="button" onClick={viewMockLicense} title={appText("builder.files.viewLicense")}>
+                      <div class={assetThumbPlaceholder}>
+                        <span class={assetThumbDocIcon}><IconFileText size={56} stroke={1.8} /></span>
+                      </div>
+                    </button>
+                    <button class={assetThumbRemove} type="button" onClick={() => setField("licenseFile", "")} title={appText("builder.files.remove")}>
+                      <IconX size={14} stroke={2.4} />
+                    </button>
+                  </>
+                ) : (
+                  <button class={assetThumbAdd} type="button" onClick={mockBrowseLicenseFile} title={appText("builder.files.browseLicense")}>
+                    <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
+                  </button>
+                )}
+              </div>
             </div>
-            {!form.licenseFile ? <p class={sectionBody}>{appText("builder.files.noneSelected")}</p> : null}
           </div>
           <CheckboxField
             checked={form.requiresLicenseAcceptance}
@@ -453,7 +502,6 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
           >
             {appText("builder.fields.requiresLicenseAcceptance")}
           </CheckboxField>
-          <p class={sectionBody}>{appText("builder.hints.screenshots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
         </div>
       );
     }
@@ -468,12 +516,12 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
 
   const addMockScreenshotAtSlot = (slotIndex: number) => {
     const used = new Set(screenshotPathsFromSlots(screenshotSlots));
-    const nextCandidate = mockScreenshotCandidates.find((path) => !used.has(path));
+    const nextCandidate = mockScreenshotCandidates.find((entry) => !used.has(entry.manifestPath));
     if (!nextCandidate) {
       onToast("info", appText("builder.files.screenshotLimitReached", { max: builderMaxScreenshots }));
       return;
     }
-    const nextSlots = screenshotSlots.map((slot, index) => (index === slotIndex ? nextCandidate : slot));
+    const nextSlots = screenshotSlots.map((slot, index) => (index === slotIndex ? nextCandidate.manifestPath : slot));
     syncScreenshotSlots(nextSlots);
     onToast("info", appText("builder.files.addScreenshot"));
   };
@@ -494,6 +542,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
 
   const handleStartMock = () => {
     setMode("new");
+    setActiveTargetIndex(-1);
     setStep(builderSteps[0]);
   };
 
@@ -509,10 +558,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
     if (isFinalStep) return;
     const currentIssues = stepIssueMap[step];
     if (currentIssues.length > 0) {
-      onToast("warning", appText("builder.validation.blockedStep", {
-        step: appText(`builder.steps.${step}`),
-        count: currentIssues.length,
-      }));
+      onToast("warning", currentIssues[0]);
       return;
     }
     selectStep(builderSteps[currentStepIndex + 1]);

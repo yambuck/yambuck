@@ -1,4 +1,4 @@
-export type BuilderStep = "identity" | "metadata" | "interfaces" | "targets" | "assets";
+export type BuilderStep = "identity" | "metadata" | "interfaces" | "targets" | "assets" | "review";
 
 export const builderMinScreenshots = 1;
 export const builderMaxScreenshots = 6;
@@ -6,12 +6,16 @@ export const builderMaxScreenshots = 6;
 export type BuilderArch = "x86_64" | "aarch64" | "riscv64";
 
 export type BuilderTarget = {
+  editorId: string;
   arch: BuilderArch;
   variant: string;
   desktopEnvironment: "all" | "x11" | "wayland";
   guiEntrypoint: string;
   cliEntrypoint: string;
 };
+
+export const createBuilderTargetEditorId = (seed = "target"): string =>
+  `${seed}-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
 
 export type BuilderFormState = {
   appId: string;
@@ -36,4 +40,4 @@ export type BuilderFormState = {
   targets: BuilderTarget[];
 };
 
-export const builderSteps: BuilderStep[] = ["metadata", "interfaces", "assets", "identity", "targets"];
+export const builderSteps: BuilderStep[] = ["metadata", "interfaces", "assets", "identity", "targets", "review"];

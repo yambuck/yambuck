@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { IconLayoutGrid, IconPhoto, IconPlus, IconX } from "@tabler/icons-preact";
+import { IconFileText, IconLayoutGrid, IconPhoto, IconPlus, IconX } from "@tabler/icons-preact";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Button } from "../../components/ui/Button";
@@ -29,6 +29,7 @@ import {
 import {
   builderMaxScreenshots,
   builderSteps,
+  createBuilderTargetEditorId,
   type BuilderArch,
   type BuilderFormState,
   type BuilderStep,
@@ -48,9 +49,10 @@ import {
   fieldInvalid,
   fieldStackInvalid,
   fieldStack,
+  compactFieldStack,
   assetSection,
-  inlineActionButton,
   compactCheckbox,
+  descriptionTextarea,
   importTextarea,
   pagePanel,
   previewTitle,
@@ -64,17 +66,23 @@ import {
   stepIssueList,
   stepIssuePanel,
   assetThumbGrid,
+  assetThumbGridCompact,
   assetThumbTile,
+  assetThumbTileCompact,
   assetThumbImage,
   assetThumbPlaceholder,
   assetThumbAdd,
+  assetThumbAddIcon,
+  assetThumbDocIcon,
+  assetThumbOpen,
   assetThumbSlotText,
   assetThumbRemove,
-  assetActionRow,
   startActions,
   startCard,
   statusBadge,
   targetList,
+  targetAddButton,
+  targetAddRow,
   targetListActions,
   workspace,
   wizardFooter,
@@ -109,6 +117,7 @@ type PackageBuilderPageProps = {
 const defaultTarget = (arch: BuilderArch, index = 0): BuilderTarget => {
   const variant = index === 0 ? "default" : `variant-${index + 1}`;
   return {
+    editorId: createBuilderTargetEditorId(`target-${index + 1}`),
     arch,
     variant,
     desktopEnvironment: "all",
@@ -181,6 +190,90 @@ const fileBaseName = (path: string): string => {
   const parts = path.split(/[\\/]/);
   return parts[parts.length - 1] || path;
 };
+
+type SupportedImageFormat = "png" | "jpeg" | "gif";
+type ImageAssetKind = "icon" | "screenshot";
+
+const iconAllowedExtensions = ["png", "jpg", "jpeg"];
+const screenshotAllowedExtensions = ["png", "jpg", "jpeg", "gif"];
+const iconMinBytes = 512;
+const screenshotMinBytes = 1024;
+const iconMinWidth = 128;
+const iconMinHeight = 128;
+const screenshotMinWidth = 256;
+const screenshotMinHeight = 256;
+const screenshotMinAspectRatio = 0.4;
+const screenshotMaxAspectRatio = 2.5;
+
+const imageExtensionFromPath = (path: string): string => {
+  const base = fileBaseName(path).toLowerCase();
+  const dotIndex = base.lastIndexOf(".");
+  if (dotIndex < 0 || dotIndex === base.length - 1) {
+    return "";
+  }
+  return base.slice(dotIndex + 1);
+};
+
+const detectImageFormat = (bytes: Uint8Array): SupportedImageFormat | null => {
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return "png";
+  }
+
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "jpeg";
+  }
+
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38 &&
+    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+    bytes[5] === 0x61
+  ) {
+    return "gif";
+  }
+
+  return null;
+};
+
+const extensionMatchesFormat = (extension: string, format: SupportedImageFormat): boolean => {
+  if (format === "jpeg") {
+    return extension === "jpg" || extension === "jpeg";
+  }
+  return extension === format;
+};
+
+const readImageDimensions = async (blob: Blob): Promise<{ width: number; height: number }> =>
+  await new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const image = new Image();
+
+    image.onload = () => {
+      const width = image.naturalWidth || image.width;
+      const height = image.naturalHeight || image.height;
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width, height });
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("image decode failed"));
+    };
+
+    image.src = objectUrl;
+  });
 
 const parseScreenshotsText = (value: string): string[] =>
   value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean);
@@ -269,6 +362,7 @@ const normalizeTargets = (value: unknown): BuilderTarget[] => {
       }
 
       return {
+        editorId: firstNonEmpty(target.id, createBuilderTargetEditorId(`target-${index + 1}`)),
         arch,
         variant,
         desktopEnvironment,
@@ -318,7 +412,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [screenshotSlots, setScreenshotSlots] = useState<Array<ScreenshotSlot | null>>(() =>
     screenshotSlotsFromPaths(parseScreenshotsText(defaultBuilderForm().screenshotsText)),
   );
-  const [activeTargetIndex, setActiveTargetIndex] = useState(0);
+  const [activeTargetIndex, setActiveTargetIndex] = useState(-1);
   const [stagedAssets, setStagedAssets] = useState<StagedAsset[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [openedPackageFile, setOpenedPackageFile] = useState<string | null>(null);
@@ -329,12 +423,107 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null);
   const [licensePreviewText, setLicensePreviewText] = useState<string | null>(null);
 
-  const activeTarget = form.targets[activeTargetIndex] ?? null;
-
   const notify = (tone: ToastTone, key: string, params?: Record<string, string | number>) => {
     const message = appText(key, params);
     setStatusMessage(message);
     onToast(tone, message);
+  };
+
+  const validateImageAssetSource = async (sourcePath: string, kind: ImageAssetKind): Promise<boolean> => {
+    const sourceName = fileBaseName(sourcePath);
+    const extension = imageExtensionFromPath(sourceName);
+    const allowedExtensions = kind === "icon" ? iconAllowedExtensions : screenshotAllowedExtensions;
+
+    if (!allowedExtensions.includes(extension)) {
+      notify("warning", kind === "icon" ? "builder.files.validation.imageFormatIcon" : "builder.files.validation.imageFormatScreenshot");
+      return false;
+    }
+
+    let blob: Blob;
+    let bytes: Uint8Array;
+    try {
+      const response = await fetch(convertFileSrc(sourcePath));
+      if (!response.ok) {
+        throw new Error(`http ${response.status}`);
+      }
+      blob = await response.blob();
+      bytes = new Uint8Array(await blob.arrayBuffer());
+    } catch {
+      notify("warning", "builder.files.validation.assetReadFailed", { file: sourceName });
+      return false;
+    }
+
+    const detectedFormat = detectImageFormat(bytes);
+    if (!detectedFormat) {
+      notify("warning", "builder.files.validation.imageInvalid", { file: sourceName });
+      return false;
+    }
+
+    if (!extensionMatchesFormat(extension, detectedFormat)) {
+      notify("warning", "builder.files.validation.imageExtensionMismatch", { file: sourceName });
+      return false;
+    }
+
+    const minBytes = kind === "icon" ? iconMinBytes : screenshotMinBytes;
+    if (bytes.length < minBytes) {
+      notify("warning", "builder.files.validation.imageMinBytes", {
+        label: kind === "icon" ? appText("builder.files.validation.labelIcon") : appText("builder.files.validation.labelScreenshot"),
+        size: bytes.length,
+        min: minBytes,
+      });
+      return false;
+    }
+
+    let dimensions: { width: number; height: number };
+    try {
+      dimensions = await readImageDimensions(blob);
+    } catch {
+      notify("warning", "builder.files.validation.imageInvalid", { file: sourceName });
+      return false;
+    }
+
+    const minWidth = kind === "icon" ? iconMinWidth : screenshotMinWidth;
+    const minHeight = kind === "icon" ? iconMinHeight : screenshotMinHeight;
+    if (dimensions.width < minWidth || dimensions.height < minHeight) {
+      notify("warning", "builder.files.validation.imageMinDimensions", {
+        label: kind === "icon" ? appText("builder.files.validation.labelIcon") : appText("builder.files.validation.labelScreenshot"),
+        width: dimensions.width,
+        height: dimensions.height,
+        minWidth,
+        minHeight,
+      });
+      return false;
+    }
+
+    if (kind === "screenshot") {
+      const aspectRatio = dimensions.width / dimensions.height;
+      if (aspectRatio < screenshotMinAspectRatio || aspectRatio > screenshotMaxAspectRatio) {
+        notify("warning", "builder.files.validation.screenshotAspect", {
+          ratio: aspectRatio.toFixed(2),
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const validateLicenseTextSource = async (sourcePath: string): Promise<boolean> => {
+    try {
+      const response = await fetch(convertFileSrc(sourcePath));
+      if (!response.ok) {
+        throw new Error(`http ${response.status}`);
+      }
+      const text = await response.text();
+      if (!text.trim()) {
+        notify("warning", "builder.files.validation.licenseEmpty");
+        return false;
+      }
+      return true;
+    } catch {
+      notify("warning", "builder.files.validation.licenseReadFailed");
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -347,7 +536,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
 
   useEffect(() => {
     if (form.targets.length === 0) {
-      setActiveTargetIndex(0);
+      setActiveTargetIndex(-1);
       return;
     }
     if (activeTargetIndex >= form.targets.length) {
@@ -367,7 +556,26 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     [form, screenshots],
   );
 
-  const stepIssueMap = validation.stepIssues;
+  const reviewIssues = useMemo(() => {
+    if (!form.hasGui && !form.hasCli) {
+      return [];
+    }
+    return form.targets.flatMap((target, index) => {
+      const binaryAssetId = `binary-${target.editorId}`;
+      const hasBinary = stagedAssets.some((item) => item.kind === "binary" && item.id === binaryAssetId);
+      if (hasBinary) {
+        return [];
+      }
+      return [appText("builder.validation.targetBinaryMissing", {
+        target: appText("builder.targets.item", { index: index + 1 }),
+      })];
+    });
+  }, [form.hasCli, form.hasGui, form.targets, stagedAssets]);
+
+  const stepIssueMap = useMemo(
+    () => ({ ...validation.stepIssues, review: reviewIssues }),
+    [validation.stepIssues, reviewIssues],
+  );
   const fieldIssues = validation.fieldIssues;
 
   const wizardSteps: WizardStepperStep[] = useMemo(() => [
@@ -395,6 +603,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     const nextForm = defaultBuilderForm();
     setForm(nextForm);
     setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
+    setActiveTargetIndex(-1);
     setIsDirty(false);
     setSessionId(null);
     setOpenedPackageFile(null);
@@ -505,7 +714,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     const nextTarget = defaultTarget("x86_64", nextIndex);
     logUiAction("builder-target-add", { countBefore: form.targets.length });
     setForm((current) => ({ ...current, targets: [...current.targets, nextTarget] }));
-    setActiveTargetIndex(nextIndex);
+    setActiveTargetIndex(-1);
     setIsDirty(true);
   };
 
@@ -515,10 +724,17 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return;
     }
     logUiAction("builder-target-remove", { index, countBefore: form.targets.length });
-    setForm((current) => ({
-      ...current,
-      targets: current.targets.filter((_, targetIndex) => targetIndex !== index),
-    }));
+    setForm((current) => {
+      const targetToRemove = current.targets[index];
+      if (targetToRemove) {
+        const binaryAssetId = `binary-${targetToRemove.editorId}`;
+        setStagedAssets((assets) => assets.filter((item) => item.id !== binaryAssetId));
+      }
+      return {
+        ...current,
+        targets: current.targets.filter((_, targetIndex) => targetIndex !== index),
+      };
+    });
     if (activeTargetIndex >= index && activeTargetIndex > 0) {
       setActiveTargetIndex(activeTargetIndex - 1);
     }
@@ -604,7 +820,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       };
       setForm(nextForm);
       setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
-      setActiveTargetIndex(0);
+      setActiveTargetIndex(-1);
       setStagedAssets([]);
       setStep(builderSteps[0]);
       setMode("new");
@@ -657,7 +873,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       setOpenedPackageFile(session.packageFile ?? packagePath);
       setForm(nextForm);
       setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
-      setActiveTargetIndex(0);
+      setActiveTargetIndex(-1);
       setStagedAssets([]);
       setStep(builderSteps[0]);
       setMode("new");
@@ -790,6 +1006,11 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return;
     }
 
+    const iconValid = await validateImageAssetSource(sourcePath, "icon");
+    if (!iconValid) {
+      return;
+    }
+
     const sourceName = fileBaseName(sourcePath);
     const extension = sourceName.includes(".") ? sourceName.slice(sourceName.lastIndexOf(".")).toLowerCase() : ".png";
     const targetPath = `assets/icon${extension}`;
@@ -825,6 +1046,11 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       return;
     }
 
+    const screenshotValid = await validateImageAssetSource(sourcePath, "screenshot");
+    if (!screenshotValid) {
+      return;
+    }
+
     const sourceName = fileBaseName(sourcePath);
     const normalizedName = sanitizeFileName(sourceName);
     const nextSlot: ScreenshotSlot = {
@@ -849,15 +1075,16 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     setField("screenshotsText", screenshotPathsFromSlots(nextSlots).join("\n"));
   };
 
-  const browseBinary = async () => {
-    if (!activeTarget) {
+  const browseBinary = async (targetIndex: number) => {
+    const selectedTarget = form.targets[targetIndex];
+    if (!selectedTarget) {
       notify("warning", "builder.targets.empty");
       return;
     }
 
     logUiAction("builder-browse-binary-clicked", {
-      arch: activeTarget.arch,
-      target: targetIdList[activeTargetIndex] ?? "unknown",
+      arch: selectedTarget.arch,
+      target: targetIdList[targetIndex] ?? "unknown",
     });
     let sourcePath: string | undefined;
     try {
@@ -878,27 +1105,46 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     const sourceName = fileBaseName(sourcePath);
     const binaryName = sanitizeFileName(sourceName);
     const entrypoint = `app/bin/${binaryName}`;
-    const payloadRoot = payloadRootForTarget(activeTarget);
+    const payloadRoot = payloadRootForTarget(selectedTarget);
     const targetPath = `${payloadRoot}/${entrypoint}`;
+    const binaryAssetId = `binary-${selectedTarget.editorId}`;
 
     if (form.hasGui) {
-      setTargetField(activeTargetIndex, "guiEntrypoint", entrypoint);
+      setTargetField(targetIndex, "guiEntrypoint", entrypoint);
     }
     if (form.hasCli) {
-      setTargetField(activeTargetIndex, "cliEntrypoint", entrypoint);
+      setTargetField(targetIndex, "cliEntrypoint", entrypoint);
     }
 
     await stageSelectedFiles(
       [{ sourcePath, targetPath }],
       [{
-        id: `binary-${activeTargetIndex}`,
+        id: binaryAssetId,
         kind: "binary",
         sourceName,
         targetPath,
-        arch: activeTarget.arch,
+        sourcePath,
+        arch: selectedTarget.arch,
       }],
-      (item) => item.kind === "binary" && item.id === `binary-${activeTargetIndex}`,
+      (item) => item.kind === "binary" && item.id === binaryAssetId,
     );
+  };
+
+  const clearBinaryAsset = (targetIndex: number) => {
+    const selectedTarget = form.targets[targetIndex];
+    if (!selectedTarget) {
+      return;
+    }
+
+    const binaryAssetId = `binary-${selectedTarget.editorId}`;
+    setStagedAssets((current) => current.filter((item) => item.id !== binaryAssetId));
+    if (form.hasGui) {
+      setTargetField(targetIndex, "guiEntrypoint", "");
+    }
+    if (form.hasCli) {
+      setTargetField(targetIndex, "cliEntrypoint", "");
+    }
+    setIsDirty(true);
   };
 
   const browseLicenseFile = async () => {
@@ -916,6 +1162,11 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     }
     if (!sourcePath) {
       logUiAction("builder-browse-license-cancelled");
+      return;
+    }
+
+    const licenseValid = await validateLicenseTextSource(sourcePath);
+    if (!licenseValid) {
       return;
     }
 
@@ -997,7 +1248,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   };
 
   const renderTargetsEditor = () => {
-    if (!activeTarget) {
+    if (form.targets.length === 0) {
       return <p class={sectionBody}>{appText("builder.targets.empty")}</p>;
     }
 
@@ -1005,7 +1256,6 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       <>
         <div class={targetListActions}>
           <h3 class={previewTitle}>{appText("builder.targets.title")}</h3>
-          <Button onClick={addTarget} disabled={isBusy}>{appText("builder.targets.add")}</Button>
         </div>
         {targetValidationIssues.length > 0 ? (
           <div class={targetDuplicateWarning}>
@@ -1020,27 +1270,33 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         <div class={targetList} role="list" aria-label={appText("builder.targets.listAria")}>
           {form.targets.map((target, index) => (
             <BuilderTargetCard
-              key={`${targetIdList[index]}-${index}`}
-              index={index}
+              key={target.editorId}
               target={target}
-              targetId={targetIdList[index] ?? ""}
               isActive={index === activeTargetIndex}
               canRemove={form.targets.length > 1}
               isBusy={isBusy}
               hasGui={form.hasGui}
               hasCli={form.hasCli}
+              binaryTargetPath={stagedAssets.find((asset) => asset.kind === "binary" && asset.id === `binary-${target.editorId}`)?.targetPath ?? null}
+              binarySourceName={stagedAssets.find((asset) => asset.kind === "binary" && asset.id === `binary-${target.editorId}`)?.sourceName ?? null}
               payloadRoot={payloadRootForTarget(target)}
               onToggle={() => {
                 logUiAction("builder-target-select", { index, target: targetIdList[index] });
                 setActiveTargetIndex(index === activeTargetIndex ? -1 : index);
               }}
               onRemove={() => removeTarget(index)}
-              onBrowseBinary={() => void browseBinary()}
+              onBrowseBinary={() => void browseBinary(index)}
+              onClearBinary={() => clearBinaryAsset(index)}
               onSetField={(key, value) => setTargetField(index, key, value)}
             />
           ))}
         </div>
-        {renderStagedAssets(["binary"])}
+        <div class={targetAddRow}>
+          <button type="button" class={targetAddButton} onClick={addTarget} disabled={isBusy} title={appText("builder.targets.add")}>
+            <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
+            <span>{appText("builder.targets.add")}</span>
+          </button>
+        </div>
       </>
     );
   };
@@ -1124,13 +1380,17 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.metadata")}</p>
           {renderCurrentStepIssues()}
-          <label class={stackClass("displayName")}>
+          <label class={`${stackClass("displayName")} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.displayName")} help={appText("builder.help.displayName")} />
             <TextField class={inputClass("displayName")} value={form.displayName} onInput={(value) => setField("displayName", value)} />
           </label>
           <label class={stackClass("description")}>
             <BuilderFieldLabel label={appText("builder.fields.description")} help={appText("builder.help.description")} />
-            <TextField class={inputClass("description")} value={form.description} onInput={(value) => setField("description", value)} />
+            <textarea
+              class={`${descriptionTextarea}${inputClass("description") ? ` ${inputClass("description")}` : ""}`}
+              value={form.description}
+              onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("description", event.currentTarget.value)}
+            />
           </label>
           <label class={stackClass("longDescription")}>
             <BuilderFieldLabel label={appText("builder.fields.longDescription")} help={appText("builder.help.longDescription")} />
@@ -1140,25 +1400,21 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
               onInput={(event: JSX.TargetedEvent<HTMLTextAreaElement, Event>) => setField("longDescription", event.currentTarget.value)}
             />
           </label>
-          <label class={stackClass("version")}>
+          <label class={`${stackClass("version")} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.version")} help={appText("builder.help.version")} />
             <TextField class={inputClass("version")} value={form.version} onInput={(value) => setField("version", value)} />
           </label>
-          <label class={stackClass("publisher")}>
+          <label class={`${stackClass("publisher")} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.publisher")} help={appText("builder.help.publisher")} />
             <TextField class={inputClass("publisher")} value={form.publisher} onInput={(value) => setField("publisher", value)} />
           </label>
-          <label class={stackClass("homepageUrl")}>
+          <label class={`${stackClass("homepageUrl")} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.homepageUrl")} help={appText("builder.help.homepageUrl")} />
             <TextField class={inputClass("homepageUrl")} value={form.homepageUrl} onInput={(value) => setField("homepageUrl", value)} />
           </label>
-          <label class={stackClass("supportUrl")}>
+          <label class={`${stackClass("supportUrl")} ${compactFieldStack}`}>
             <BuilderFieldLabel label={appText("builder.fields.supportUrl")} help={appText("builder.help.supportUrl")} />
             <TextField class={inputClass("supportUrl")} value={form.supportUrl} onInput={(value) => setField("supportUrl", value)} />
-          </label>
-          <label class={stackClass("license")}>
-            <BuilderFieldLabel label={appText("builder.fields.license")} help={appText("builder.help.license")} />
-            <TextField class={inputClass("license")} value={form.license} onInput={(value) => setField("license", value)} />
           </label>
         </div>
       );
@@ -1204,27 +1460,49 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           {renderCurrentStepIssues()}
           <div class={`${assetSection} ${stackClass("iconPath")}`}>
             <BuilderFieldLabel label={appText("builder.fields.iconUpload")} help={appText("builder.help.iconUpload")} />
-            <div class={assetActionRow}>
-              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={() => void browseIcon()} disabled={isBusy}>{appText("builder.files.browseIcon")}</Button>
-              {form.iconPath ? <Button onClick={clearIconAsset} disabled={isBusy}>{appText("builder.files.remove")}</Button> : null}
+            <div class={assetThumbGridCompact}>
+              <div class={`${assetThumbTile} ${assetThumbTileCompact}`}>
+                {iconPreviewSrc ? (
+                  <img class={assetThumbImage} src={iconPreviewSrc} alt={appText("builder.fields.iconUpload")} />
+                ) : form.iconPath ? (
+                  <div class={assetThumbPlaceholder}>
+                    <IconPhoto size={24} stroke={1.8} />
+                    <span class={assetThumbSlotText}>{fileBaseName(form.iconPath)}</span>
+                  </div>
+                ) : null}
+                {form.iconPath ? (
+                  <button class={assetThumbRemove} type="button" onClick={clearIconAsset} title={appText("builder.files.remove")}>
+                    <IconX size={14} stroke={2.4} />
+                  </button>
+                ) : (
+                  <button
+                    class={assetThumbAdd}
+                    type="button"
+                    onClick={() => void browseIcon()}
+                    disabled={isBusy}
+                    title={appText("builder.files.browseIcon")}
+                  >
+                    <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div class={`${assetSection} ${stackClass("screenshots")}`}>
             <BuilderFieldLabel label={appText("builder.fields.screenshotUpload")} help={appText("builder.help.screenshotUpload")} />
-            <p class={sectionBody}>{appText("builder.files.screenshotSlots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
             <div class={assetThumbGrid}>
               {screenshotSlots.map((asset, index) => (
                 <div key={asset ? asset.id : `screenshot-slot-${index}`} class={assetThumbTile}>
-                  {asset && screenshotPreviewSrc(asset) ? (
+                  {asset ? (screenshotPreviewSrc(asset) ? (
                     <img class={assetThumbImage} src={screenshotPreviewSrc(asset)!} alt={appText("package.screenshot.alt", { index: index + 1 })} />
                   ) : (
                     <div class={assetThumbPlaceholder}>
                       <IconPhoto size={24} stroke={1.8} />
                       <span class={assetThumbSlotText}>
-                        {asset ? asset.sourceName : appText("builder.files.screenshotSlotEmpty", { index: index + 1 })}
+                        {asset.sourceName}
                       </span>
                     </div>
-                  )}
+                  )) : null}
                   {asset ? (
                     <button class={assetThumbRemove} type="button" onClick={() => removeScreenshotAtSlot(index)} title={appText("builder.files.removeScreenshot")}>
                       <IconX size={14} stroke={2.4} />
@@ -1237,23 +1515,45 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
                       disabled={isBusy}
                       title={appText("builder.files.addScreenshotSlot", { index: index + 1 })}
                     >
-                      <IconPlus size={20} stroke={2.2} />
-                      <span class={assetThumbSlotText}>{appText("builder.files.addScreenshot")}</span>
+                      <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
                     </button>
                   )}
                 </div>
               ))}
             </div>
           </div>
-          <p class={sectionBody}>{appText("builder.hints.screenshots", { count: screenshots.length, max: builderMaxScreenshots })}</p>
           <div class={`${assetSection} ${stackClass("licenseFile")}`}>
+            <label class={`${fieldStack} ${compactFieldStack}`}>
+              <BuilderFieldLabel label={appText("builder.fields.license")} help={appText("builder.help.license")} />
+              <TextField value={form.license} onInput={(value) => setField("license", value)} />
+            </label>
             <BuilderFieldLabel label={appText("builder.fields.licenseUpload")} help={appText("builder.help.licenseUpload")} />
-            <div class={assetActionRow}>
-              <Button class={inlineActionButton} fullWidthOnSmall={false} onClick={() => void browseLicenseFile()} disabled={isBusy}>{appText("builder.files.browseLicense")}</Button>
-              {form.licenseFile ? <Button onClick={() => void viewLicenseText()} disabled={isBusy}>{appText("builder.files.viewLicense")}</Button> : null}
-              {form.licenseFile ? <Button onClick={clearLicenseAsset} disabled={isBusy}>{appText("builder.files.remove")}</Button> : null}
+            <div class={assetThumbGridCompact}>
+              <div class={`${assetThumbTile} ${assetThumbTileCompact}`}>
+                {form.licenseFile ? (
+                  <>
+                    <button class={assetThumbOpen} type="button" onClick={() => void viewLicenseText()} disabled={isBusy} title={appText("builder.files.viewLicense")}>
+                      <div class={assetThumbPlaceholder}>
+                        <span class={assetThumbDocIcon}><IconFileText size={56} stroke={1.8} /></span>
+                      </div>
+                    </button>
+                    <button class={assetThumbRemove} type="button" onClick={clearLicenseAsset} title={appText("builder.files.remove")}>
+                      <IconX size={14} stroke={2.4} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    class={assetThumbAdd}
+                    type="button"
+                    onClick={() => void browseLicenseFile()}
+                    disabled={isBusy}
+                    title={appText("builder.files.browseLicense")}
+                  >
+                    <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>
+                  </button>
+                )}
+              </div>
             </div>
-            {!form.licenseFile ? <p class={sectionBody}>{appText("builder.files.noneSelected")}</p> : null}
           </div>
           <CheckboxField
             checked={form.requiresLicenseAcceptance}
@@ -1262,6 +1562,16 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
             {appText("builder.fields.requiresLicenseAcceptance")}
           </CheckboxField>
           {renderStagedAssets(["icon", "screenshot", "license"])}
+        </div>
+      );
+    }
+
+    if (step === "review") {
+      return (
+        <div class={fieldGrid}>
+          <p class={sectionBody}>{appText("builder.section.review")}</p>
+          {renderCurrentStepIssues()}
+          <p class={sectionBody}>{appText("builder.emptyReview")}</p>
         </div>
       );
     }
@@ -1285,12 +1595,14 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     if (isFinalStep) {
       return;
     }
+    if (step === "targets" && reviewIssues.length > 0) {
+      setStatusMessage(reviewIssues[0]);
+      onToast("warning", reviewIssues[0]);
+      return;
+    }
     const currentIssues = stepIssueMap[step];
     if (currentIssues.length > 0) {
-      notify("warning", "builder.validation.blockedStep", {
-        step: appText(`builder.steps.${step}`),
-        count: currentIssues.length,
-      });
+      setStatusMessage(currentIssues[0]);
       onToast("warning", currentIssues[0]);
       return;
     }

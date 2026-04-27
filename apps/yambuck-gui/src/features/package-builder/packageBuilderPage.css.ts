@@ -136,7 +136,7 @@ export const stepStatusAttention = style({
 export const stepButtonActive = style({
   background: "linear-gradient(135deg, var(--colors-style-color077), var(--colors-style-color078))",
   borderColor: "var(--colors-style-color079)",
-  color: "var(--colors-style-color080)",
+  color: "var(--colors-button-danger-text)",
 });
 
 export const targetListActions = style({
@@ -152,44 +152,137 @@ export const targetList = style({
   gap: "0.45rem",
 });
 
+export const targetAddRow = style({
+  display: "flex",
+  justifyContent: "center",
+  paddingTop: "0.3rem",
+});
+
+export const targetAddButton = style({
+  border: "1px solid var(--colors-style-color073)",
+  borderRadius: "999px",
+  background: "transparent",
+  color: "var(--colors-control-text)",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.45rem",
+  padding: "0.22rem 0.55rem 0.22rem 0.22rem",
+  cursor: "pointer",
+  selectors: {
+    '&:hover': {
+      borderColor: "var(--colors-select-border-hover)",
+      background: "var(--colors-control-hover-background)",
+    },
+    '&:focus-visible': {
+      outline: "none",
+      boxShadow: "0 0 0 3px var(--colors-focus-ring)",
+    },
+  },
+});
+
 export const targetCard = style({
-  border: "1px solid var(--colors-style-color075)",
-  borderRadius: "10px",
-  background: "var(--colors-style-color005)",
-  padding: "0.5rem",
+  borderBottom: "1px solid var(--colors-style-color068)",
+  padding: "0.45rem 0",
   display: "grid",
-  gap: "0.55rem",
+  gap: "0.45rem",
 });
 
 export const targetCardHeader = style({
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
-  gap: "0.45rem",
+  display: "flex",
+  justifyContent: "space-between",
   alignItems: "center",
+  gap: "0.45rem",
+  flexWrap: "wrap",
 });
 
 export const targetCardBody = style({
   display: "grid",
   gap: "0.55rem",
+  padding: "0.45rem 0.1rem 0.25rem",
 });
 
 export const targetSummary = style({
-  display: "block",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.35rem",
+  fontWeight: 700,
 });
 
 export const targetSummaryMeta = style({
-  display: "block",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.35rem",
   fontSize: "0.72rem",
   fontWeight: 500,
   color: "var(--colors-style-color070)",
-  marginTop: "0.15rem",
 });
 
 export const targetSummaryMatch = style({
-  display: "block",
+  display: "inline-flex",
+  alignItems: "center",
+  borderRadius: "999px",
+  border: "1px solid var(--colors-style-color073)",
+  padding: "0.08rem 0.45rem",
   fontSize: "0.7rem",
   color: "var(--colors-style-color017)",
-  marginTop: "0.12rem",
+});
+
+export const targetSummaryButton = style({
+  border: 0,
+  padding: 0,
+  margin: 0,
+  background: "transparent",
+  color: "inherit",
+  display: "grid",
+  gap: "0.2rem",
+  textAlign: "left",
+  cursor: "pointer",
+  minWidth: 0,
+  selectors: {
+    '&:focus-visible': {
+      outline: "none",
+      boxShadow: "0 0 0 3px var(--colors-focus-ring)",
+      borderRadius: "8px",
+    },
+  },
+});
+
+export const targetSummaryTop = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "0.35rem",
+  flexWrap: "wrap",
+});
+
+export const targetSummaryDetails = style({
+  display: "flex",
+  alignItems: "center",
+  gap: "0.45rem",
+  flexWrap: "wrap",
+});
+
+export const targetHeaderActions = style({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.45rem",
+  flexWrap: "wrap",
+});
+
+export const targetStatusReady = style({
+  borderColor: "var(--colors-feedback-success-accent)",
+  color: "var(--colors-feedback-success-accent)",
+  background: "color-mix(in srgb, var(--colors-feedback-success-accent) 16%, transparent)",
+});
+
+export const targetStatusMissing = style({
+  borderColor: "var(--colors-style-color079)",
+  color: "var(--colors-style-color074)",
+  background: "var(--colors-style-color072)",
+});
+
+export const targetBinaryHint = style({
+  fontSize: "0.75rem",
+  color: "var(--colors-style-color070)",
 });
 
 export const targetDuplicateWarning = style({
@@ -243,6 +336,10 @@ export const fieldGrid = style({
 export const fieldStack = style({
   display: "grid",
   gap: "0.35rem",
+});
+
+export const compactFieldStack = style({
+  width: "min(320px, 100%)",
 });
 
 export const assetSection = style({
@@ -440,6 +537,13 @@ export const importTextarea = style({
   },
 });
 
+export const descriptionTextarea = style([
+  importTextarea,
+  {
+    minHeight: "84px",
+  },
+]);
+
 export const importActions = style({
   display: "flex",
   gap: "0.6rem",
@@ -502,6 +606,19 @@ export const assetThumbGrid = style({
   gap: "0.55rem",
 });
 
+export const assetThumbGridCompact = style({
+  display: "grid",
+  gridTemplateColumns: "150px",
+  gap: "0.55rem",
+  justifyContent: "start",
+});
+
+export const assetThumbTileCompact = style({
+  width: "150px",
+  minHeight: "150px",
+  maxHeight: "150px",
+});
+
 export const assetThumbTile = style({
   position: "relative",
   borderRadius: "12px",
@@ -538,10 +655,9 @@ export const assetThumbAdd = style({
   inset: "0",
   border: 0,
   background: "transparent",
-  color: "var(--colors-style-color070)",
+  color: "var(--colors-feedback-success-accent)",
   display: "grid",
   placeItems: "center",
-  gap: "0.25rem",
   cursor: "pointer",
   selectors: {
     '&:hover': {
@@ -554,23 +670,64 @@ export const assetThumbAdd = style({
   },
 });
 
+export const assetThumbOpen = style({
+  position: "absolute",
+  inset: "0",
+  border: 0,
+  background: "transparent",
+  color: "inherit",
+  padding: 0,
+  cursor: "pointer",
+  selectors: {
+    '&:hover': {
+      background: "color-mix(in srgb, var(--colors-style-color072) 30%, transparent)",
+    },
+    '&:focus-visible': {
+      outline: "none",
+      boxShadow: "0 0 0 3px var(--colors-focus-ring)",
+    },
+  },
+});
+
+export const assetThumbAddIcon = style({
+  width: "2rem",
+  height: "2rem",
+  borderRadius: "999px",
+  background: "var(--colors-feedback-success-accent)",
+  color: "var(--colors-style-color080)",
+  border: "1px solid var(--colors-feedback-success-accent)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 6px 12px var(--colors-panel-shadow)",
+});
+
+export const assetThumbDocIcon = style({
+  width: "auto",
+  height: "auto",
+  color: "var(--colors-style-color070)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+});
+
 export const assetThumbRemove = style({
   position: "absolute",
   top: "0.35rem",
   right: "0.35rem",
   width: "1.45rem",
   height: "1.45rem",
-  border: "1px solid var(--colors-style-color073)",
+  border: "1px solid color-mix(in srgb, var(--colors-feedback-error-accent) 88%, black)",
   borderRadius: "999px",
-  background: "rgba(9, 26, 41, 0.74)",
-  color: "var(--colors-style-color080)",
+  background: "color-mix(in srgb, var(--colors-feedback-error-accent) 88%, black)",
+  color: "var(--colors-button-danger-text)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
   selectors: {
     '&:hover': {
-      background: "rgba(9, 26, 41, 0.9)",
+      background: "var(--colors-feedback-error-accent)",
     },
     '&:focus-visible': {
       outline: "none",

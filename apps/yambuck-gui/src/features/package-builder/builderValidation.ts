@@ -56,6 +56,15 @@ const isValidHttpsUrl = (value: string): boolean => {
   }
 };
 
+const isValidSemverVersion = (value: string): boolean => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const semverPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+  return semverPattern.test(trimmed);
+};
+
 type CollectBuilderValidationArgs = {
   form: BuilderFormState;
   screenshots: string[];
@@ -105,6 +114,9 @@ export const collectBuilderValidationResult = ({ form, screenshots, t }: Collect
   }
   if (!form.version.trim()) {
     metadataIssues.push(t("builder.validation.missingVersion"));
+    markIssue(fieldIssues, "version");
+  } else if (!isValidSemverVersion(form.version)) {
+    metadataIssues.push(t("builder.validation.invalidVersion"));
     markIssue(fieldIssues, "version");
   }
   if (!form.publisher.trim()) {
@@ -225,6 +237,7 @@ export const collectBuilderValidationResult = ({ form, screenshots, t }: Collect
     interfaces: interfaceIssues,
     targets: Array.from(new Set(targetIssues)),
     assets: assetsIssues,
+    review: [],
   };
 
   return { stepIssues, fieldIssues };
