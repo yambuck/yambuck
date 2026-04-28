@@ -5,6 +5,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
+import { AccordionRow } from "../../components/ui/AccordionRow";
 import { Panel } from "../../components/ui/Panel";
 import { PanelHeader } from "../../components/ui/PanelHeader";
 import { TextField } from "../../components/ui/TextField";
@@ -32,6 +33,7 @@ import {
   createBuilderTargetEditorId,
   type BuilderArch,
   type BuilderFormState,
+  type BuilderOs,
   type BuilderStep,
   type BuilderTarget,
 } from "./builderTypes";
@@ -114,13 +116,28 @@ type PackageBuilderPageProps = {
   onToast: (tone: ToastTone, message: string, durationMs?: number) => void;
 };
 
+const defaultVariantForTarget = (os: BuilderOs, desktopEnvironment: BuilderTarget["desktopEnvironment"]): string => {
+  if (os !== "linux") {
+    return "default";
+  }
+  if (desktopEnvironment === "x11") {
+    return "x11";
+  }
+  if (desktopEnvironment === "wayland") {
+    return "wayland";
+  }
+  return "default";
+};
+
 const defaultTarget = (arch: BuilderArch, index = 0): BuilderTarget => {
-  const variant = index === 0 ? "default" : `variant-${index + 1}`;
+  const os: BuilderOs = "linux";
+  const desktopEnvironment: BuilderTarget["desktopEnvironment"] = "all";
   return {
     editorId: createBuilderTargetEditorId(`target-${index + 1}`),
+    os,
     arch,
-    variant,
-    desktopEnvironment: "all",
+    variant: defaultVariantForTarget(os, desktopEnvironment),
+    desktopEnvironment,
     guiEntrypoint: "app/bin/example-app",
     cliEntrypoint: "app/bin/example-app",
   };
@@ -176,6 +193,13 @@ const normalizeArch = (value: unknown): BuilderArch => {
     return value;
   }
   return "x86_64";
+};
+
+const normalizeOs = (value: unknown): BuilderOs => {
+  if (value === "windows" || value === "macos") {
+    return value;
+  }
+  return "linux";
 };
 
 const sanitizeFileName = (fileName: string): string => {
@@ -346,8 +370,9 @@ const normalizeTargets = (value: unknown): BuilderTarget[] => {
       }
       const target = entry as Record<string, unknown>;
       const entrypoints = (target.entrypoints ?? {}) as Record<string, unknown>;
+      const os = normalizeOs(target.os);
       const arch = normalizeArch(target.arch);
-      const variant = firstNonEmpty(target.variant, "default");
+      const variant = firstNonEmpty(target.variant, defaultVariantForTarget(os, "all"));
       const linux = (target.linux ?? {}) as Record<string, unknown>;
       const desktops = Array.isArray(linux.desktopEnvironments)
         ? linux.desktopEnvironments.filter((item) => typeof item === "string").map((item) => item.toLowerCase())
@@ -363,6 +388,7 @@ const normalizeTargets = (value: unknown): BuilderTarget[] => {
 
       return {
         editorId: firstNonEmpty(target.id, createBuilderTargetEditorId(`target-${index + 1}`)),
+        os,
         arch,
         variant,
         desktopEnvironment,
@@ -557,17 +583,24 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   );
 
   const reviewIssues = useMemo(() => {
-    if (!form.hasGui && !form.hasCli) {
-      return [];
-    }
     return form.targets.flatMap((target, index) => {
+      const targetLabel = appText("builder.targets.item", { index: index + 1 });
+      if (target.os !== "linux") {
+        return [appText("builder.validation.targetOsUnsupported", {
+          target: targetLabel,
+          os: appText(`builder.targets.os.${target.os}`),
+        })];
+      }
+      if (!form.hasGui && !form.hasCli) {
+        return [];
+      }
       const binaryAssetId = `binary-${target.editorId}`;
       const hasBinary = stagedAssets.some((item) => item.kind === "binary" && item.id === binaryAssetId);
       if (hasBinary) {
         return [];
       }
       return [appText("builder.validation.targetBinaryMissing", {
-        target: appText("builder.targets.item", { index: index + 1 }),
+        target: targetLabel,
       })];
     });
   }, [form.hasCli, form.hasGui, form.targets, stagedAssets]);
@@ -587,6 +620,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showAppUuidConfirm, setShowAppUuidConfirm] = useState(false);
+  const [pendingTargetRemovalIndex, setPendingTargetRemovalIndex] = useState<number | null>(null);
 
   const confirmBackToStart = () => {
     if (isDirty) {
@@ -654,20 +688,25 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           usageHint: form.usageHint,
         },
       },
-      targets: form.targets.map((target, index) => ({
-        id: targetIdList[index] ?? "",
-        os: "linux",
-        arch: target.arch,
-        variant: sanitizeTargetSegment(target.variant, "default"),
-        payloadRoot: payloadRootForTarget(target),
-        entrypoints: {
-          gui: target.guiEntrypoint,
-          cli: target.cliEntrypoint,
-        },
-        linux: {
-          desktopEnvironments: linuxDesktopListForTarget(target),
-        },
-      })),
+      targets: form.targets.map((target, index) => {
+        const nextTarget: Record<string, unknown> = {
+          id: targetIdList[index] ?? "",
+          os: target.os,
+          arch: target.arch,
+          variant: sanitizeTargetSegment(target.variant, "default"),
+          payloadRoot: payloadRootForTarget(target),
+          entrypoints: {
+            gui: target.guiEntrypoint,
+            cli: target.cliEntrypoint,
+          },
+        };
+        if (target.os === "linux") {
+          nextTarget.linux = {
+            desktopEnvironments: linuxDesktopListForTarget(target),
+          };
+        }
+        return nextTarget;
+      }),
     };
 
     if (form.homepageUrl.trim()) {
@@ -704,7 +743,28 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     setStatusMessage(null);
     setForm((current) => ({
       ...current,
-      targets: current.targets.map((target, targetIndex) => (targetIndex === index ? { ...target, [key]: value } : target)),
+      targets: current.targets.map((target, targetIndex) => {
+        if (targetIndex !== index) {
+          return target;
+        }
+        const updated = { ...target, [key]: value };
+        if (key === "os") {
+          const nextOs = value as BuilderTarget["os"];
+          const nextDesktop = nextOs === "linux" ? updated.desktopEnvironment : "all";
+          return {
+            ...updated,
+            desktopEnvironment: nextDesktop,
+            variant: defaultVariantForTarget(nextOs, nextDesktop),
+          };
+        }
+        if (key === "desktopEnvironment") {
+          return {
+            ...updated,
+            variant: defaultVariantForTarget(updated.os, value as BuilderTarget["desktopEnvironment"]),
+          };
+        }
+        return updated;
+      }),
     }));
     setIsDirty(true);
   };
@@ -1269,26 +1329,33 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         ) : null}
         <div class={targetList} role="list" aria-label={appText("builder.targets.listAria")}>
           {form.targets.map((target, index) => (
-            <BuilderTargetCard
+            <AccordionRow
               key={target.editorId}
-              target={target}
-              isActive={index === activeTargetIndex}
-              canRemove={form.targets.length > 1}
-              isBusy={isBusy}
-              hasGui={form.hasGui}
-              hasCli={form.hasCli}
-              binaryTargetPath={stagedAssets.find((asset) => asset.kind === "binary" && asset.id === `binary-${target.editorId}`)?.targetPath ?? null}
-              binarySourceName={stagedAssets.find((asset) => asset.kind === "binary" && asset.id === `binary-${target.editorId}`)?.sourceName ?? null}
-              payloadRoot={payloadRootForTarget(target)}
+              expanded={index === activeTargetIndex}
+              titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch} / ${target.variant.trim() || "default"}`}
+              subtitleText={target.os === "linux" ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.osUnsupportedInline")}
               onToggle={() => {
                 logUiAction("builder-target-select", { index, target: targetIdList[index] });
                 setActiveTargetIndex(index === activeTargetIndex ? -1 : index);
               }}
-              onRemove={() => removeTarget(index)}
-              onBrowseBinary={() => void browseBinary(index)}
-              onClearBinary={() => clearBinaryAsset(index)}
-              onSetField={(key, value) => setTargetField(index, key, value)}
-            />
+              actions={(
+                <Button variant="danger" fullWidthOnSmall={false} onClick={() => setPendingTargetRemovalIndex(index)} disabled={isBusy || form.targets.length <= 1}>
+                  <IconX size={14} stroke={2.4} />
+                </Button>
+              )}
+            >
+              <BuilderTargetCard
+                target={target}
+                isBusy={isBusy}
+                hasGui={form.hasGui}
+                hasCli={form.hasCli}
+                binaryTargetPath={stagedAssets.find((asset) => asset.kind === "binary" && asset.id === `binary-${target.editorId}`)?.targetPath ?? null}
+                binarySourceName={stagedAssets.find((asset) => asset.kind === "binary" && asset.id === `binary-${target.editorId}`)?.sourceName ?? null}
+                onBrowseBinary={() => void browseBinary(index)}
+                onClearBinary={() => clearBinaryAsset(index)}
+                onSetField={(key, value) => setTargetField(index, key, value)}
+              />
+            </AccordionRow>
           ))}
         </div>
         <div class={targetAddRow}>
@@ -1689,6 +1756,26 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         manifestPreview={manifestPreview}
         onClose={() => setIsManifestModalOpen(false)}
       />
+      {pendingTargetRemovalIndex !== null ? (
+        <ModalShell onClose={() => setPendingTargetRemovalIndex(null)}>
+          <section>
+            <h2>{appText("builder.targets.removeConfirmTitle")}</h2>
+            <p>{appText("builder.targets.removeConfirmBody")}</p>
+            <div class="modal-actions">
+              <Button onClick={() => setPendingTargetRemovalIndex(null)}>{appText("builder.confirmDiscard.cancel")}</Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  removeTarget(pendingTargetRemovalIndex);
+                  setPendingTargetRemovalIndex(null);
+                }}
+              >
+                {appText("builder.targets.remove")}
+              </Button>
+            </div>
+          </section>
+        </ModalShell>
+      ) : null}
       {licensePreviewText ? (
         <ModalShell onClose={() => setLicensePreviewText(null)} closeTitle={appText("modal.close.license")}>
           <section>

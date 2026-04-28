@@ -1,5 +1,7 @@
 import { useMemo, useState } from "preact/hooks";
+import { IconX } from "@tabler/icons-preact";
 import { Button } from "../../components/ui/Button";
+import { AccordionRow } from "../../components/ui/AccordionRow";
 import { CheckboxField } from "../../components/ui/CheckboxField";
 import { MessagePanel } from "../../components/ui/MessagePanel";
 import { MetaField } from "../../components/ui/MetaField";
@@ -127,6 +129,7 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
   targets: [
     {
       editorId: createBuilderTargetEditorId("lab-target-1"),
+      os: "linux",
       arch: "x86_64",
       variant: "default",
       desktopEnvironment: "all",
@@ -137,6 +140,19 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
 });
 
 type BuilderPreviewScenario = "clean" | "missingIdentity" | "cliMissingCommand" | "ambiguousTargets" | "assetErrors";
+
+const defaultVariantForTarget = (os: BuilderTarget["os"], desktopEnvironment: BuilderTarget["desktopEnvironment"]): string => {
+  if (os !== "linux") {
+    return "default";
+  }
+  if (desktopEnvironment === "x11") {
+    return "x11";
+  }
+  if (desktopEnvironment === "wayland") {
+    return "wayland";
+  }
+  return "default";
+};
 
 const buildPreviewScenarioForm = (scenario: BuilderPreviewScenario): BuilderFormState => {
   const base = defaultDebugBuilderForm();
@@ -152,6 +168,7 @@ const buildPreviewScenarioForm = (scenario: BuilderPreviewScenario): BuilderForm
       targets: [
         {
           editorId: createBuilderTargetEditorId("lab-target-1"),
+          os: "linux",
           arch: "x86_64",
           variant: "default",
           desktopEnvironment: "all",
@@ -160,6 +177,7 @@ const buildPreviewScenarioForm = (scenario: BuilderPreviewScenario): BuilderForm
         },
         {
           editorId: createBuilderTargetEditorId("lab-target-2"),
+          os: "linux",
           arch: "x86_64",
           variant: "alt",
           desktopEnvironment: "x11",
@@ -237,20 +255,23 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
           usageHint: builderFormPreview.usageHint,
         },
       },
-      targets: builderFormPreview.targets.map((target, index) => ({
-        id: builderTargetIds[index],
-        os: "linux",
-        arch: target.arch,
-        variant: sanitizeTargetSegment(target.variant, "default"),
-        payloadRoot: payloadRootForTarget(target),
-        entrypoints: {
-          gui: target.guiEntrypoint,
-          cli: target.cliEntrypoint,
-        },
-        linux: {
-          desktopEnvironments: linuxDesktopListForTarget(target),
-        },
-      })),
+      targets: builderFormPreview.targets.map((target, index) => {
+        const nextTarget: Record<string, unknown> = {
+          id: builderTargetIds[index],
+          os: target.os,
+          arch: target.arch,
+          variant: sanitizeTargetSegment(target.variant, "default"),
+          payloadRoot: payloadRootForTarget(target),
+          entrypoints: {
+            gui: target.guiEntrypoint,
+            cli: target.cliEntrypoint,
+          },
+        };
+        if (target.os === "linux") {
+          nextTarget.linux = { desktopEnvironments: linuxDesktopListForTarget(target) };
+        }
+        return nextTarget;
+      }),
     };
     return JSON.stringify(manifest, null, 2);
   }, [builderFormPreview, builderScreenshots, builderTargetIds]);
@@ -258,7 +279,28 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const setPreviewTargetField = <Key extends keyof BuilderTarget>(index: number, key: Key, value: BuilderTarget[Key]) => {
     setBuilderFormPreview((current) => ({
       ...current,
-      targets: current.targets.map((target, targetIndex) => (targetIndex === index ? { ...target, [key]: value } : target)),
+      targets: current.targets.map((target, targetIndex) => {
+        if (targetIndex !== index) {
+          return target;
+        }
+        const updated = { ...target, [key]: value };
+        if (key === "os") {
+          const nextOs = value as BuilderTarget["os"];
+          const nextDesktop = nextOs === "linux" ? updated.desktopEnvironment : "all";
+          return {
+            ...updated,
+            desktopEnvironment: nextDesktop,
+            variant: defaultVariantForTarget(nextOs, nextDesktop),
+          };
+        }
+        if (key === "desktopEnvironment") {
+          return {
+            ...updated,
+            variant: defaultVariantForTarget(updated.os, value as BuilderTarget["desktopEnvironment"]),
+          };
+        }
+        return updated;
+      }),
     }));
   };
 
@@ -473,23 +515,30 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
               {builderStepPreview === "targets" ? (
                 <div class={targetList}>
                   {builderFormPreview.targets.map((target, index) => (
-                    <BuilderTargetCard
+                    <AccordionRow
                       key={target.editorId}
-                      target={target}
-                      isActive={builderActiveTargetIndex === index}
-                      canRemove={false}
-                      isBusy={false}
-                      hasGui={builderFormPreview.hasGui}
-                      hasCli={builderFormPreview.hasCli}
-                      binaryTargetPath={null}
-                      binarySourceName={null}
-                      payloadRoot={payloadRootForTarget(target)}
+                      expanded={builderActiveTargetIndex === index}
+                      titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch} / ${target.variant}`}
+                      subtitleText={target.os === "linux" ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.osUnsupportedInline")}
                       onToggle={() => setBuilderActiveTargetIndex(builderActiveTargetIndex === index ? -1 : index)}
-                      onRemove={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
-                      onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
-                      onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
-                      onSetField={(key, value) => setPreviewTargetField(index, key, value)}
-                    />
+                      actions={(
+                        <Button variant="danger" fullWidthOnSmall={false} onClick={() => onToast("info", appText("debugLab.builder.removeDisabled"))}>
+                          <IconX size={14} stroke={2.4} />
+                        </Button>
+                      )}
+                    >
+                      <BuilderTargetCard
+                        target={target}
+                        isBusy={false}
+                        hasGui={builderFormPreview.hasGui}
+                        hasCli={builderFormPreview.hasCli}
+                        binaryTargetPath={null}
+                        binarySourceName={null}
+                        onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
+                        onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
+                        onSetField={(key, value) => setPreviewTargetField(index, key, value)}
+                      />
+                    </AccordionRow>
                   ))}
                 </div>
               ) : (

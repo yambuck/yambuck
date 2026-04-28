@@ -2,6 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { IconFileText, IconLayoutGrid, IconPlus, IconX } from "@tabler/icons-preact";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
+import { AccordionRow } from "../../components/ui/AccordionRow";
 import { Panel } from "../../components/ui/Panel";
 import { PanelHeader } from "../../components/ui/PanelHeader";
 import { TextField } from "../../components/ui/TextField";
@@ -112,6 +113,7 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
   targets: [
     {
       editorId: createBuilderTargetEditorId("mock-target-1"),
+      os: "linux",
       arch: "x86_64",
       variant: "default",
       desktopEnvironment: "all",
@@ -146,6 +148,19 @@ const screenshotPathsFromSlots = (slots: Array<string | null>): string[] =>
 
 const mockScreenshotPreviewSrc = (path: string): string =>
   mockScreenshotCandidates.find((entry) => entry.manifestPath === path)?.previewSrc ?? "/mock/example-app-screenshot.png";
+
+const defaultVariantForTarget = (os: BuilderTarget["os"], desktopEnvironment: BuilderTarget["desktopEnvironment"]): string => {
+  if (os !== "linux") {
+    return "default";
+  }
+  if (desktopEnvironment === "x11") {
+    return "x11";
+  }
+  if (desktopEnvironment === "wayland") {
+    return "wayland";
+  }
+  return "default";
+};
 
 export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
@@ -239,20 +254,23 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
           usageHint: form.usageHint,
         },
       },
-      targets: form.targets.map((target, index) => ({
-        id: targetIdList[index] ?? "",
-        os: "linux",
-        arch: target.arch,
-        variant: sanitizeTargetSegment(target.variant, "default"),
-        payloadRoot: payloadRootForTarget(target),
-        entrypoints: {
-          gui: target.guiEntrypoint,
-          cli: target.cliEntrypoint,
-        },
-        linux: {
-          desktopEnvironments: linuxDesktopListForTarget(target),
-        },
-      })),
+      targets: form.targets.map((target, index) => {
+        const nextTarget: Record<string, unknown> = {
+          id: targetIdList[index] ?? "",
+          os: target.os,
+          arch: target.arch,
+          variant: sanitizeTargetSegment(target.variant, "default"),
+          payloadRoot: payloadRootForTarget(target),
+          entrypoints: {
+            gui: target.guiEntrypoint,
+            cli: target.cliEntrypoint,
+          },
+        };
+        if (target.os === "linux") {
+          nextTarget.linux = { desktopEnvironments: linuxDesktopListForTarget(target) };
+        }
+        return nextTarget;
+      }),
     };
     return JSON.stringify(nextManifest, null, 2);
   }, [form, screenshots, targetIdList]);
@@ -271,7 +289,28 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   const setTargetField = <Key extends keyof BuilderTarget>(index: number, key: Key, value: BuilderTarget[Key]) => {
     setForm((current) => ({
       ...current,
-      targets: current.targets.map((target, targetIndex) => (targetIndex === index ? { ...target, [key]: value } : target)),
+      targets: current.targets.map((target, targetIndex) => {
+        if (targetIndex !== index) {
+          return target;
+        }
+        const updated = { ...target, [key]: value };
+        if (key === "os") {
+          const nextOs = value as BuilderTarget["os"];
+          const nextDesktop = nextOs === "linux" ? updated.desktopEnvironment : "all";
+          return {
+            ...updated,
+            desktopEnvironment: nextDesktop,
+            variant: defaultVariantForTarget(nextOs, nextDesktop),
+          };
+        }
+        if (key === "desktopEnvironment") {
+          return {
+            ...updated,
+            variant: defaultVariantForTarget(updated.os, value as BuilderTarget["desktopEnvironment"]),
+          };
+        }
+        return updated;
+      }),
     }));
   };
 
@@ -385,23 +424,30 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
             ) : null}
             <div class={targetList}>
               {form.targets.map((target, index) => (
-                <BuilderTargetCard
+                <AccordionRow
                   key={target.editorId}
-                  target={target}
-                  isActive={index === activeTargetIndex}
-                  canRemove={form.targets.length > 1}
-                  isBusy={false}
-                  hasGui={form.hasGui}
-                  hasCli={form.hasCli}
-                  binaryTargetPath={null}
-                  binarySourceName={null}
-                  payloadRoot={payloadRootForTarget(target)}
+                  expanded={index === activeTargetIndex}
+                  titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch} / ${target.variant}`}
+                  subtitleText={target.os === "linux" ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.osUnsupportedInline")}
                   onToggle={() => setActiveTargetIndex(index === activeTargetIndex ? -1 : index)}
-                  onRemove={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
-                  onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
-                  onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
-                  onSetField={(key, value) => setTargetField(index, key, value)}
-                />
+                  actions={(
+                    <Button variant="danger" fullWidthOnSmall={false} onClick={() => onToast("info", appText("debugLab.builder.removeDisabled"))}>
+                      <IconX size={14} stroke={2.4} />
+                    </Button>
+                  )}
+                >
+                  <BuilderTargetCard
+                    target={target}
+                    isBusy={false}
+                    hasGui={form.hasGui}
+                    hasCli={form.hasCli}
+                    binaryTargetPath={null}
+                    binarySourceName={null}
+                    onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
+                    onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
+                    onSetField={(key, value) => setTargetField(index, key, value)}
+                  />
+                </AccordionRow>
               ))}
             </div>
             <div class={targetAddRow}>

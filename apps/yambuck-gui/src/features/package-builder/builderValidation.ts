@@ -19,10 +19,13 @@ export const sanitizeTargetSegment = (value: string, fallback: string): string =
 
 export const payloadRootForTarget = (target: BuilderTarget): string => {
   const variant = sanitizeTargetSegment(target.variant, "default");
-  return `payloads/linux/${target.arch}/${variant}`;
+  return `payloads/${target.os}/${target.arch}/${variant}`;
 };
 
 export const linuxDesktopListForTarget = (target: BuilderTarget): string[] => {
+  if (target.os !== "linux") {
+    return [];
+  }
   if (target.desktopEnvironment === "x11") {
     return ["x11"];
   }
@@ -36,8 +39,8 @@ export const buildTargetIdList = (targets: BuilderTarget[]): string[] => {
   const counts = new Map<string, number>();
   return targets.map((target) => {
     const variant = sanitizeTargetSegment(target.variant, "default");
-    const desktopScope = target.desktopEnvironment === "all" ? "" : `-${target.desktopEnvironment}`;
-    const base = `linux-${target.arch}-${variant}${desktopScope}`;
+    const desktopScope = target.os === "linux" && target.desktopEnvironment !== "all" ? `-${target.desktopEnvironment}` : "";
+    const base = `${target.os}-${target.arch}-${variant}${desktopScope}`;
     const seen = counts.get(base) ?? 0;
     counts.set(base, seen + 1);
     return seen === 0 ? base : `${base}-${seen + 1}`;
@@ -155,7 +158,7 @@ export const collectBuilderValidationResult = ({ form, screenshots, t }: Collect
       markIssue(fieldIssues, `target:${index}:variant`);
     }
 
-    const tupleKey = `linux/${target.arch}/${variant}`;
+    const tupleKey = `${target.os}/${target.arch}/${variant}`;
     const existingIndex = tupleIndexes.get(tupleKey);
     if (existingIndex !== undefined) {
       targetIssues.push(t("builder.validation.duplicateTuple", {
@@ -197,7 +200,7 @@ export const collectBuilderValidationResult = ({ form, screenshots, t }: Collect
     for (let right = left + 1; right < form.targets.length; right += 1) {
       const a = form.targets[left];
       const b = form.targets[right];
-      if (a.arch !== b.arch) {
+      if (a.os !== "linux" || b.os !== "linux" || a.arch !== b.arch) {
         continue;
       }
       const aDesktop = linuxDesktopListForTarget(a);

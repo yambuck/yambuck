@@ -3,10 +3,12 @@ export type BuilderStep = "identity" | "metadata" | "interfaces" | "targets" | "
 export const builderMinScreenshots = 1;
 export const builderMaxScreenshots = 6;
 
+export type BuilderOs = "linux" | "windows" | "macos";
 export type BuilderArch = "x86_64" | "aarch64" | "riscv64";
 
 export type BuilderTarget = {
   editorId: string;
+  os: BuilderOs;
   arch: BuilderArch;
   variant: string;
   desktopEnvironment: "all" | "x11" | "wayland";
