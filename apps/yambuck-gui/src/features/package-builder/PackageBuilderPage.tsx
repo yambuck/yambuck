@@ -18,6 +18,7 @@ import {
   saveBuilderSession,
   saveBuilderSessionAs,
   stageBuilderFiles,
+  validateBuilderSession,
 } from "../../lib/tauri/api";
 import type { BuilderStagedFile } from "../../types/app";
 import {
@@ -142,6 +143,31 @@ const defaultTarget = (arch: BuilderArch, index = 0): BuilderTarget => {
     cliEntrypoint: "app/bin/example-app",
   };
 };
+
+const normalizeTargetsForGuiToggle = (targets: BuilderTarget[], hasGui: boolean): BuilderTarget[] =>
+  targets.map((target) => {
+    if (target.os !== "linux") {
+      return target;
+    }
+    if (!hasGui) {
+      if (target.desktopEnvironment === "none") {
+        return target;
+      }
+      return {
+        ...target,
+        desktopEnvironment: "none",
+        variant: defaultVariantForTarget(target.os, "none"),
+      };
+    }
+    if (target.desktopEnvironment === "none") {
+      return {
+        ...target,
+        desktopEnvironment: "all",
+        variant: defaultVariantForTarget(target.os, "all"),
+      };
+    }
+    return target;
+  });
 
 const defaultBuilderForm = (): BuilderFormState => ({
   appId: "com.example.app",
@@ -379,6 +405,9 @@ const normalizeTargets = (value: unknown): BuilderTarget[] => {
         : [];
 
       let desktopEnvironment: BuilderTarget["desktopEnvironment"] = "all";
+      if (desktops.length === 0) {
+        desktopEnvironment = "none";
+      }
       if (desktops.length === 1 && desktops[0] === "x11") {
         desktopEnvironment = "x11";
       }
@@ -448,6 +477,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   const [isManifestModalOpen, setIsManifestModalOpen] = useState(false);
   const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null);
   const [licensePreviewText, setLicensePreviewText] = useState<string | null>(null);
+  const [reviewValidationState, setReviewValidationState] = useState<"idle" | "running" | "passed" | "failed">("idle");
+  const [reviewValidationMessage, setReviewValidationMessage] = useState<string | null>(null);
+  const [validatedManifestSnapshot, setValidatedManifestSnapshot] = useState<string | null>(null);
 
   const notify = (tone: ToastTone, key: string, params?: Record<string, string | number>) => {
     const message = appText(key, params);
@@ -570,6 +602,12 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     }
   }, [form.targets.length, activeTargetIndex]);
 
+  useEffect(() => {
+    if (step === "targets") {
+      setActiveTargetIndex(-1);
+    }
+  }, [step]);
+
   const screenshots = useMemo(
     () => parseScreenshotsText(form.screenshotsText),
     [form.screenshotsText],
@@ -638,6 +676,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     setForm(nextForm);
     setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
     setActiveTargetIndex(-1);
+    setReviewValidationState("idle");
+    setReviewValidationMessage(null);
+    setValidatedManifestSnapshot(null);
     setIsDirty(false);
     setSessionId(null);
     setOpenedPackageFile(null);
@@ -729,12 +770,36 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   };
 
   const manifestPreview = useMemo(() => buildManifestPreview(), [form, screenshots, targetIdList]);
+  const isManifestCurrentlyValidated = reviewValidationState === "passed" && validatedManifestSnapshot === manifestPreview;
+
+  useEffect(() => {
+    if (!validatedManifestSnapshot) {
+      return;
+    }
+    if (validatedManifestSnapshot === manifestPreview) {
+      return;
+    }
+    setReviewValidationState("idle");
+    setReviewValidationMessage(null);
+    setValidatedManifestSnapshot(null);
+  }, [manifestPreview, validatedManifestSnapshot]);
 
   const setField = <Key extends keyof BuilderFormState>(key: Key, value: BuilderFormState[Key]) => {
     const detailValue = typeof value === "string" ? value.length : value ? 1 : 0;
     logUiAction("builder-field-change", { field: key, valueMetric: detailValue });
     setStatusMessage(null);
     setForm((current) => ({ ...current, [key]: value }));
+    setIsDirty(true);
+  };
+
+  const setHasGui = (checked: boolean) => {
+    logUiAction("builder-field-change", { field: "hasGui", valueMetric: checked ? 1 : 0 });
+    setStatusMessage(null);
+    setForm((current) => ({
+      ...current,
+      hasGui: checked,
+      targets: normalizeTargetsForGuiToggle(current.targets, checked),
+    }));
     setIsDirty(true);
   };
 
@@ -826,6 +891,48 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
     setPendingSaveIntent(intent);
   };
 
+  const runReviewValidation = async () => {
+    const activeSessionId = ensureSessionId();
+    if (!activeSessionId) {
+      return;
+    }
+    if (allValidationIssues.length > 0) {
+      const firstIssueStep = builderSteps.find((builderStep) => stepIssueMap[builderStep].length > 0);
+      const firstIssue = firstIssueStep ? stepIssueMap[firstIssueStep][0] : null;
+      if (firstIssueStep) {
+        setStep(firstIssueStep);
+      }
+      if (firstIssue) {
+        setStatusMessage(firstIssue);
+        onToast("warning", firstIssue);
+      }
+      return;
+    }
+
+    setIsBusy(true);
+    setReviewValidationState("running");
+    setReviewValidationMessage(null);
+    setStatusMessage(null);
+    try {
+      await validateBuilderSession(activeSessionId, manifestPreview);
+      const message = appText("builder.review.validatePassed");
+      setReviewValidationState("passed");
+      setReviewValidationMessage(message);
+      setValidatedManifestSnapshot(manifestPreview);
+      setStatusMessage(message);
+      onToast("success", message);
+    } catch (error) {
+      const details = error instanceof Error ? error.message : appText("builder.review.validateFailed");
+      setReviewValidationState("failed");
+      setReviewValidationMessage(details);
+      setValidatedManifestSnapshot(null);
+      setStatusMessage(details);
+      onToast("error", details);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const replaceStagedAssets = (predicate: (item: StagedAsset) => boolean, nextItems: StagedAsset[]) => {
     setStagedAssets((current) => [...current.filter((item) => !predicate(item)), ...nextItems]);
   };
@@ -881,6 +988,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       setForm(nextForm);
       setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
       setActiveTargetIndex(-1);
+      setReviewValidationState("idle");
+      setReviewValidationMessage(null);
+      setValidatedManifestSnapshot(null);
       setStagedAssets([]);
       setStep(builderSteps[0]);
       setMode("new");
@@ -934,6 +1044,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       setForm(nextForm);
       setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
       setActiveTargetIndex(-1);
+      setReviewValidationState("idle");
+      setReviewValidationMessage(null);
+      setValidatedManifestSnapshot(null);
       setStagedAssets([]);
       setStep(builderSteps[0]);
       setMode("new");
@@ -1332,17 +1445,14 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
             <AccordionRow
               key={target.editorId}
               expanded={index === activeTargetIndex}
-              titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch} / ${target.variant.trim() || "default"}`}
-              subtitleText={target.os === "linux" ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.osUnsupportedInline")}
+              titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch}${(form.hasGui && target.variant.trim() && target.variant.trim() !== "default") ? ` / ${target.variant.trim()}` : ""}`}
+              subtitleText={target.os === "linux"
+                ? (form.hasGui ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.desktopInactiveCli"))
+                : appText("builder.targets.osUnsupportedInline")}
               onToggle={() => {
                 logUiAction("builder-target-select", { index, target: targetIdList[index] });
                 setActiveTargetIndex(index === activeTargetIndex ? -1 : index);
               }}
-              actions={(
-                <Button variant="danger" fullWidthOnSmall={false} onClick={() => setPendingTargetRemovalIndex(index)} disabled={isBusy || form.targets.length <= 1}>
-                  <IconX size={14} stroke={2.4} />
-                </Button>
-              )}
             >
               <BuilderTargetCard
                 target={target}
@@ -1355,6 +1465,12 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
                 onClearBinary={() => clearBinaryAsset(index)}
                 onSetField={(key, value) => setTargetField(index, key, value)}
               />
+              <div class={targetListActions}>
+                <span />
+                <Button variant="danger" fullWidthOnSmall={false} onClick={() => setPendingTargetRemovalIndex(index)} disabled={isBusy || form.targets.length <= 1}>
+                  {appText("builder.targets.remove")}
+                </Button>
+              </div>
             </AccordionRow>
           ))}
         </div>
@@ -1492,7 +1608,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.interfaces")}</p>
           {renderCurrentStepIssues()}
-          <CheckboxField class={`${compactCheckbox}${hasFieldIssue("hasGui") ? ` ${fieldStackInvalid}` : ""}`} checked={form.hasGui} onChange={(checked) => setField("hasGui", checked)}>{appText("builder.fields.hasGui")}</CheckboxField>
+          <CheckboxField class={`${compactCheckbox}${hasFieldIssue("hasGui") ? ` ${fieldStackInvalid}` : ""}`} checked={form.hasGui} onChange={setHasGui}>{appText("builder.fields.hasGui")}</CheckboxField>
           <CheckboxField class={`${compactCheckbox}${hasFieldIssue("hasCli") ? ` ${fieldStackInvalid}` : ""}`} checked={form.hasCli} onChange={(checked) => setField("hasCli", checked)}>{appText("builder.fields.hasCli")}</CheckboxField>
           {form.hasCli ? (
             <>
@@ -1638,6 +1754,17 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.review")}</p>
           {renderCurrentStepIssues()}
+          <div class={wizardFooterActions}>
+            <Button
+              variant="primary"
+              onClick={() => void runReviewValidation()}
+              disabled={isBusy || reviewValidationState === "running"}
+            >
+              {reviewValidationState === "running" ? appText("builder.review.validating") : appText("builder.review.validate")}
+            </Button>
+          </div>
+          {reviewValidationMessage ? <p class={sectionBody}>{reviewValidationMessage}</p> : null}
+          {!isManifestCurrentlyValidated ? <p class={sectionBody}>{appText("builder.review.mustValidate")}</p> : null}
           <p class={sectionBody}>{appText("builder.emptyReview")}</p>
         </div>
       );
@@ -1733,7 +1860,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
                 <Button onClick={() => setIsManifestModalOpen(true)} disabled={isBusy || !sessionId}>{appText("builder.previewOpen")}</Button>
                 <Button onClick={() => openSaveChecklist("save")} disabled={isBusy || !sessionId || !openedPackageFile}>{appText("builder.save")}</Button>
                 <Button onClick={() => openSaveChecklist("saveAs")} disabled={isBusy || !sessionId}>{appText("builder.saveAs")}</Button>
-                <Button variant="primary" onClick={() => openSaveChecklist("build")} disabled={isBusy || !sessionId}>{appText("builder.build")}</Button>
+                <Button variant="primary" onClick={() => openSaveChecklist("build")} disabled={isBusy || !sessionId || !isManifestCurrentlyValidated}>{appText("builder.build")}</Button>
               </>
             )}
           </div>

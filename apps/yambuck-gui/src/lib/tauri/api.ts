@@ -92,3 +92,6 @@ export const saveBuilderSessionAs = (sessionId: string, outputPath: string, mani
 
 export const discardBuilderSession = (sessionId: string) =>
   invoke("discard_builder_session", { sessionId });
+
+export const validateBuilderSession = (sessionId: string, manifestJson: string) =>
+  invoke("validate_builder_session", { sessionId, manifestJson });

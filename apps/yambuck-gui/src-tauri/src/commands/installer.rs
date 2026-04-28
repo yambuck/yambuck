@@ -137,3 +137,8 @@ pub fn save_builder_session_as(
 pub fn discard_builder_session(session_id: &str) -> Result<(), String> {
     crate::discard_builder_session_impl(session_id)
 }
+
+#[tauri::command]
+pub fn validate_builder_session(session_id: &str, manifest_json: &str) -> Result<(), String> {
+    crate::validate_builder_session_impl(session_id, manifest_json)
+}

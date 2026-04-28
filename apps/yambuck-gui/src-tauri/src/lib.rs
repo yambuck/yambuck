@@ -486,6 +486,26 @@ pub(crate) fn save_builder_session_impl(session_id: &str, manifest_json: &str) -
     save_builder_session_as_impl(session_id, &output_path, manifest_json)
 }
 
+pub(crate) fn validate_builder_session_impl(session_id: &str, manifest_json: &str) -> Result<(), String> {
+    let _ = support::logging::append_log(
+        "INFO",
+        &format!("[builder-validate] session={session_id}"),
+    );
+
+    with_builder_session_mut(session_id, |entry| {
+        write_workspace_manifest(&entry.workspace_dir, manifest_json)?;
+        let output = entry.workspace_dir.join(".builder-validation.yambuck");
+        write_workspace_package(&entry.workspace_dir, &output)?;
+        let output_value = output
+            .to_str()
+            .ok_or_else(|| "output path must be valid UTF-8".to_string())?;
+        inspect_package_workflow_with_shared_validation(output_value, "builder-review-validate")
+            .map_err(|error| format!("package validation failed: {error}"))?;
+        let _ = fs::remove_file(&output);
+        Ok(())
+    })
+}
+
 pub(crate) fn discard_builder_session_impl(session_id: &str) -> Result<(), String> {
     let _ = support::logging::append_log(
         "INFO",
@@ -989,6 +1009,7 @@ pub fn run() {
             commands::installer::save_builder_session,
             commands::installer::save_builder_session_as,
             commands::installer::discard_builder_session,
+            commands::installer::validate_builder_session,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

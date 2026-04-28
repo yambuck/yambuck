@@ -1,4 +1,4 @@
-import { IconFileText, IconPlus, IconX } from "@tabler/icons-preact";
+import { IconBinary, IconPlus, IconX } from "@tabler/icons-preact";
 import { CheckboxField } from "../../../components/ui/CheckboxField";
 import { SelectField } from "../../../components/ui/SelectField";
 import { TextField } from "../../../components/ui/TextField";
@@ -9,7 +9,9 @@ import {
   assetThumbAdd,
   assetThumbAddIcon,
   assetThumbDocIcon,
-  assetThumbOpen,
+  assetThumbBinaryIcon,
+  assetThumbBinaryName,
+  assetThumbBinaryPlaceholder,
   assetThumbPlaceholder,
   assetThumbRemove,
   assetThumbTile,
@@ -17,7 +19,6 @@ import {
   compactCheckbox,
   fieldStack,
   sectionBody,
-  targetBinaryHint,
 } from "../packageBuilderPage.css";
 
 type BuilderTargetCardProps = {
@@ -33,6 +34,9 @@ type BuilderTargetCardProps = {
 };
 
 const desktopChecksFromValue = (value: BuilderTarget["desktopEnvironment"]): { x11: boolean; wayland: boolean } => {
+  if (value === "none") {
+    return { x11: false, wayland: false };
+  }
   if (value === "x11") {
     return { x11: true, wayland: false };
   }
@@ -52,7 +56,7 @@ const desktopValueFromChecks = (x11: boolean, wayland: boolean): BuilderTarget["
   if (wayland) {
     return "wayland";
   }
-  return "all";
+  return "none";
 };
 
 export const BuilderTargetCard = ({
@@ -102,6 +106,7 @@ export const BuilderTargetCard = ({
           <CheckboxField
             class={compactCheckbox}
             checked={desktopChecks.x11}
+            disabled={!hasGui}
             onChange={(checked) => onSetField("desktopEnvironment", desktopValueFromChecks(checked, desktopChecks.wayland))}
           >
             {appText("builder.targets.desktop.x11")}
@@ -109,10 +114,12 @@ export const BuilderTargetCard = ({
           <CheckboxField
             class={compactCheckbox}
             checked={desktopChecks.wayland}
+            disabled={!hasGui}
             onChange={(checked) => onSetField("desktopEnvironment", desktopValueFromChecks(desktopChecks.x11, checked))}
           >
             {appText("builder.targets.desktop.wayland")}
           </CheckboxField>
+          {!hasGui ? <p class={sectionBody}>{appText("builder.targets.desktopControlsDisabledCli")}</p> : null}
         </div>
       ) : (
         <p class={sectionBody}>{appText("builder.targets.osUnsupportedInline")}</p>
@@ -136,13 +143,12 @@ export const BuilderTargetCard = ({
         <BuilderFieldLabel label={appText("builder.fields.binaryUpload")} help={appText("builder.help.binaryUpload")} />
         <div class={`${assetThumbTile} ${assetThumbTileCompact}`}>
           {binaryTargetPath ? (
-            <button class={assetThumbOpen} type="button" onClick={onBrowseBinary} title={appText("builder.targets.binaryReplace")}>
-              <div class={assetThumbPlaceholder}>
-                <span class={assetThumbDocIcon}><IconFileText size={54} stroke={1.8} /></span>
-                <span>{binarySourceName ?? appText("builder.files.kind.binary")}</span>
-                <span class={targetBinaryHint}>{binaryTargetPath}</span>
+            <div class={assetThumbPlaceholder}>
+              <div class={assetThumbBinaryPlaceholder}>
+                <span class={`${assetThumbDocIcon} ${assetThumbBinaryIcon}`}><IconBinary size={54} stroke={1.8} /></span>
+                <span class={assetThumbBinaryName}>{binarySourceName ?? appText("builder.files.kind.binary")}</span>
               </div>
-            </button>
+            </div>
           ) : (
             <button class={assetThumbAdd} type="button" onClick={onBrowseBinary} title={appText("builder.files.browseBinary")} disabled={isBusy}>
               <span class={assetThumbAddIcon}><IconPlus size={16} stroke={2.6} /></span>

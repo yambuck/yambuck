@@ -26,6 +26,9 @@ export const linuxDesktopListForTarget = (target: BuilderTarget): string[] => {
   if (target.os !== "linux") {
     return [];
   }
+  if (target.desktopEnvironment === "none") {
+    return [];
+  }
   if (target.desktopEnvironment === "x11") {
     return ["x11"];
   }

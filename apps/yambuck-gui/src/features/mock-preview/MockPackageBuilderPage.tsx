@@ -1,4 +1,4 @@
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import { IconFileText, IconLayoutGrid, IconPlus, IconX } from "@tabler/icons-preact";
 import { Button } from "../../components/ui/Button";
 import { CheckboxField } from "../../components/ui/CheckboxField";
@@ -120,6 +120,15 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
       guiEntrypoint: "app/bin/debug-app",
       cliEntrypoint: "app/bin/debug-app",
     },
+    {
+      editorId: createBuilderTargetEditorId("mock-target-2"),
+      os: "linux",
+      arch: "aarch64",
+      variant: "wayland",
+      desktopEnvironment: "wayland",
+      guiEntrypoint: "app/bin/debug-app",
+      cliEntrypoint: "app/bin/debug-app",
+    },
   ],
 });
 
@@ -162,6 +171,31 @@ const defaultVariantForTarget = (os: BuilderTarget["os"], desktopEnvironment: Bu
   return "default";
 };
 
+const normalizeTargetsForGuiToggle = (targets: BuilderTarget[], hasGui: boolean): BuilderTarget[] =>
+  targets.map((target) => {
+    if (target.os !== "linux") {
+      return target;
+    }
+    if (!hasGui) {
+      if (target.desktopEnvironment === "none") {
+        return target;
+      }
+      return {
+        ...target,
+        desktopEnvironment: "none",
+        variant: defaultVariantForTarget(target.os, "none"),
+      };
+    }
+    if (target.desktopEnvironment === "none") {
+      return {
+        ...target,
+        desktopEnvironment: "all",
+        variant: defaultVariantForTarget(target.os, "all"),
+      };
+    }
+    return target;
+  });
+
 export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
   const [step, setStep] = useState<BuilderStep>(builderSteps[0]);
@@ -173,6 +207,10 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   const [statusMessage] = useState<string | null>(null);
   const [isManifestModalOpen, setIsManifestModalOpen] = useState(false);
   const [pendingSaveIntent, setPendingSaveIntent] = useState<SaveIntent | null>(null);
+  const [mockBinaryByTarget, setMockBinaryByTarget] = useState<Record<string, { sourceName: string }>>({});
+  const [reviewValidationState, setReviewValidationState] = useState<"idle" | "running" | "passed" | "failed">("idle");
+  const [reviewValidationMessage, setReviewValidationMessage] = useState<string | null>(null);
+  const [validatedManifestSnapshot, setValidatedManifestSnapshot] = useState<string | null>(null);
 
   const screenshots = useMemo(
     () => parseScreenshotsText(form.screenshotsText),
@@ -206,6 +244,10 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
     setForm(nextForm);
     setScreenshotSlots(screenshotSlotsFromPaths(parseScreenshotsText(nextForm.screenshotsText)));
     setActiveTargetIndex(-1);
+    setMockBinaryByTarget({});
+    setReviewValidationState("idle");
+    setReviewValidationMessage(null);
+    setValidatedManifestSnapshot(null);
     setShowDiscardConfirm(false);
     setMode("start");
   };
@@ -276,9 +318,33 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   }, [form, screenshots, targetIdList]);
 
   const iconPreviewSrc: string | null = form.iconPath ? "/mock/example-app-icon.png" : null;
+  const isManifestCurrentlyValidated = reviewValidationState === "passed" && validatedManifestSnapshot === manifestPreview;
+
+  useEffect(() => {
+    if (step === "targets") {
+      setActiveTargetIndex(-1);
+    }
+  }, [step]);
+
+  useEffect(() => {
+    if (!validatedManifestSnapshot || validatedManifestSnapshot === manifestPreview) {
+      return;
+    }
+    setReviewValidationState("idle");
+    setReviewValidationMessage(null);
+    setValidatedManifestSnapshot(null);
+  }, [manifestPreview, validatedManifestSnapshot]);
 
   const setField = <Key extends keyof BuilderFormState>(key: Key, value: BuilderFormState[Key]) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const setHasGui = (checked: boolean) => {
+    setForm((current) => ({
+      ...current,
+      hasGui: checked,
+      targets: normalizeTargetsForGuiToggle(current.targets, checked),
+    }));
   };
 
   const syncScreenshotSlots = (nextSlots: Array<string | null>) => {
@@ -386,7 +452,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
       return (
         <div class={fieldGrid}>
           <p class={sectionBody}>{appText("builder.section.interfaces")}</p>
-          <CheckboxField class={compactCheckbox} checked={form.hasGui} onChange={(checked) => setField("hasGui", checked)}>{appText("builder.fields.hasGui")}</CheckboxField>
+          <CheckboxField class={compactCheckbox} checked={form.hasGui} onChange={setHasGui}>{appText("builder.fields.hasGui")}</CheckboxField>
           <CheckboxField class={compactCheckbox} checked={form.hasCli} onChange={(checked) => setField("hasCli", checked)}>{appText("builder.fields.hasCli")}</CheckboxField>
           {form.hasCli ? (
             <>
@@ -427,26 +493,43 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
                 <AccordionRow
                   key={target.editorId}
                   expanded={index === activeTargetIndex}
-                  titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch} / ${target.variant}`}
-                  subtitleText={target.os === "linux" ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.osUnsupportedInline")}
+                  titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch}${(form.hasGui && target.variant.trim() && target.variant.trim() !== "default") ? ` / ${target.variant.trim()}` : ""}`}
+                  subtitleText={target.os === "linux"
+                    ? (form.hasGui ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.desktopInactiveCli"))
+                    : appText("builder.targets.osUnsupportedInline")}
                   onToggle={() => setActiveTargetIndex(index === activeTargetIndex ? -1 : index)}
-                  actions={(
-                    <Button variant="danger" fullWidthOnSmall={false} onClick={() => onToast("info", appText("debugLab.builder.removeDisabled"))}>
-                      <IconX size={14} stroke={2.4} />
-                    </Button>
-                  )}
                 >
                   <BuilderTargetCard
                     target={target}
                     isBusy={false}
                     hasGui={form.hasGui}
                     hasCli={form.hasCli}
-                    binaryTargetPath={null}
-                    binarySourceName={null}
-                    onBrowseBinary={() => onToast("info", appText("debugLab.builder.binaryToast"))}
-                    onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
+                    binaryTargetPath={mockBinaryByTarget[target.editorId]
+                      ? `${payloadRootForTarget(target)}/app/bin/${mockBinaryByTarget[target.editorId]!.sourceName}`
+                      : null}
+                    binarySourceName={mockBinaryByTarget[target.editorId]?.sourceName ?? null}
+                    onBrowseBinary={() => {
+                      setMockBinaryByTarget((current) => ({
+                        ...current,
+                        [target.editorId]: { sourceName: "debug-app" },
+                      }));
+                      onToast("info", appText("builder.files.browseBinary"));
+                    }}
+                    onClearBinary={() => {
+                      setMockBinaryByTarget((current) => {
+                        const next = { ...current };
+                        delete next[target.editorId];
+                        return next;
+                      });
+                    }}
                     onSetField={(key, value) => setTargetField(index, key, value)}
                   />
+                  <div class={targetListActions}>
+                    <span />
+                    <Button variant="danger" fullWidthOnSmall={false} onClick={() => onToast("info", appText("debugLab.builder.removeDisabled"))}>
+                      {appText("builder.targets.remove")}
+                    </Button>
+                  </div>
                 </AccordionRow>
               ))}
             </div>
@@ -552,6 +635,22 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
       );
     }
     
+    if (step === "review") {
+      return (
+        <div class={fieldGrid}>
+          <p class={sectionBody}>{appText("builder.section.review")}</p>
+          <div class={wizardFooterActions}>
+            <Button variant="primary" onClick={runReviewValidation}>
+              {reviewValidationState === "running" ? appText("builder.review.validating") : appText("builder.review.validate")}
+            </Button>
+          </div>
+          {reviewValidationMessage ? <p class={sectionBody}>{reviewValidationMessage}</p> : null}
+          {!isManifestCurrentlyValidated ? <p class={sectionBody}>{appText("builder.review.mustValidate")}</p> : null}
+          <p class={sectionBody}>{appText("builder.emptyReview")}</p>
+        </div>
+      );
+    }
+
     return <p class={sectionBody}>{appText("builder.emptyReview")}</p>;
   };
 
@@ -586,9 +685,39 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
     setLicensePreviewText("Mock license preview\n\nReplace this with staged license content in real mode.");
   };
 
+  const runReviewValidation = () => {
+    if (allValidationIssues.length > 0) {
+      const firstIssueStep = builderSteps.find((builderStep) => stepIssueMap[builderStep].length > 0);
+      const firstIssue = firstIssueStep ? stepIssueMap[firstIssueStep][0] : null;
+      if (firstIssueStep) {
+        setStep(firstIssueStep);
+      }
+      if (firstIssue) {
+        onToast("warning", firstIssue);
+      }
+      setReviewValidationState("failed");
+      setReviewValidationMessage(firstIssue ?? appText("builder.review.validateFailed"));
+      setValidatedManifestSnapshot(null);
+      return;
+    }
+    setReviewValidationState("running");
+    setReviewValidationMessage(null);
+    window.setTimeout(() => {
+      const message = appText("builder.review.validatePassed");
+      setReviewValidationState("passed");
+      setReviewValidationMessage(message);
+      setValidatedManifestSnapshot(manifestPreview);
+      onToast("success", message);
+    }, 180);
+  };
+
   const handleStartMock = () => {
     setMode("new");
     setActiveTargetIndex(-1);
+    setMockBinaryByTarget({});
+    setReviewValidationState("idle");
+    setReviewValidationMessage(null);
+    setValidatedManifestSnapshot(null);
     setStep(builderSteps[0]);
   };
 
@@ -671,7 +800,7 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
             ) : (
               <>
                 <Button onClick={() => setIsManifestModalOpen(true)}>{appText("builder.previewOpen")}</Button>
-                <Button variant="primary" onClick={() => openSaveChecklist("build")}>{appText("builder.build")}</Button>
+                <Button variant="primary" onClick={() => openSaveChecklist("build")} disabled={!isManifestCurrentlyValidated}>{appText("builder.build")}</Button>
               </>
             )}
           </div>

@@ -1,5 +1,4 @@
-import { useMemo, useState } from "preact/hooks";
-import { IconX } from "@tabler/icons-preact";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import { Button } from "../../components/ui/Button";
 import { AccordionRow } from "../../components/ui/AccordionRow";
 import { CheckboxField } from "../../components/ui/CheckboxField";
@@ -215,6 +214,9 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
   const [builderFormPreview, setBuilderFormPreview] = useState<BuilderFormState>(() => buildPreviewScenarioForm("clean"));
   const [showBuilderChecklistPreview, setShowBuilderChecklistPreview] = useState(false);
   const [showBuilderManifestPreview, setShowBuilderManifestPreview] = useState(false);
+  const [builderReviewValidationState, setBuilderReviewValidationState] = useState<"idle" | "running" | "passed" | "failed">("idle");
+  const [builderReviewValidationMessage, setBuilderReviewValidationMessage] = useState<string | null>(null);
+  const [builderValidatedManifestSnapshot, setBuilderValidatedManifestSnapshot] = useState<string | null>(null);
 
   const builderScreenshots = useMemo(
     () => builderFormPreview.screenshotsText.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
@@ -275,6 +277,22 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
     };
     return JSON.stringify(manifest, null, 2);
   }, [builderFormPreview, builderScreenshots, builderTargetIds]);
+  const isBuilderManifestValidated = builderReviewValidationState === "passed" && builderValidatedManifestSnapshot === builderManifestPreview;
+
+  useEffect(() => {
+    if (builderStepPreview === "targets") {
+      setBuilderActiveTargetIndex(-1);
+    }
+  }, [builderStepPreview]);
+
+  useEffect(() => {
+    if (!builderValidatedManifestSnapshot || builderValidatedManifestSnapshot === builderManifestPreview) {
+      return;
+    }
+    setBuilderReviewValidationState("idle");
+    setBuilderReviewValidationMessage(null);
+    setBuilderValidatedManifestSnapshot(null);
+  }, [builderManifestPreview, builderValidatedManifestSnapshot]);
 
   const setPreviewTargetField = <Key extends keyof BuilderTarget>(index: number, key: Key, value: BuilderTarget[Key]) => {
     setBuilderFormPreview((current) => ({
@@ -309,6 +327,35 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
     setBuilderFormPreview(buildPreviewScenarioForm(scenario));
     setBuilderActiveTargetIndex(-1);
     setBuilderStepPreview("identity");
+    setBuilderReviewValidationState("idle");
+    setBuilderReviewValidationMessage(null);
+    setBuilderValidatedManifestSnapshot(null);
+  };
+
+  const runBuilderReviewValidation = () => {
+    if (builderAllIssues.length > 0) {
+      const firstIssueStep = builderSteps.find((nextStep) => builderStepIssueMap[nextStep].length > 0);
+      const firstIssue = firstIssueStep ? builderStepIssueMap[firstIssueStep][0] : null;
+      if (firstIssueStep) {
+        setBuilderStepPreview(firstIssueStep);
+      }
+      if (firstIssue) {
+        onToast("warning", firstIssue);
+      }
+      setBuilderReviewValidationState("failed");
+      setBuilderReviewValidationMessage(firstIssue ?? appText("builder.review.validateFailed"));
+      setBuilderValidatedManifestSnapshot(null);
+      return;
+    }
+    setBuilderReviewValidationState("running");
+    setBuilderReviewValidationMessage(null);
+    window.setTimeout(() => {
+      const message = appText("builder.review.validatePassed");
+      setBuilderReviewValidationState("passed");
+      setBuilderReviewValidationMessage(message);
+      setBuilderValidatedManifestSnapshot(builderManifestPreview);
+      onToast("success", message);
+    }, 180);
   };
 
   const goBuilderPreviewBack = () => {
@@ -518,14 +565,11 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                     <AccordionRow
                       key={target.editorId}
                       expanded={builderActiveTargetIndex === index}
-                      titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch} / ${target.variant}`}
-                      subtitleText={target.os === "linux" ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.osUnsupportedInline")}
+                      titleText={`${appText(`builder.targets.os.${target.os}`)} / ${target.arch}${(builderFormPreview.hasGui && target.variant.trim() && target.variant.trim() !== "default") ? ` / ${target.variant.trim()}` : ""}`}
+                      subtitleText={target.os === "linux"
+                        ? (builderFormPreview.hasGui ? appText(`builder.targets.desktop.${target.desktopEnvironment}`) : appText("builder.targets.desktopInactiveCli"))
+                        : appText("builder.targets.osUnsupportedInline")}
                       onToggle={() => setBuilderActiveTargetIndex(builderActiveTargetIndex === index ? -1 : index)}
-                      actions={(
-                        <Button variant="danger" fullWidthOnSmall={false} onClick={() => onToast("info", appText("debugLab.builder.removeDisabled"))}>
-                          <IconX size={14} stroke={2.4} />
-                        </Button>
-                      )}
                     >
                       <BuilderTargetCard
                         target={target}
@@ -538,8 +582,24 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                         onClearBinary={() => onToast("info", appText("debugLab.builder.removeDisabled"))}
                         onSetField={(key, value) => setPreviewTargetField(index, key, value)}
                       />
+                      <div class={targetListActions}>
+                        <span />
+                        <Button variant="danger" fullWidthOnSmall={false} onClick={() => onToast("info", appText("debugLab.builder.removeDisabled"))}>
+                          {appText("builder.targets.remove")}
+                        </Button>
+                      </div>
                     </AccordionRow>
                   ))}
+                </div>
+              ) : builderStepPreview === "review" ? (
+                <div class={stack}>
+                  <div class={wizardFooterActions}>
+                    <Button variant="primary" onClick={runBuilderReviewValidation}>
+                      {builderReviewValidationState === "running" ? appText("builder.review.validating") : appText("builder.review.validate")}
+                    </Button>
+                  </div>
+                  {builderReviewValidationMessage ? <p>{builderReviewValidationMessage}</p> : null}
+                  {!isBuilderManifestValidated ? <p>{appText("builder.review.mustValidate")}</p> : null}
                 </div>
               ) : (
                 <MessagePanel tone="info" title={appText("debugLab.builder.placeholderTitle")}>
@@ -554,7 +614,7 @@ export const UiDebugLabPage = ({ onBackToSettingsDebug, onToast }: UiDebugLabPag
                   {!builderFinalStep ? (
                     <Button variant="primary" onClick={goBuilderPreviewNext}>{appText("builder.next")}</Button>
                   ) : (
-                    <Button variant="primary" onClick={() => setShowBuilderChecklistPreview(true)}>{appText("builder.build")}</Button>
+                    <Button variant="primary" onClick={() => setShowBuilderChecklistPreview(true)} disabled={!isBuilderManifestValidated}>{appText("builder.build")}</Button>
                   )}
                 </div>
               </div>

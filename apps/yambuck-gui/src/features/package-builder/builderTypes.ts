@@ -11,7 +11,7 @@ export type BuilderTarget = {
   os: BuilderOs;
   arch: BuilderArch;
   variant: string;
-  desktopEnvironment: "all" | "x11" | "wayland";
+  desktopEnvironment: "all" | "x11" | "wayland" | "none";
   guiEntrypoint: string;
   cliEntrypoint: string;
 };

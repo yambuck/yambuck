@@ -711,6 +711,36 @@ export const assetThumbDocIcon = style({
   justifyContent: "center",
 });
 
+export const assetThumbBinaryIcon = style({
+  width: "3.5rem",
+  height: "3.5rem",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+});
+
+export const assetThumbBinaryPlaceholder = style({
+  minHeight: "120px",
+  width: "100%",
+  position: "relative",
+  textAlign: "center",
+});
+
+export const assetThumbBinaryName = style({
+  position: "absolute",
+  left: "50%",
+  bottom: "0.35rem",
+  transform: "translateX(-50%)",
+  maxWidth: "92%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
 export const assetThumbRemove = style({
   position: "absolute",
   top: "0.35rem",
