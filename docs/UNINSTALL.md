@@ -8,7 +8,7 @@ Removes Yambuck itself (binary + desktop integration) from user and system locat
 but leaves Yambuck-managed apps in place.
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
 ```
 
 ## Full Purge (Testing / Clean Slate)
@@ -21,7 +21,7 @@ Important: purge only targets Yambuck-managed installs/metadata. It does not rem
 If system-managed paths are present, the script requests admin permission when needed.
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 ```
 
 ## Script Options

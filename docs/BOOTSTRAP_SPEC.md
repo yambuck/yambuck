@@ -13,13 +13,13 @@ The bootstrap flow installs Yambuck itself with one command, then enables the no
 Primary command shown on website:
 
 ```bash
-curl -fsSL https://yambuck.com/install.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
 ```
 
 Companion uninstall command:
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
 ```
 
 ## Scope and Privilege

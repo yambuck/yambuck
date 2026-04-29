@@ -6,15 +6,15 @@
 
 **A Linux-first installer that makes direct-download apps feel simple and predictable.**
 
-[![Status](https://img.shields.io/badge/status-alpha%20preview-f57c00)](https://github.com/jackbrumley/yambuck)
-[![Platform](https://img.shields.io/badge/platform-linux-455a64)](https://github.com/jackbrumley/yambuck)
-[![UI](https://img.shields.io/badge/interface-GUI--first-1565c0)](https://github.com/jackbrumley/yambuck)
-[![Core](https://img.shields.io/badge/core-rust%20%2B%20tauri-2e7d32)](https://github.com/jackbrumley/yambuck)
-[![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Alpha%20Preview-blue)](https://github.com/yambuck/yambuck)
+[![Platform](https://img.shields.io/badge/Platform-Linux-brightgreen)](https://github.com/yambuck/yambuck)
+[![UI](https://img.shields.io/badge/Interface-GUI--first-aqua)](https://github.com/yambuck/yambuck)
+[![Core](https://img.shields.io/badge/Core-Rust%20%2B%20Tauri-orange)](https://github.com/yambuck/yambuck)
+[![License](https://img.shields.io/badge/License-AGPLv3-yellow.svg)](LICENSE)
 
 </div>
 
-Yambuck exists because Linux app installs are still fragmented when software is distributed as direct downloads. Users are often forced to choose between `.deb`, `.rpm`, AppImage, and architecture-specific builds before they can even begin. A `.deb` may work on Debian-based systems but not Fedora; an `.rpm` is the reverse. The result is too many decisions up front and an install experience that changes from system to system.
+Yambuck exists because Linux app installs are still fragmented when software is distributed as direct downloads. Users are often forced to choose between `.deb`, `.rpm`, `AppImage`, and architecture-specific builds before they can even begin. A `.deb` may work on Debian-based systems but not Fedora; an `.rpm` is the reverse. The result is too many decisions up front and an install experience that changes from system to system.
 
 Yambuck is built for two groups: small developers who want direct distribution without the overhead of distro repositories, and users who want a dead-simple install path regardless of distro. The goal is one package format and one guided flow, with a richer preview than typical downloaded package flows — including app metadata, icon, and screenshots before install. Install is simple, and uninstall is just as simple from the same place.
 
@@ -34,19 +34,19 @@ At a glance, the flow is:
 **Install Yambuck:**
 
 ```bash
-curl -fsSL https://yambuck.com/install.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
 ```
 
 Uninstall Yambuck (safe default, keeps managed apps):
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
 ```
 
 Full purge (remove Yambuck and Yambuck-managed apps):
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --remove-all-apps --yes
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 ```
 
 ## Current Status

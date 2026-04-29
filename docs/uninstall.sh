@@ -18,8 +18,8 @@ Options:
   -h, --help           Show this help message
 
 Examples:
-  curl -fsSL https://yambuck.com/uninstall.sh | bash
-  curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
+  curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
+  curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 EOF
 }
 

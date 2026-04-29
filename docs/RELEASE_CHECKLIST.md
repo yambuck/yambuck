@@ -53,7 +53,7 @@ gh release create v0.1.0 \
 On a test Linux machine:
 
 ```bash
-curl -fsSL https://yambuck.com/install.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
 ```
 
 Verify:
@@ -65,7 +65,7 @@ Verify:
 ## 4) Validate System Install Path (Optional)
 
 ```bash
-curl -fsSL https://yambuck.com/install.sh | bash -s -- --system --yes
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system --yes
 ```
 
 Verify:
@@ -109,13 +109,13 @@ Confirm Copy button works and command matches current bootstrap script.
 Validate uninstall command:
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --yes
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --yes
 ```
 
 For full clean-slate testing:
 
 ```bash
-curl -fsSL https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 ```
 
 ## 7) First Test Exit Criteria
