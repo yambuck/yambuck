@@ -1,238 +1,217 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yambuck | Simple Linux App Installer (Alpha)</title>
-    <meta
-      name="description"
-      content="Yambuck is a beginner-friendly Linux app installer for direct downloads. Open one .yambuck file, review app details and screenshots, install, and uninstall from one place."
-    />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
+---
+layout: default
+title: Yambuck | Simple Linux App Installer (Alpha)
+description: Yambuck is a beginner-friendly Linux app installer for direct downloads. Open one .yambuck file, review app details and screenshots, install, and uninstall from one place.
+canonical: https://yambuck.com/
+---
+<header class="hero">
+  <div class="brand-lockup" aria-label="Yambuck">
+    <img src="{{ '/favicon.svg' | relative_url }}" alt="" aria-hidden="true" />
+    <span>Yambuck</span>
+  </div>
+  <h1>Simple Linux app installs.</h1>
+  <p class="hero-copy">
+    Yambuck is a GUI installer for Linux software. Instead of distro-specific app stores and
+    package formats, it gives users one consistent install experience across distros.
+  </p>
+</header>
 
-    <main class="page">
-      <header class="hero">
-        <div class="brand-lockup" aria-label="Yambuck">
-          <img src="./favicon.svg" alt="" aria-hidden="true" />
-          <span>Yambuck</span>
-        </div>
-        <h1>Simple Linux app installs.</h1>
-        <p class="hero-copy">
-          Yambuck is a GUI installer for Linux software. Instead of distro-specific app stores and
-          package formats, it gives users one consistent install experience across distros.
-        </p>
-      </header>
+<section class="install-card" aria-labelledby="install-title">
+  <div class="install-card-header">
+    <h2 id="install-title">Install Yambuck</h2>
+    <span class="status">Alpha Preview</span>
+  </div>
+  <p>Install Yambuck once, then open <code>.yambuck</code> packages with a simple guided installer.</p>
+  <div class="command-shell">
+    <code id="install-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash</code>
+    <button id="copy-command" type="button">Copy</button>
+  </div>
+  <p class="command-note">
+    Yambuck is in alpha preview. Core flows work, with ongoing reliability improvements.
+  </p>
+  <p class="command-note">
+    Need to remove Yambuck later?
+    <a href="{{ '/uninstall.html' | relative_url }}">Uninstall instructions</a>.
+  </p>
+</section>
 
-      <section class="install-card" aria-labelledby="install-title">
-        <div class="install-card-header">
-          <h2 id="install-title">Install Yambuck</h2>
-          <span class="status">Alpha Preview</span>
-        </div>
-        <p>Install Yambuck once, then open <code>.yambuck</code> packages with a simple guided installer.</p>
-        <div class="command-shell">
-          <code id="install-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash</code>
-          <button id="copy-command" type="button">Copy</button>
-        </div>
-        <p class="command-note">
-          Yambuck is in alpha preview. Core flows work, with ongoing reliability improvements.
-        </p>
-        <p class="command-note">
-          Need to remove Yambuck later?
-          <a href="./uninstall.html">Uninstall instructions</a>.
-        </p>
-      </section>
+<section class="steps" aria-label="Quick start steps">
+  <article>
+    <p class="step-kicker">Step 1</p>
+    <h3>Install Yambuck</h3>
+    <p>Run the command above once to install Yambuck on your machine.</p>
+  </article>
+  <article>
+    <p class="step-kicker">Step 2</p>
+    <h3>Download example package</h3>
+    <p>Download a demo <code>.yambuck</code> file to try the install experience.</p>
+    <a
+      class="link-button step-action step-file-button"
+      href="https://github.com/yambuck/yambuck/releases/latest/download/example-app.yambuck"
+      aria-label="Download example-app.yambuck"
+    >
+      <span class="step-file-label">Download Example Package</span>
+    </a>
+  </article>
+  <article>
+    <p class="step-kicker">Step 3</p>
+    <h3>Open and install</h3>
+    <p>Open the downloaded <code>.yambuck</code> file and complete the guided installer steps.</p>
+  </article>
+</section>
 
-      <section class="steps" aria-label="Quick start steps">
-        <article>
-          <p class="step-kicker">Step 1</p>
-          <h3>Install Yambuck</h3>
-          <p>Run the command above once to install Yambuck on your machine.</p>
-        </article>
-        <article>
-          <p class="step-kicker">Step 2</p>
-          <h3>Download example package</h3>
-          <p>Download a demo <code>.yambuck</code> file to try the install experience.</p>
-          <a
-            class="link-button step-action step-file-button"
-            href="https://github.com/yambuck/yambuck/releases/latest/download/example-app.yambuck"
-            aria-label="Download example-app.yambuck"
-          >
-            <span class="step-file-label">Download Example Package</span>
-          </a>
-        </article>
-        <article>
-          <p class="step-kicker">Step 3</p>
-          <h3>Open and install</h3>
-          <p>Open the downloaded <code>.yambuck</code> file and complete the guided installer steps.</p>
-        </article>
-      </section>
+<section class="product-preview" aria-labelledby="preview-title">
+  <div class="install-card-header preview-header">
+    <h2 id="preview-title">Preview</h2>
+  </div>
+  <div class="preview-viewer">
+    <div class="preview-carousel">
+      <button type="button" class="preview-nav preview-nav-prev" id="preview-prev" aria-label="Previous preview image">&#10094;</button>
+      <div class="preview-image-wrap">
+        <img
+          id="preview-shot"
+          class="preview-shot"
+          src="{{ '/screenshots/yambuck-screenshot-v0.2.0-preview.png' | relative_url }}"
+          alt="Yambuck installer preview screen"
+        />
+      </div>
+      <button type="button" class="preview-nav preview-nav-next" id="preview-next" aria-label="Next preview image">&#10095;</button>
+    </div>
+    <p class="preview-badge" id="preview-caption">Installer preview</p>
+  </div>
+  <div class="preview-actions">
+    <a class="link-button" href="{{ '/screenshots/' | relative_url }}">More Screenshots</a>
+  </div>
+</section>
 
-      <section class="product-preview" aria-labelledby="preview-title">
-        <div class="install-card-header preview-header">
-          <h2 id="preview-title">Preview</h2>
-        </div>
-        <div class="preview-viewer">
-          <div class="preview-carousel">
-            <button type="button" class="preview-nav preview-nav-prev" id="preview-prev" aria-label="Previous preview image">&#10094;</button>
-            <div class="preview-image-wrap">
-              <img
-                id="preview-shot"
-                class="preview-shot"
-                src="./screenshots/yambuck-screenshot-v0.2.0-preview.png"
-                alt="Yambuck installer preview screen"
-              />
-            </div>
-            <button type="button" class="preview-nav preview-nav-next" id="preview-next" aria-label="Next preview image">&#10095;</button>
-          </div>
-          <p class="preview-badge" id="preview-caption">Installer preview</p>
-        </div>
-        <div class="preview-actions">
-          <a class="link-button" href="./screenshots/">More Screenshots</a>
-        </div>
-      </section>
+<section class="developer-note">
+  <h2>Developers &amp; Project Support</h2>
+  <p>
+    Package once. Distribute directly. Let users install with a familiar GUI flow.
+  </p>
+  <p class="command-note">
+    Trying Yambuck in alpha? Share feedback and issues on
+    <a href="https://github.com/yambuck/yambuck/issues">GitHub Issues</a>.
+  </p>
+  <div class="developer-actions">
+    <a class="link-button step-action" href="{{ '/donate.html' | relative_url }}">Support Yambuck</a>
+    <a class="link-button secondary step-action" href="https://github.com/yambuck/yambuck">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          fill="currentColor"
+          d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.36 6.84 9.72.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.9-.64.07-.63.07-.63 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.66.34-1.1.62-1.35-2.22-.26-4.56-1.15-4.56-5.11 0-1.13.39-2.06 1.03-2.79-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.06A9.3 9.3 0 0112 7.48c.85 0 1.7.12 2.5.35 1.9-1.34 2.74-1.06 2.74-1.06.55 1.42.21 2.47.1 2.73.64.73 1.03 1.66 1.03 2.79 0 3.97-2.35 4.85-4.58 5.11.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.6.69.49A10.2 10.2 0 0022 12.25C22 6.59 17.52 2 12 2z"
+        />
+      </svg>
+      <span>View project on GitHub</span>
+    </a>
+  </div>
+</section>
 
-      <section class="developer-note">
-        <h2>Developers &amp; Project Support</h2>
-        <p>
-          Package once. Distribute directly. Let users install with a familiar GUI flow.
-        </p>
-        <p class="command-note">
-          Trying Yambuck in alpha? Share feedback and issues on
-          <a href="https://github.com/yambuck/yambuck/issues">GitHub Issues</a>.
-        </p>
-        <div class="developer-actions">
-          <a class="link-button step-action" href="./donate.html">Support Yambuck</a>
-          <a class="link-button secondary step-action" href="https://github.com/yambuck/yambuck">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.36 6.84 9.72.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.9-.64.07-.63.07-.63 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.66.34-1.1.62-1.35-2.22-.26-4.56-1.15-4.56-5.11 0-1.13.39-2.06 1.03-2.79-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.06A9.3 9.3 0 0112 7.48c.85 0 1.7.12 2.5.35 1.9-1.34 2.74-1.06 2.74-1.06.55 1.42.21 2.47.1 2.73.64.73 1.03 1.66 1.03 2.79 0 3.97-2.35 4.85-4.58 5.11.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.6.69.49A10.2 10.2 0 0022 12.25C22 6.59 17.52 2 12 2z"
-              />
-            </svg>
-            <span>View project on GitHub</span>
-          </a>
-        </div>
-      </section>
-    </main>
+<script>
+  const copyButton = document.getElementById("copy-command");
+  const command = document.getElementById("install-command");
+  const previewImage = document.getElementById("preview-shot");
+  const previewCaption = document.getElementById("preview-caption");
+  const previewPrev = document.getElementById("preview-prev");
+  const previewNext = document.getElementById("preview-next");
 
-    <script>
-      const copyButton = document.getElementById("copy-command");
-      const command = document.getElementById("install-command");
-      const previewImage = document.getElementById("preview-shot");
-      const previewCaption = document.getElementById("preview-caption");
-      const previewPrev = document.getElementById("preview-prev");
-      const previewNext = document.getElementById("preview-next");
+  const previewScreenshots = [
+    {
+      src: "{{ '/screenshots/yambuck-screenshot-v0.2.0-preview.png' | relative_url }}",
+      alt: "Yambuck installer preview screen",
+      caption: "Installer preview",
+    },
+    {
+      src: "{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-3.png' | relative_url }}",
+      alt: "Yambuck trust and verification step",
+      caption: "Trust and verification",
+    },
+    {
+      src: "{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-6.png' | relative_url }}",
+      alt: "Yambuck install scope step",
+      caption: "Install scope",
+    },
+    {
+      src: "{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-7.png' | relative_url }}",
+      alt: "Yambuck install complete screen",
+      caption: "Install complete",
+    },
+    {
+      src: "{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-apps.png' | relative_url }}",
+      alt: "Yambuck installed apps list",
+      caption: "Installed apps list",
+    },
+    {
+      src: "{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png' | relative_url }}",
+      alt: "Yambuck installed app details overview",
+      caption: "Installed app details",
+    },
+  ];
+  let previewIndex = 0;
 
-      const previewScreenshots = [
-        {
-          src: "./screenshots/yambuck-screenshot-v0.2.0-preview.png",
-          alt: "Yambuck installer preview screen",
-          caption: "Installer preview",
-        },
-        {
-          src: "./screenshots/yambuck-screenshot-v0.2.0-installer-3.png",
-          alt: "Yambuck trust and verification step",
-          caption: "Trust and verification",
-        },
-        {
-          src: "./screenshots/yambuck-screenshot-v0.2.0-installer-6.png",
-          alt: "Yambuck install scope step",
-          caption: "Install scope",
-        },
-        {
-          src: "./screenshots/yambuck-screenshot-v0.2.0-installer-7.png",
-          alt: "Yambuck install complete screen",
-          caption: "Install complete",
-        },
-        {
-          src: "./screenshots/yambuck-screenshot-v0.2.0-installed-apps.png",
-          alt: "Yambuck installed apps list",
-          caption: "Installed apps list",
-        },
-        {
-          src: "./screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png",
-          alt: "Yambuck installed app details overview",
-          caption: "Installed app details",
-        },
-      ];
-      let previewIndex = 0;
+  function renderPreview(index) {
+    if (!previewImage || !previewCaption || previewScreenshots.length === 0) {
+      return;
+    }
 
-      function renderPreview(index) {
-        if (!previewImage || !previewCaption || previewScreenshots.length === 0) {
-          return;
-        }
+    if (index < 0) {
+      previewIndex = previewScreenshots.length - 1;
+    } else if (index >= previewScreenshots.length) {
+      previewIndex = 0;
+    } else {
+      previewIndex = index;
+    }
 
-        if (index < 0) {
-          previewIndex = previewScreenshots.length - 1;
-        } else if (index >= previewScreenshots.length) {
-          previewIndex = 0;
-        } else {
-          previewIndex = index;
-        }
+    const current = previewScreenshots[previewIndex];
+    previewImage.src = current.src;
+    previewImage.alt = current.alt;
+    previewCaption.textContent = current.caption;
+  }
 
-        const current = previewScreenshots[previewIndex];
-        previewImage.src = current.src;
-        previewImage.alt = current.alt;
-        previewCaption.textContent = current.caption;
-      }
+  previewPrev?.addEventListener("click", () => {
+    renderPreview(previewIndex - 1);
+  });
 
-      previewPrev?.addEventListener("click", () => {
-        renderPreview(previewIndex - 1);
-      });
+  previewNext?.addEventListener("click", () => {
+    renderPreview(previewIndex + 1);
+  });
 
-      previewNext?.addEventListener("click", () => {
-        renderPreview(previewIndex + 1);
-      });
+  renderPreview(0);
 
-      renderPreview(0);
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
 
-      async function copyText(text) {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(text);
-          return;
-        }
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.setAttribute("readonly", "");
+    textArea.style.position = "absolute";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.select();
 
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.setAttribute("readonly", "");
-        textArea.style.position = "absolute";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(textArea);
+    if (!ok) {
+      throw new Error("copy failed");
+    }
+  }
 
-        const ok = document.execCommand("copy");
-        document.body.removeChild(textArea);
-        if (!ok) {
-          throw new Error("copy failed");
-        }
-      }
-
-      copyButton?.addEventListener("click", async () => {
-        if (!command) return;
-        try {
-          await copyText(command.textContent || "");
-          copyButton.textContent = "Copied";
-          setTimeout(() => {
-            copyButton.textContent = "Copy";
-          }, 1400);
-        } catch {
-          copyButton.textContent = "Failed";
-          setTimeout(() => {
-            copyButton.textContent = "Copy";
-          }, 1400);
-        }
-      });
-    </script>
-  </body>
-</html>
+  copyButton?.addEventListener("click", async () => {
+    if (!command) return;
+    try {
+      await copyText(command.textContent || "");
+      copyButton.textContent = "Copied";
+      setTimeout(() => {
+        copyButton.textContent = "Copy";
+      }, 1400);
+    } catch {
+      copyButton.textContent = "Failed";
+      setTimeout(() => {
+        copyButton.textContent = "Copy";
+      }, 1400);
+    }
+  });
+</script>

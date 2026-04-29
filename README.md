@@ -10,7 +10,7 @@
 [![Platform](https://img.shields.io/badge/platform-linux-455a64)](https://github.com/jackbrumley/yambuck)
 [![UI](https://img.shields.io/badge/interface-GUI--first-1565c0)](https://github.com/jackbrumley/yambuck)
 [![Core](https://img.shields.io/badge/core-rust%20%2B%20tauri-2e7d32)](https://github.com/jackbrumley/yambuck)
-[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)](LICENSE)
 
 </div>
 
