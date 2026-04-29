@@ -7,8 +7,8 @@ use zip::ZipArchive;
 
 use crate::storage::{
     archive_package_file, current_canonical_timestamp, managed_app_destination_path,
-    managed_app_payload_root, maybe_remove_ownership_receipt, maybe_remove_package_archive, read_index,
-    write_index, write_ownership_receipt, InstalledAppRecord,
+    managed_app_payload_root, maybe_remove_ownership_receipt, maybe_remove_package_archive,
+    read_index, write_index, write_ownership_receipt, InstalledAppRecord,
 };
 use crate::{
     InstallAction, InstallDecision, InstallPreview, InstallScope, InstalledApp, PackageInfo,
@@ -264,7 +264,10 @@ pub fn install_and_register(
     Ok(installed_app)
 }
 
-fn verify_post_install(destination_path: &str, package_info: &PackageInfo) -> Result<(), YambuckError> {
+fn verify_post_install(
+    destination_path: &str,
+    package_info: &PackageInfo,
+) -> Result<(), YambuckError> {
     let destination_root = PathBuf::from(destination_path);
     let app_root = destination_root.join("app");
     if !app_root.exists() || !app_root.is_dir() {
@@ -308,7 +311,8 @@ fn validate_destination_path(
         .any(|component| matches!(component, std::path::Component::ParentDir))
     {
         return Err(YambuckError::InstallPolicyBlocked(
-            "Destination path is invalid because it contains parent traversal segments.".to_string(),
+            "Destination path is invalid because it contains parent traversal segments."
+                .to_string(),
         ));
     }
 

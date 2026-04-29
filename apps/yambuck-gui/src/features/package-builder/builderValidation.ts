@@ -2,6 +2,7 @@ import {
   builderMaxScreenshots,
   builderMinScreenshots,
   type BuilderFormState,
+  type BuilderRuntimeDependencyCheck,
   type BuilderStep,
   type BuilderTarget,
 } from "./builderTypes";
@@ -87,6 +88,76 @@ export type BuilderValidationResult = {
 
 const markIssue = (fieldIssues: FieldIssueMap, key: string) => {
   fieldIssues[key] = true;
+};
+
+const runtimeDependencyIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export const buildRuntimeDependencyIdList = (checks: BuilderRuntimeDependencyCheck[]): string[] => {
+  const used = new Set<string>();
+
+  return checks.map((check) => {
+    const existingId = check.id.trim();
+    if (existingId && runtimeDependencyIdPattern.test(existingId) && !used.has(existingId)) {
+      used.add(existingId);
+      return existingId;
+    }
+
+    const subject = check.type === "command"
+      ? sanitizeTargetSegment(check.commandName, "command")
+      : sanitizeTargetSegment(check.filePath, "file");
+    const osSuffix = check.appliesToOs === "any" ? "" : `-${check.appliesToOs}`;
+    const base = `dep-${check.type}-${subject}${osSuffix}`;
+
+    let candidate = base;
+    let suffix = 2;
+    while (used.has(candidate)) {
+      candidate = `${base}-${suffix}`;
+      suffix += 1;
+    }
+
+    used.add(candidate);
+    return candidate;
+  });
+};
+
+const validateRuntimeDependencyChecks = (
+  checks: BuilderRuntimeDependencyCheck[],
+  t: Translate,
+  fieldIssues: FieldIssueMap,
+): string[] => {
+  const issues: string[] = [];
+
+  if (checks.length > 32) {
+    issues.push(t("builder.validation.runtimeDepsMax", { count: checks.length }));
+    markIssue(fieldIssues, "runtimeDependencyChecks");
+  }
+
+  checks.forEach((check, index) => {
+    const label = `#${index + 1}`;
+
+    if (check.type === "command" && !check.commandName.trim()) {
+      issues.push(t("builder.validation.runtimeDepCommandRequired", { check: label }));
+      markIssue(fieldIssues, `runtimeDependency:${index}:commandName`);
+    }
+
+    if (check.type === "file") {
+      const path = check.filePath.trim();
+      if (!path) {
+        issues.push(t("builder.validation.runtimeDepPathRequired", { check: label }));
+        markIssue(fieldIssues, `runtimeDependency:${index}:filePath`);
+      } else if (!path.startsWith("/")) {
+        issues.push(t("builder.validation.runtimeDepPathAbsolute", { check: label }));
+        markIssue(fieldIssues, `runtimeDependency:${index}:filePath`);
+      }
+    }
+
+    if (check.message.trim().length === 0) {
+      issues.push(t("builder.validation.runtimeDepMessageRequired", { check: label }));
+      markIssue(fieldIssues, `runtimeDependency:${index}:message`);
+    }
+  });
+
+  return issues;
 };
 
 export const collectBuilderValidationResult = ({ form, screenshots, t }: CollectBuilderValidationArgs): BuilderValidationResult => {
@@ -243,6 +314,7 @@ export const collectBuilderValidationResult = ({ form, screenshots, t }: Collect
     interfaces: interfaceIssues,
     targets: Array.from(new Set(targetIssues)),
     assets: assetsIssues,
+    dependencies: validateRuntimeDependencyChecks(form.runtimeDependencyChecks, t, fieldIssues),
     review: [],
   };
 

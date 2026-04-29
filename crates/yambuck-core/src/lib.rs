@@ -27,6 +27,12 @@ pub fn inspect_package_workflow(package_file: &str) -> Result<InstallWorkflow, Y
     package_inspection::inspect_package_workflow(package_file)
 }
 
+pub fn evaluate_runtime_dependency_issues(
+    package_file: &str,
+) -> Result<Vec<RuntimeDependencyIssue>, YambuckError> {
+    package_inspection::evaluate_runtime_dependency_issues(package_file)
+}
+
 pub fn validate_install_options_for_package(
     package_file: &str,
     submissions: Vec<InstallOptionSubmission>,

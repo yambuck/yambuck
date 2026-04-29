@@ -86,7 +86,10 @@ pub(crate) fn write_index(
     fs::write(path, content).map_err(|_| YambuckError::StorageUnavailable)
 }
 
-pub(crate) fn find_installed_record(app_id: &str, scope: InstallScope) -> Option<InstalledAppRecord> {
+pub(crate) fn find_installed_record(
+    app_id: &str,
+    scope: InstallScope,
+) -> Option<InstalledAppRecord> {
     read_index(scope)
         .ok()
         .into_iter()

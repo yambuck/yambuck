@@ -246,7 +246,10 @@ fn detect_external_install_conflict(app_id: &str) -> bool {
     has_external_desktop_entry
 }
 
-fn maybe_remove_install_path(destination_path: &str, scope: InstallScope) -> Result<(), YambuckError> {
+fn maybe_remove_install_path(
+    destination_path: &str,
+    scope: InstallScope,
+) -> Result<(), YambuckError> {
     let managed_root = managed_app_payload_root(scope)?;
     let path = Path::new(destination_path);
 

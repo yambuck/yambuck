@@ -8,7 +8,23 @@
   "longDescription": "Fixture package for validation tests with a longer description.",
   "version": "1.0.0",
   "publisher": "Yambuck Fixtures",
-  "entrypoint": "app/run.sh",
+  "interfaces": {
+    "gui": {
+      "enabled": true
+    }
+  },
+  "targets": [
+    {
+      "id": "linux-x86_64-default",
+      "os": "linux",
+      "arch": "x86_64",
+      "variant": "default",
+      "payloadRoot": "payloads/linux/x86_64/default",
+      "entrypoints": {
+        "gui": "app/run.sh"
+      }
+    }
+  ],
   "iconPath": "assets/icon.png",
   "screenshots": [
     "assets/screenshots/main.png"

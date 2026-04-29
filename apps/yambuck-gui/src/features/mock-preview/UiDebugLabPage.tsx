@@ -125,6 +125,8 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
   usageHint: "debug-app --help",
   iconPath: "assets/icon.png",
   screenshotsText: "assets/screenshots/screen-a.png",
+  runtimeDependencyStrategy: "bundleFirst",
+  runtimeDependencyChecks: [],
   targets: [
     {
       editorId: createBuilderTargetEditorId("lab-target-1"),

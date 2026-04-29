@@ -57,12 +57,7 @@ fn make_noisy_png(width: u32, height: u32) -> Vec<u8> {
     cursor.into_inner()
 }
 
-fn write_package(
-    root: &Path,
-    label: &str,
-    manifest: &str,
-    assets: &[(&str, &[u8])],
-) -> PathBuf {
+fn write_package(root: &Path, label: &str, manifest: &str, assets: &[(&str, &[u8])]) -> PathBuf {
     let package_path = root.join(format!("{label}.yambuck"));
     let package_file = fs::File::create(&package_path).expect("create package file");
     let mut writer = zip::ZipWriter::new(package_file);
@@ -110,7 +105,10 @@ fn rejects_blank_icon_asset_fixture() {
         &[
             ("assets/icon.png", &[]),
             ("assets/screenshots/main.png", &screenshot),
-            ("app/run.sh", b"#!/bin/sh\nexit 0\n"),
+            (
+                "payloads/linux/x86_64/default/app/run.sh",
+                b"#!/bin/sh\nexit 0\n",
+            ),
         ],
     );
 
@@ -131,7 +129,10 @@ fn rejects_renamed_text_file_screenshot_fixture() {
         &[
             ("assets/icon.png", &icon),
             ("assets/screenshots/main.png", fake_image_text.as_bytes()),
-            ("app/run.sh", b"#!/bin/sh\nexit 0\n"),
+            (
+                "payloads/linux/x86_64/default/app/run.sh",
+                b"#!/bin/sh\nexit 0\n",
+            ),
         ],
     );
 
@@ -156,7 +157,10 @@ fn rejects_corrupt_icon_fixture() {
         &[
             ("assets/icon.png", &corrupt_icon),
             ("assets/screenshots/main.png", &screenshot),
-            ("app/run.sh", b"#!/bin/sh\nexit 0\n"),
+            (
+                "payloads/linux/x86_64/default/app/run.sh",
+                b"#!/bin/sh\nexit 0\n",
+            ),
         ],
     );
 
@@ -180,7 +184,10 @@ fn rejects_too_small_screenshot_fixture() {
         &[
             ("assets/icon.png", &icon),
             ("assets/screenshots/main.png", &tiny_screenshot),
-            ("app/run.sh", b"#!/bin/sh\nexit 0\n"),
+            (
+                "payloads/linux/x86_64/default/app/run.sh",
+                b"#!/bin/sh\nexit 0\n",
+            ),
         ],
     );
 
@@ -194,10 +201,7 @@ fn rejects_too_small_screenshot_fixture() {
 fn rejects_unsupported_screenshot_extension_fixture() {
     let root = make_temp_dir("unsupported-screenshot-extension");
     let mut manifest = fixture_manifest_v1_valid();
-    manifest = manifest.replace(
-        "assets/screenshots/main.png",
-        "assets/screenshots/main.bmp",
-    );
+    manifest = manifest.replace("assets/screenshots/main.png", "assets/screenshots/main.bmp");
     let icon = make_png(256, 256);
     let screenshot = make_png(900, 700);
 
@@ -208,7 +212,10 @@ fn rejects_unsupported_screenshot_extension_fixture() {
         &[
             ("assets/icon.png", &icon),
             ("assets/screenshots/main.bmp", &screenshot),
-            ("app/run.sh", b"#!/bin/sh\nexit 0\n"),
+            (
+                "payloads/linux/x86_64/default/app/run.sh",
+                b"#!/bin/sh\nexit 0\n",
+            ),
         ],
     );
 
@@ -224,7 +231,10 @@ fn rejects_missing_required_assets_fixture() {
         &root,
         "missing-assets",
         &manifest,
-        &[("app/run.sh", b"#!/bin/sh\nexit 0\n")],
+        &[(
+            "payloads/linux/x86_64/default/app/run.sh",
+            b"#!/bin/sh\nexit 0\n",
+        )],
     );
 
     assert_invalid_details_contains(

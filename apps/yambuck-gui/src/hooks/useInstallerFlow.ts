@@ -386,6 +386,13 @@ export const useInstallerFlow = ({
         `- [${reason.code}] ${reason.message}`,
         ...(reason.technicalDetails ? [`  technical: ${reason.technicalDetails}`] : []),
       ]);
+    const runtimeDependencyLines = installPreflight.runtimeDependencyIssues.length === 0
+      ? ["- none"]
+      : installPreflight.runtimeDependencyIssues.flatMap((issue) => [
+        `- [${issue.severity}] [${issue.reasonCode}] (${issue.checkType}:${issue.id}) ${issue.message}`,
+        ...(issue.technicalHint ? [`  hint: ${issue.technicalHint}`] : []),
+        ...(issue.technicalDetails ? [`  technical: ${issue.technicalDetails}`] : []),
+      ]);
 
     const details = [
       "Yambuck install compatibility report",
@@ -409,6 +416,9 @@ export const useInstallerFlow = ({
       "",
       "Reasons:",
       ...reasonLines,
+      "",
+      "Runtime dependency issues:",
+      ...runtimeDependencyLines,
       "",
       `Summary: ${installPreflight.message}`,
       "Action: Please contact the app developer or publisher and share this report.",

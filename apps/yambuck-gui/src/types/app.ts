@@ -176,6 +176,16 @@ export type CompatibilityReason = {
   technicalDetails?: string;
 };
 
+export type RuntimeDependencyIssue = {
+  id: string;
+  checkType: string;
+  severity: "block" | "warn";
+  reasonCode: string;
+  message: string;
+  technicalHint?: string;
+  technicalDetails?: string;
+};
+
 export type InstallPreflightPackageSnapshot = {
   displayName: string;
   version: string;
@@ -188,6 +198,7 @@ export type InstallPreflightResult = {
   status: "ok" | "blocked";
   message: string;
   reasons: CompatibilityReason[];
+  runtimeDependencyIssues: RuntimeDependencyIssue[];
   host: SystemInfo;
   package: InstallPreflightPackageSnapshot;
 };

@@ -5,9 +5,11 @@ import { CheckboxField } from "../../components/ui/CheckboxField";
 import { AccordionRow } from "../../components/ui/AccordionRow";
 import { Panel } from "../../components/ui/Panel";
 import { PanelHeader } from "../../components/ui/PanelHeader";
+import { SelectField } from "../../components/ui/SelectField";
 import { TextField } from "../../components/ui/TextField";
 import { appText } from "../../i18n/app";
 import {
+  buildRuntimeDependencyIdList,
   buildTargetIdList,
   collectBuilderValidation,
   linuxDesktopListForTarget,
@@ -17,8 +19,10 @@ import {
 import {
   builderMaxScreenshots,
   builderSteps,
+  createBuilderRuntimeDependencyEditorId,
   createBuilderTargetEditorId,
   type BuilderFormState,
+  type BuilderRuntimeDependencyCheck,
   type BuilderStep,
   type BuilderTarget,
 } from "../package-builder/builderTypes";
@@ -110,6 +114,8 @@ const defaultDebugBuilderForm = (): BuilderFormState => ({
   usageHint: "debug-app --help",
   iconPath: "assets/icon.png",
   screenshotsText: "assets/screenshots/screen-a.png",
+  runtimeDependencyStrategy: "bundleFirst",
+  runtimeDependencyChecks: [],
   targets: [
     {
       editorId: createBuilderTargetEditorId("mock-target-1"),
@@ -196,6 +202,19 @@ const normalizeTargetsForGuiToggle = (targets: BuilderTarget[], hasGui: boolean)
     return target;
   });
 
+const defaultRuntimeDependencyCheck = (): BuilderRuntimeDependencyCheck => ({
+  editorId: createBuilderRuntimeDependencyEditorId(),
+  id: "",
+  type: "command",
+  severity: "block",
+  commandName: "",
+  filePath: "",
+  mustBeExecutable: false,
+  appliesToOs: "linux",
+  message: "",
+  technicalHint: "",
+});
+
 export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps) => {
   const [mode, setMode] = useState<BuilderMode>("start");
   const [step, setStep] = useState<BuilderStep>(builderSteps[0]);
@@ -218,6 +237,10 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
   );
 
   const targetIdList = useMemo(() => buildTargetIdList(form.targets), [form.targets]);
+  const runtimeDependencyIdList = useMemo(
+    () => buildRuntimeDependencyIdList(form.runtimeDependencyChecks),
+    [form.runtimeDependencyChecks],
+  );
 
   const stepIssueMap = useMemo(
     () => collectBuilderValidation({ form, screenshots, t: appText }),
@@ -314,8 +337,38 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
         return nextTarget;
       }),
     };
+
+    if (form.runtimeDependencyChecks.length > 0) {
+      nextManifest.runtimeDependencies = {
+        strategy: form.runtimeDependencyStrategy,
+        checks: form.runtimeDependencyChecks.map((check, index) => {
+          const nextCheck: Record<string, unknown> = {
+            id: runtimeDependencyIdList[index] ?? "",
+            type: check.type,
+            severity: check.severity,
+            message: check.message.trim(),
+          };
+          if (check.technicalHint.trim()) {
+            nextCheck.technicalHint = check.technicalHint.trim();
+          }
+          if (check.appliesToOs !== "any") {
+            nextCheck.appliesTo = { os: check.appliesToOs };
+          }
+          if (check.type === "command") {
+            nextCheck.name = check.commandName.trim();
+          } else {
+            nextCheck.path = check.filePath.trim();
+            if (check.mustBeExecutable) {
+              nextCheck.mustBeExecutable = true;
+            }
+          }
+          return nextCheck;
+        }),
+      };
+    }
+
     return JSON.stringify(nextManifest, null, 2);
-  }, [form, screenshots, targetIdList]);
+  }, [form, screenshots, targetIdList, runtimeDependencyIdList]);
 
   const iconPreviewSrc: string | null = form.iconPath ? "/mock/example-app-icon.png" : null;
   const isManifestCurrentlyValidated = reviewValidationState === "passed" && validatedManifestSnapshot === manifestPreview;
@@ -377,6 +430,36 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
         }
         return updated;
       }),
+    }));
+  };
+
+  const setRuntimeDependencyField = <Key extends keyof BuilderRuntimeDependencyCheck>(
+    index: number,
+    key: Key,
+    value: BuilderRuntimeDependencyCheck[Key],
+  ) => {
+    setForm((current) => ({
+      ...current,
+      runtimeDependencyChecks: current.runtimeDependencyChecks.map((check, checkIndex) => {
+        if (checkIndex !== index) {
+          return check;
+        }
+        return { ...check, [key]: value };
+      }),
+    }));
+  };
+
+  const addRuntimeDependencyCheck = () => {
+    setForm((current) => ({
+      ...current,
+      runtimeDependencyChecks: [...current.runtimeDependencyChecks, defaultRuntimeDependencyCheck()],
+    }));
+  };
+
+  const removeRuntimeDependencyCheck = (index: number) => {
+    setForm((current) => ({
+      ...current,
+      runtimeDependencyChecks: current.runtimeDependencyChecks.filter((_, checkIndex) => checkIndex !== index),
     }));
   };
 
@@ -631,6 +714,111 @@ export const MockPackageBuilderPage = ({ onToast }: MockPackageBuilderPageProps)
           >
             {appText("builder.fields.requiresLicenseAcceptance")}
           </CheckboxField>
+        </div>
+      );
+    }
+
+    if (step === "dependencies") {
+      const blockerCount = form.runtimeDependencyChecks.filter((check) => check.severity === "block").length;
+      const warningCount = form.runtimeDependencyChecks.filter((check) => check.severity === "warn").length;
+      return (
+        <div class={fieldGrid}>
+          <p class={sectionBody}>{appText("builder.section.dependencies")}</p>
+          <p class={sectionBody}>{appText("builder.runtimeDependencies.nudge")}</p>
+          <label class={`${fieldStack} ${compactFieldStack}`}>
+            <BuilderFieldLabel
+              label={appText("builder.fields.runtimeDependencyStrategy")}
+              help={appText("builder.help.runtimeDependencyStrategy")}
+            />
+            <SelectField
+              value={form.runtimeDependencyStrategy}
+              options={[
+                { value: "bundleFirst", label: appText("builder.runtimeDependencies.strategy.bundleFirst") },
+                { value: "hostRequired", label: appText("builder.runtimeDependencies.strategy.hostRequired") },
+              ]}
+              onValueChange={(value) => setField("runtimeDependencyStrategy", value as BuilderFormState["runtimeDependencyStrategy"])}
+            />
+          </label>
+          {form.runtimeDependencyChecks.map((check, index) => (
+            <div key={check.editorId} class={fieldStack}>
+              <strong>{appText("builder.runtimeDependencies.item", { index: index + 1 })}</strong>
+              <div class={fieldGrid}>
+                <label class={`${fieldStack} ${compactFieldStack}`}>
+                  <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyType")} help={appText("builder.help.runtimeDependencies")} />
+                  <SelectField
+                    value={check.type}
+                    options={[
+                      { value: "command", label: appText("builder.runtimeDependencies.type.command") },
+                      { value: "file", label: appText("builder.runtimeDependencies.type.file") },
+                    ]}
+                    onValueChange={(value) => setRuntimeDependencyField(index, "type", value as BuilderRuntimeDependencyCheck["type"])}
+                  />
+                </label>
+                <label class={`${fieldStack} ${compactFieldStack}`}>
+                  <BuilderFieldLabel label={appText("builder.fields.runtimeDependencySeverity")} help={appText("builder.help.runtimeDependencies")} />
+                  <SelectField
+                    value={check.severity}
+                    options={[
+                      { value: "block", label: appText("builder.runtimeDependencies.severity.block") },
+                      { value: "warn", label: appText("builder.runtimeDependencies.severity.warn") },
+                    ]}
+                    onValueChange={(value) => setRuntimeDependencyField(index, "severity", value as BuilderRuntimeDependencyCheck["severity"])}
+                  />
+                </label>
+                <label class={`${fieldStack} ${compactFieldStack}`}>
+                  <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyAppliesToOs")} help={appText("builder.help.runtimeDependencies")} />
+                  <SelectField
+                    value={check.appliesToOs}
+                    options={[
+                      { value: "any", label: appText("builder.runtimeDependencies.os.any") },
+                      { value: "linux", label: appText("builder.runtimeDependencies.os.linux") },
+                      { value: "windows", label: appText("builder.runtimeDependencies.os.windows") },
+                      { value: "macos", label: appText("builder.runtimeDependencies.os.macos") },
+                    ]}
+                    onValueChange={(value) => setRuntimeDependencyField(index, "appliesToOs", value as BuilderRuntimeDependencyCheck["appliesToOs"])}
+                  />
+                </label>
+              </div>
+              {check.type === "command" ? (
+                <label class={`${fieldStack} ${compactFieldStack}`}>
+                  <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyCommandName")} help={appText("builder.help.runtimeDependencies")} />
+                  <TextField value={check.commandName} onInput={(value) => setRuntimeDependencyField(index, "commandName", value)} />
+                </label>
+              ) : (
+                <>
+                  <label class={`${fieldStack} ${compactFieldStack}`}>
+                    <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyFilePath")} help={appText("builder.help.runtimeDependencies")} />
+                    <TextField value={check.filePath} onInput={(value) => setRuntimeDependencyField(index, "filePath", value)} />
+                  </label>
+                  <CheckboxField
+                    class={compactCheckbox}
+                    checked={check.mustBeExecutable}
+                    onChange={(value) => setRuntimeDependencyField(index, "mustBeExecutable", value)}
+                  >
+                    {appText("builder.fields.runtimeDependencyMustBeExecutable")}
+                  </CheckboxField>
+                </>
+              )}
+              <label class={`${fieldStack} ${compactFieldStack}`}>
+                <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyMessage")} help={appText("builder.help.runtimeDependencies")} />
+                <TextField value={check.message} onInput={(value) => setRuntimeDependencyField(index, "message", value)} />
+              </label>
+              <label class={`${fieldStack} ${compactFieldStack}`}>
+                <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyTechnicalHint")} help={appText("builder.help.runtimeDependencies")} />
+                <TextField value={check.technicalHint} onInput={(value) => setRuntimeDependencyField(index, "technicalHint", value)} />
+              </label>
+              <div class={targetListActions}>
+                <Button onClick={() => removeRuntimeDependencyCheck(index)}>
+                  {appText("builder.runtimeDependencies.remove")}
+                </Button>
+              </div>
+            </div>
+          ))}
+          <div class={targetAddRow}>
+            <Button onClick={addRuntimeDependencyCheck}>{appText("builder.runtimeDependencies.add")}</Button>
+          </div>
+          <p class={sectionBody}>{appText("builder.review.runtimeDependenciesCount", { count: form.runtimeDependencyChecks.length })}</p>
+          <p class={sectionBody}>{appText("builder.review.runtimeDependenciesSeveritySummary", { blockers: blockerCount, warnings: warningCount })}</p>
         </div>
       );
     }

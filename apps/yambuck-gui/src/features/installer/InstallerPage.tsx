@@ -256,6 +256,9 @@ export const InstallerPage = ({
           ? installerText("interface.gui")
           : installerText("interface.cli")
       : installerText("interface.unknown");
+    const runtimeDependencyIssues = installPreflight?.runtimeDependencyIssues ?? [];
+    const runtimeDependencyBlockers = runtimeDependencyIssues.filter((issue) => issue.severity === "block");
+    const runtimeDependencyWarnings = runtimeDependencyIssues.filter((issue) => issue.severity === "warn");
 
     return (
       <Panel
@@ -283,6 +286,11 @@ export const InstallerPage = ({
             {preflightBlockedMessage ? (
               <MessagePanel tone="error" title={installerText("ui.installBlockedTitle")}>
                 <p>{preflightBlockedMessage}</p>
+                {runtimeDependencyBlockers.length > 0 ? (
+                  <p>
+                    Missing required host dependencies: {runtimeDependencyBlockers.length}
+                  </p>
+                ) : null}
                 {installPreflight?.reasons.length ? (
                   <ul>
                     {installPreflight.reasons.map((reason) => (
@@ -290,7 +298,27 @@ export const InstallerPage = ({
                     ))}
                   </ul>
                 ) : null}
+                {runtimeDependencyBlockers.length > 0 ? (
+                  <ul>
+                    {runtimeDependencyBlockers.map((issue) => (
+                      <li key={`${issue.id}-${issue.reasonCode}`}>{issue.message}</li>
+                    ))}
+                  </ul>
+                ) : null}
                 <Button onClick={onCopyInstallPreflightDetails}>{installerText("ui.copyCompatibilityReport")}</Button>
+              </MessagePanel>
+            ) : null}
+
+            {!preflightBlockedMessage && runtimeDependencyWarnings.length > 0 ? (
+              <MessagePanel tone="warning" title="Dependency warnings">
+                <p>
+                  This app can continue, but {runtimeDependencyWarnings.length} host dependency warning(s) were detected.
+                </p>
+                <ul>
+                  {runtimeDependencyWarnings.map((issue) => (
+                    <li key={`${issue.id}-${issue.reasonCode}`}>{issue.message}</li>
+                  ))}
+                </ul>
               </MessagePanel>
             ) : null}
 

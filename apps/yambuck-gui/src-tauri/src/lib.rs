@@ -12,7 +12,7 @@ use zip::{ZipArchive, ZipWriter};
 use yambuck_core::{
     CompatibilityReason, InstallDecision, InstallOptionSubmission, InstallPreview, InstallWorkflow,
     InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
-    UninstallResult, UpdateCheckResult,
+    RuntimeDependencyIssue, UninstallResult, UpdateCheckResult,
 };
 
 mod commands;
@@ -85,6 +85,7 @@ pub(crate) struct InstallPreflightResult {
     status: String,
     message: String,
     reasons: Vec<CompatibilityReason>,
+    runtime_dependency_issues: Vec<RuntimeDependencyIssue>,
     host: support::system_info::SystemInfo,
     package: InstallPreflightPackageSnapshot,
 }
@@ -799,6 +800,12 @@ pub(crate) fn evaluate_install_preflight_impl(
     let ownership_preflight = yambuck_core::preflight_install_check(&package_info.app_id)
         .map_err(|error| error.to_string())?;
     let host = support::system_info::get_system_info()?;
+    let runtime_dependency_issues =
+        yambuck_core::evaluate_runtime_dependency_issues(&package_info.package_file)
+            .map_err(|error| error.to_string())?;
+    let has_runtime_dependency_blockers = runtime_dependency_issues
+        .iter()
+        .any(|issue| issue.severity == "block");
 
     let mut reasons = package_info.compatibility_reasons.clone();
 
@@ -826,14 +833,22 @@ pub(crate) fn evaluate_install_preflight_impl(
     }
 
     let blocked = package_info.compatibility_status == "blocked"
+        || has_runtime_dependency_blockers
         || ownership_preflight.status == "external_conflict";
 
     let status = if blocked { "blocked" } else { "ok" }.to_string();
     let message = if blocked {
-        "This app is not supported on your current system. Contact the app developer or publisher and share the preflight report."
-            .to_string()
+        if has_runtime_dependency_blockers {
+            "This app is missing required host runtime dependencies. Review the preflight details, resolve blockers, and try again."
+                .to_string()
+        } else {
+            "This app is not supported on your current system. Contact the app developer or publisher and share the preflight report."
+                .to_string()
+        }
     } else if ownership_preflight.status == "managed_existing" {
         ownership_preflight.message
+    } else if !runtime_dependency_issues.is_empty() {
+        "Compatibility checks passed with non-blocking runtime dependency warnings.".to_string()
     } else {
         "No compatibility or ownership blockers were detected.".to_string()
     };
@@ -842,6 +857,7 @@ pub(crate) fn evaluate_install_preflight_impl(
         status,
         message,
         reasons,
+        runtime_dependency_issues,
         host,
         package: InstallPreflightPackageSnapshot {
             display_name: package_info.display_name,

@@ -40,12 +40,7 @@ fn make_png(width: u32, height: u32) -> Vec<u8> {
     cursor.into_inner()
 }
 
-fn write_package(
-    root: &Path,
-    label: &str,
-    manifest: &str,
-    assets: &[(&str, &[u8])],
-) -> PathBuf {
+fn write_package(root: &Path, label: &str, manifest: &str, assets: &[(&str, &[u8])]) -> PathBuf {
     let package_path = root.join(format!("{label}.yambuck"));
     let package_file = fs::File::create(&package_path).expect("create package file");
     let mut writer = zip::ZipWriter::new(package_file);
@@ -80,7 +75,10 @@ fn accepts_valid_v1_fixture_package() {
         &[
             ("assets/icon.png", &icon),
             ("assets/screenshots/main.png", &screenshot),
-            ("app/run.sh", b"#!/bin/sh\nexit 0\n"),
+            (
+                "payloads/linux/x86_64/default/app/run.sh",
+                b"#!/bin/sh\nexit 0\n",
+            ),
         ],
     );
 

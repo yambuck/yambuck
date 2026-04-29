@@ -66,6 +66,18 @@ pub struct CompatibilityReason {
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RuntimeDependencyIssue {
+    pub id: String,
+    pub check_type: String,
+    pub severity: String,
+    pub reason_code: String,
+    pub message: String,
+    pub technical_hint: Option<String>,
+    pub technical_details: Option<String>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InstallWorkflow {
     pub manifest_major: u64,
     pub package_info: PackageInfo,

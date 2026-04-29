@@ -8,6 +8,7 @@ import { CheckboxField } from "../../components/ui/CheckboxField";
 import { AccordionRow } from "../../components/ui/AccordionRow";
 import { Panel } from "../../components/ui/Panel";
 import { PanelHeader } from "../../components/ui/PanelHeader";
+import { SelectField } from "../../components/ui/SelectField";
 import { TextField } from "../../components/ui/TextField";
 import { appText } from "../../i18n/app";
 import { logUiAction, logUiError } from "../../lib/ui-log";
@@ -22,6 +23,7 @@ import {
 } from "../../lib/tauri/api";
 import type { BuilderStagedFile } from "../../types/app";
 import {
+  buildRuntimeDependencyIdList,
   buildTargetIdList,
   collectBuilderValidationResult,
   linuxDesktopListForTarget,
@@ -31,10 +33,13 @@ import {
 import {
   builderMaxScreenshots,
   builderSteps,
+  createBuilderRuntimeDependencyEditorId,
   createBuilderTargetEditorId,
   type BuilderArch,
   type BuilderFormState,
   type BuilderOs,
+  type BuilderRuntimeDependencyCheck,
+  type BuilderRuntimeDependencyOs,
   type BuilderStep,
   type BuilderTarget,
 } from "./builderTypes";
@@ -190,6 +195,8 @@ const defaultBuilderForm = (): BuilderFormState => ({
   iconPath: "assets/icon.png",
   screenshotsText: "assets/screenshots/screenshot-a.png",
   targets: [defaultTarget("x86_64")],
+  runtimeDependencyStrategy: "bundleFirst",
+  runtimeDependencyChecks: [],
 });
 
 const asText = (value: unknown): string => (typeof value === "string" ? value : "");
@@ -430,11 +437,138 @@ const normalizeTargets = (value: unknown): BuilderTarget[] => {
   return next.length > 0 ? next : [defaultTarget("x86_64")];
 };
 
+const normalizeRuntimeDependencyOs = (value: unknown): BuilderRuntimeDependencyOs => {
+  if (value === undefined) {
+    return "any";
+  }
+  if (value === "linux" || value === "windows" || value === "macos") {
+    return value;
+  }
+  throw new Error("runtimeDependencies.checks[].appliesTo.os must be linux, windows, or macos when provided");
+};
+
+const normalizeRuntimeDependencyChecks = (value: unknown): BuilderRuntimeDependencyCheck[] => {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error("runtimeDependencies.checks must be an array");
+  }
+
+  return value.map((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`runtimeDependencies.checks[${index}] must be an object`);
+    }
+
+    const check = entry as Record<string, unknown>;
+    const checkType = check.type;
+    if (checkType !== "command" && checkType !== "file") {
+      throw new Error(`runtimeDependencies.checks[${index}].type must be command or file`);
+    }
+
+    const severity = check.severity;
+    if (severity !== "block" && severity !== "warn") {
+      throw new Error(`runtimeDependencies.checks[${index}].severity must be block or warn`);
+    }
+
+    const appliesToValue = check.appliesTo;
+    if (appliesToValue !== undefined && (!appliesToValue || typeof appliesToValue !== "object" || Array.isArray(appliesToValue))) {
+      throw new Error(`runtimeDependencies.checks[${index}].appliesTo must be an object when provided`);
+    }
+    const appliesTo = (appliesToValue ?? {}) as Record<string, unknown>;
+    const appliesToKeys = Object.keys(appliesTo);
+    const unknownAppliesToKey = appliesToKeys.find((key) => key !== "os");
+    if (unknownAppliesToKey) {
+      throw new Error(`runtimeDependencies.checks[${index}].appliesTo.${unknownAppliesToKey} is not supported in v1`);
+    }
+
+    const allowedCommandKeys = new Set(["id", "type", "severity", "name", "message", "technicalHint", "appliesTo"]);
+    const allowedFileKeys = new Set(["id", "type", "severity", "path", "mustBeExecutable", "message", "technicalHint", "appliesTo"]);
+    const keys = Object.keys(check);
+    for (const key of keys) {
+      const allowed = checkType === "command" ? allowedCommandKeys : allowedFileKeys;
+      if (!allowed.has(key)) {
+        throw new Error(`runtimeDependencies.checks[${index}].${key} is not supported in v1`);
+      }
+    }
+
+    if (checkType === "command" && typeof check.name !== "string") {
+      throw new Error(`runtimeDependencies.checks[${index}].name must be a string for command checks`);
+    }
+
+    if (checkType === "file" && typeof check.path !== "string") {
+      throw new Error(`runtimeDependencies.checks[${index}].path must be a string for file checks`);
+    }
+
+    if (check.mustBeExecutable !== undefined && typeof check.mustBeExecutable !== "boolean") {
+      throw new Error(`runtimeDependencies.checks[${index}].mustBeExecutable must be a boolean when provided`);
+    }
+
+    return {
+      editorId: createBuilderRuntimeDependencyEditorId(`runtime-check-${index + 1}`),
+      id: asText(check.id),
+      type: checkType,
+      severity,
+      commandName: asText(check.name),
+      filePath: asText(check.path),
+      mustBeExecutable: asBoolean(check.mustBeExecutable, false),
+      appliesToOs: normalizeRuntimeDependencyOs(appliesTo.os),
+      message: asText(check.message),
+      technicalHint: asText(check.technicalHint),
+    };
+  });
+};
+
+const parseRuntimeDependencies = (value: unknown): Pick<BuilderFormState, "runtimeDependencyStrategy" | "runtimeDependencyChecks"> => {
+  if (value === undefined) {
+    return {
+      runtimeDependencyStrategy: "bundleFirst",
+      runtimeDependencyChecks: [],
+    };
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("runtimeDependencies must be an object when provided");
+  }
+
+  const runtimeDependencies = value as Record<string, unknown>;
+  const allowedKeys = new Set(["strategy", "checks"]);
+  for (const key of Object.keys(runtimeDependencies)) {
+    if (!allowedKeys.has(key)) {
+      throw new Error(`runtimeDependencies.${key} is not supported in v1`);
+    }
+  }
+
+  const strategy = runtimeDependencies.strategy;
+  if (strategy !== "bundleFirst" && strategy !== "hostRequired") {
+    throw new Error("runtimeDependencies.strategy must be bundleFirst or hostRequired");
+  }
+
+  return {
+    runtimeDependencyStrategy: strategy,
+    runtimeDependencyChecks: normalizeRuntimeDependencyChecks(runtimeDependencies.checks),
+  };
+};
+
+const defaultRuntimeDependencyCheck = (): BuilderRuntimeDependencyCheck => ({
+  editorId: createBuilderRuntimeDependencyEditorId(),
+  id: "",
+  type: "command",
+  severity: "block",
+  commandName: "",
+  filePath: "",
+  mustBeExecutable: false,
+  appliesToOs: "linux",
+  message: "",
+  technicalHint: "",
+});
+
 const formFromManifest = (manifest: Record<string, unknown>): BuilderFormState => {
   const interfaces = (manifest.interfaces ?? {}) as Record<string, unknown>;
   const gui = (interfaces.gui ?? {}) as Record<string, unknown>;
   const cli = (interfaces.cli ?? {}) as Record<string, unknown>;
   const screenshots = normalizeScreenshots(manifest.screenshots);
+  const runtimeDependencies = parseRuntimeDependencies(manifest.runtimeDependencies);
 
   return {
     appId: asText(manifest.appId) || "com.example.app",
@@ -457,6 +591,8 @@ const formFromManifest = (manifest: Record<string, unknown>): BuilderFormState =
     iconPath: asText(manifest.iconPath),
     screenshotsText: screenshots.join("\n"),
     targets: normalizeTargets(manifest.targets),
+    runtimeDependencyStrategy: runtimeDependencies.runtimeDependencyStrategy,
+    runtimeDependencyChecks: runtimeDependencies.runtimeDependencyChecks,
   };
 };
 
@@ -614,6 +750,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   );
 
   const targetIdList = useMemo(() => buildTargetIdList(form.targets), [form.targets]);
+  const runtimeDependencyIdList = useMemo(
+    () => buildRuntimeDependencyIdList(form.runtimeDependencyChecks),
+    [form.runtimeDependencyChecks],
+  );
 
   const validation = useMemo(
     () => collectBuilderValidationResult({ form, screenshots, t: appText }),
@@ -644,7 +784,10 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
   }, [form.hasCli, form.hasGui, form.targets, stagedAssets]);
 
   const stepIssueMap = useMemo(
-    () => ({ ...validation.stepIssues, review: reviewIssues }),
+    () => ({
+      ...validation.stepIssues,
+      review: [...validation.stepIssues.review, ...reviewIssues],
+    }),
     [validation.stepIssues, reviewIssues],
   );
   const fieldIssues = validation.fieldIssues;
@@ -766,10 +909,46 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       nextManifest.requiresLicenseAcceptance = form.requiresLicenseAcceptance;
     }
 
+    if (form.runtimeDependencyChecks.length > 0) {
+      nextManifest.runtimeDependencies = {
+        strategy: form.runtimeDependencyStrategy,
+        checks: form.runtimeDependencyChecks.map((check, index) => {
+          const nextCheck: Record<string, unknown> = {
+            id: runtimeDependencyIdList[index] ?? "",
+            type: check.type,
+            severity: check.severity,
+            message: check.message.trim(),
+          };
+
+          if (check.technicalHint.trim()) {
+            nextCheck.technicalHint = check.technicalHint.trim();
+          }
+
+          if (check.appliesToOs !== "any") {
+            nextCheck.appliesTo = { os: check.appliesToOs };
+          }
+
+          if (check.type === "command") {
+            nextCheck.name = check.commandName.trim();
+          } else {
+            nextCheck.path = check.filePath.trim();
+            if (check.mustBeExecutable) {
+              nextCheck.mustBeExecutable = true;
+            }
+          }
+
+          return nextCheck;
+        }),
+      };
+    }
+
     return JSON.stringify(nextManifest, null, 2);
   };
 
-  const manifestPreview = useMemo(() => buildManifestPreview(), [form, screenshots, targetIdList]);
+  const manifestPreview = useMemo(
+    () => buildManifestPreview(),
+    [form, screenshots, targetIdList, runtimeDependencyIdList],
+  );
   const isManifestCurrentlyValidated = reviewValidationState === "passed" && validatedManifestSnapshot === manifestPreview;
 
   useEffect(() => {
@@ -830,6 +1009,42 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
         }
         return updated;
       }),
+    }));
+    setIsDirty(true);
+  };
+
+  const setRuntimeDependencyField = <Key extends keyof BuilderRuntimeDependencyCheck>(
+    index: number,
+    key: Key,
+    value: BuilderRuntimeDependencyCheck[Key],
+  ) => {
+    setStatusMessage(null);
+    setForm((current) => ({
+      ...current,
+      runtimeDependencyChecks: current.runtimeDependencyChecks.map((check, checkIndex) => {
+        if (checkIndex !== index) {
+          return check;
+        }
+        return { ...check, [key]: value };
+      }),
+    }));
+    setIsDirty(true);
+  };
+
+  const addRuntimeDependencyCheck = () => {
+    setStatusMessage(null);
+    setForm((current) => ({
+      ...current,
+      runtimeDependencyChecks: [...current.runtimeDependencyChecks, defaultRuntimeDependencyCheck()],
+    }));
+    setIsDirty(true);
+  };
+
+  const removeRuntimeDependencyCheck = (index: number) => {
+    setStatusMessage(null);
+    setForm((current) => ({
+      ...current,
+      runtimeDependencyChecks: current.runtimeDependencyChecks.filter((_, checkIndex) => checkIndex !== index),
     }));
     setIsDirty(true);
   };
@@ -1060,7 +1275,9 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       logUiError("builder-open-package-failed", {
         error: error instanceof Error ? error.message : "unknown",
       });
-      notify("error", "builder.openError");
+      const detail = error instanceof Error ? error.message : appText("builder.openError");
+      setStatusMessage(detail);
+      onToast("error", detail);
     } finally {
       setIsBusy(false);
     }
@@ -1749,6 +1966,131 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
       );
     }
 
+    if (step === "dependencies") {
+      return (
+        <div class={fieldGrid}>
+          <p class={sectionBody}>{appText("builder.section.dependencies")}</p>
+          {renderCurrentStepIssues()}
+          <section class={fieldStack}>
+            <BuilderFieldLabel
+              label={appText("builder.fields.runtimeDependencies")}
+              help={appText("builder.help.runtimeDependencies")}
+            />
+            <p class={sectionBody}>{appText("builder.runtimeDependencies.nudge")}</p>
+            <label class={`${fieldStack} ${compactFieldStack}`}>
+              <BuilderFieldLabel
+                label={appText("builder.fields.runtimeDependencyStrategy")}
+                help={appText("builder.help.runtimeDependencyStrategy")}
+              />
+              <SelectField
+                value={form.runtimeDependencyStrategy}
+                options={[
+                  { value: "bundleFirst", label: appText("builder.runtimeDependencies.strategy.bundleFirst") },
+                  { value: "hostRequired", label: appText("builder.runtimeDependencies.strategy.hostRequired") },
+                ]}
+                onValueChange={(value: string) => setField("runtimeDependencyStrategy", value as BuilderFormState["runtimeDependencyStrategy"])}
+              />
+            </label>
+            {form.runtimeDependencyChecks.map((check, index) => (
+              <div key={check.editorId} class={fieldStack}>
+                <strong>{appText("builder.runtimeDependencies.item", { index: index + 1 })}</strong>
+                <div class={fieldGrid}>
+                  <label class={`${fieldStack} ${compactFieldStack}`}>
+                    <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyType")} help={appText("builder.help.runtimeDependencies")} />
+                    <SelectField
+                      value={check.type}
+                      options={[
+                        { value: "command", label: appText("builder.runtimeDependencies.type.command") },
+                        { value: "file", label: appText("builder.runtimeDependencies.type.file") },
+                      ]}
+                      onValueChange={(value: string) => setRuntimeDependencyField(index, "type", value as BuilderRuntimeDependencyCheck["type"])}
+                    />
+                  </label>
+                  <label class={`${fieldStack} ${compactFieldStack}`}>
+                    <BuilderFieldLabel label={appText("builder.fields.runtimeDependencySeverity")} help={appText("builder.help.runtimeDependencies")} />
+                    <SelectField
+                      value={check.severity}
+                      options={[
+                        { value: "block", label: appText("builder.runtimeDependencies.severity.block") },
+                        { value: "warn", label: appText("builder.runtimeDependencies.severity.warn") },
+                      ]}
+                      onValueChange={(value: string) => setRuntimeDependencyField(index, "severity", value as BuilderRuntimeDependencyCheck["severity"])}
+                    />
+                  </label>
+                  <label class={`${fieldStack} ${compactFieldStack}`}>
+                    <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyAppliesToOs")} help={appText("builder.help.runtimeDependencies")} />
+                    <SelectField
+                      value={check.appliesToOs}
+                      options={[
+                        { value: "any", label: appText("builder.runtimeDependencies.os.any") },
+                        { value: "linux", label: appText("builder.runtimeDependencies.os.linux") },
+                        { value: "windows", label: appText("builder.runtimeDependencies.os.windows") },
+                        { value: "macos", label: appText("builder.runtimeDependencies.os.macos") },
+                      ]}
+                      onValueChange={(value: string) => setRuntimeDependencyField(index, "appliesToOs", value as BuilderRuntimeDependencyCheck["appliesToOs"])}
+                    />
+                  </label>
+                </div>
+                {check.type === "command" ? (
+                  <label class={`${fieldStack} ${compactFieldStack}${hasFieldIssue(`runtimeDependency:${index}:commandName`) ? ` ${fieldStackInvalid}` : ""}`}>
+                    <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyCommandName")} help={appText("builder.help.runtimeDependencies")} />
+                    <TextField
+                      class={inputClass(`runtimeDependency:${index}:commandName`)}
+                      value={check.commandName}
+                      onInput={(value) => setRuntimeDependencyField(index, "commandName", value)}
+                    />
+                  </label>
+                ) : (
+                  <>
+                    <label class={`${fieldStack} ${compactFieldStack}${hasFieldIssue(`runtimeDependency:${index}:filePath`) ? ` ${fieldStackInvalid}` : ""}`}>
+                      <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyFilePath")} help={appText("builder.help.runtimeDependencies")} />
+                      <TextField
+                        class={inputClass(`runtimeDependency:${index}:filePath`)}
+                        value={check.filePath}
+                        onInput={(value) => setRuntimeDependencyField(index, "filePath", value)}
+                      />
+                    </label>
+                    <CheckboxField
+                      class={compactCheckbox}
+                      checked={check.mustBeExecutable}
+                      onChange={(value) => setRuntimeDependencyField(index, "mustBeExecutable", value)}
+                    >
+                      {appText("builder.fields.runtimeDependencyMustBeExecutable")}
+                    </CheckboxField>
+                  </>
+                )}
+                <label class={`${fieldStack} ${compactFieldStack}${hasFieldIssue(`runtimeDependency:${index}:message`) ? ` ${fieldStackInvalid}` : ""}`}>
+                  <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyMessage")} help={appText("builder.help.runtimeDependencies")} />
+                  <TextField
+                    class={inputClass(`runtimeDependency:${index}:message`)}
+                    value={check.message}
+                    onInput={(value) => setRuntimeDependencyField(index, "message", value)}
+                  />
+                </label>
+                <label class={`${fieldStack} ${compactFieldStack}`}>
+                  <BuilderFieldLabel label={appText("builder.fields.runtimeDependencyTechnicalHint")} help={appText("builder.help.runtimeDependencies")} />
+                  <TextField
+                    value={check.technicalHint}
+                    onInput={(value) => setRuntimeDependencyField(index, "technicalHint", value)}
+                  />
+                </label>
+                <div class={targetListActions}>
+                  <Button onClick={() => removeRuntimeDependencyCheck(index)} disabled={isBusy}>
+                    {appText("builder.runtimeDependencies.remove")}
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <div class={targetAddRow}>
+              <Button onClick={addRuntimeDependencyCheck} disabled={isBusy}>
+                {appText("builder.runtimeDependencies.add")}
+              </Button>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
     if (step === "review") {
       return (
         <div class={fieldGrid}>
@@ -1765,6 +2107,17 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
           </div>
           {reviewValidationMessage ? <p class={sectionBody}>{reviewValidationMessage}</p> : null}
           {!isManifestCurrentlyValidated ? <p class={sectionBody}>{appText("builder.review.mustValidate")}</p> : null}
+          <p class={sectionBody}>
+            {appText("builder.review.runtimeDependenciesCount", { count: form.runtimeDependencyChecks.length })}
+          </p>
+          {form.runtimeDependencyChecks.length > 0 ? (
+            <p class={sectionBody}>
+              {appText("builder.review.runtimeDependenciesSeveritySummary", {
+                blockers: form.runtimeDependencyChecks.filter((check) => check.severity === "block").length,
+                warnings: form.runtimeDependencyChecks.filter((check) => check.severity === "warn").length,
+              })}
+            </p>
+          ) : null}
           <p class={sectionBody}>{appText("builder.emptyReview")}</p>
         </div>
       );
