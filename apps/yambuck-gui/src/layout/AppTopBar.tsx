@@ -9,6 +9,7 @@ type AppTopBarProps = {
   page: AppPage;
   isMaximized: boolean;
   onTitlebarMouseDown: (event: MouseEvent) => Promise<void>;
+  onTitlebarDoubleClick: (event: MouseEvent) => Promise<void>;
   onNavigateInstaller: () => void;
   onNavigateInstalled: () => void;
   onNavigatePackageBuilder: () => void;
@@ -22,6 +23,7 @@ export const AppTopBar = ({
   page,
   isMaximized,
   onTitlebarMouseDown,
+  onTitlebarDoubleClick,
   onNavigateInstaller,
   onNavigateInstalled,
   onNavigatePackageBuilder,
@@ -30,7 +32,11 @@ export const AppTopBar = ({
   onToggleMaximize,
   onClose,
 }: AppTopBarProps) => (
-  <header class="topbar" onMouseDown={(event: JSX.TargetedMouseEvent<HTMLElement>) => void onTitlebarMouseDown(event as unknown as MouseEvent)}>
+  <header
+    class="topbar"
+    onMouseDown={(event: JSX.TargetedMouseEvent<HTMLElement>) => void onTitlebarMouseDown(event as unknown as MouseEvent)}
+    onDblClick={(event: JSX.TargetedMouseEvent<HTMLElement>) => void onTitlebarDoubleClick(event as unknown as MouseEvent)}
+  >
     <div class="topbar-left" data-no-drag="true">
       <img class="topbar-app-icon" src={appIcon} alt="Yambuck" />
       <TogglePillGroup

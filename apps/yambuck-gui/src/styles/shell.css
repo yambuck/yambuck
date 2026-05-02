@@ -133,6 +133,7 @@ body {
   background: var(--colors-topbar-background);
   backdrop-filter: blur(8px);
   user-select: none;
+  -webkit-user-select: none;
   cursor: grab;
 }
 

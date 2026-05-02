@@ -217,6 +217,7 @@ function App() {
   const {
     isMaximized,
     handleTitlebarMouseDown,
+    handleTitlebarDoubleClick,
     handleResizeMouseDown,
     handleMinimize,
     handleToggleMaximize,
@@ -774,6 +775,7 @@ function App() {
         page={page}
         isMaximized={isMaximized}
         onTitlebarMouseDown={handleTitlebarMouseDown}
+        onTitlebarDoubleClick={handleTitlebarDoubleClick}
         onNavigateInstaller={navigateToInstaller}
         onNavigateInstalled={navigateToInstalledList}
         onNavigatePackageBuilder={navigateToPackageBuilder}

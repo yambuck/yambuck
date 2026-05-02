@@ -37,6 +37,11 @@ export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
   }, []);
 
   const handleTitlebarMouseDown = async (event: MouseEvent) => {
+    if (event.detail > 1) {
+      event.preventDefault();
+      return;
+    }
+
     if (event.buttons !== 1) {
       return;
     }
@@ -50,6 +55,29 @@ export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
       await getCurrentWindow().startDragging();
     } catch {
       // no-op if drag is unavailable
+    }
+  };
+
+  const handleTitlebarDoubleClick = async (event: MouseEvent) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("button, a, input, [data-no-drag='true']")) {
+      return;
+    }
+
+    event.preventDefault();
+
+    try {
+      const win = getCurrentWindow();
+      const currentlyMaximized = await win.isMaximized();
+      if (currentlyMaximized) {
+        await win.unmaximize();
+        setIsMaximized(false);
+      } else {
+        await win.maximize();
+        setIsMaximized(true);
+      }
+    } catch {
+      onError("Unable to resize window.");
     }
   };
 
@@ -107,6 +135,7 @@ export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
   return {
     isMaximized,
     handleTitlebarMouseDown,
+    handleTitlebarDoubleClick,
     handleResizeMouseDown,
     handleMinimize,
     handleToggleMaximize,
