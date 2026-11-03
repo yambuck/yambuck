@@ -1,37 +1,71 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Yambuck one-line installer for Linux.
+#   curl -sf https://yambuck.com/install.sh | bash
+# The in-app updater re-runs this same script (adding --system for a
+# /usr/local/bin install), so keep its options stable.
+# Follows the Release and Update Standard; see docs/RELEASE.md.
+
 REPO="yambuck/yambuck"
-DEFAULT_CHANNEL="latest"
 BIN_NAME="yambuck"
+INSTALL_BASE_URL="https://yambuck.com"
+USER_INSTALL_DIR="${HOME}/.local/bin"
+SYSTEM_INSTALL_DIR="/usr/local/bin"
+
+# GitHub API request headers. YAMBUCK_GITHUB_TOKEN is optional: anonymous
+# requests are limited to 60 an hour per IP address.
+GITHUB_API_HEADERS=(-H "Accept: application/vnd.github+json")
+if [[ -n "${YAMBUCK_GITHUB_TOKEN:-}" ]]; then
+  GITHUB_API_HEADERS+=(-H "Authorization: Bearer ${YAMBUCK_GITHUB_TOKEN}")
+fi
 
 usage() {
-  cat <<'EOF'
-Yambuck bootstrap installer
+  cat <<EOF
+Yambuck installer
 
 Usage:
-  install.sh [--system] [--version <tag>] [--channel latest|stable] [--yes] [--insecure-skip-verify]
+  install.sh [--system] [--version <tag>] [--yes] [--no-relaunch] [--insecure-skip-verify]
+
+Default: install for the current user to ~/.local/bin (no password needed).
 
 Options:
-  --system                Install into /usr/local/bin (requires sudo)
-  --version <tag>         Install specific release tag (for example v0.1.0)
-  --channel <name>        Release channel (default: latest)
-  --yes                   Skip interactive confirmation prompts
+  --system                Install for all users to /usr/local/bin (asks for your password)
+  --version <tag>         Install a specific release tag (e.g. v0.3.7)
+  --yes                   Skip the confirmation prompt
+  --no-relaunch           Do not start Yambuck after installing
   --insecure-skip-verify  Skip checksum verification (not recommended)
   -h, --help              Show this help message
 
-Environment overrides:
-  YAMBUCK_INSTALL_URL     Full tarball URL override
-  YAMBUCK_CHECKSUM_URL    Full checksum URL override
+Environment:
+  YAMBUCK_GITHUB_TOKEN    GitHub token for API requests (avoids the anonymous rate limit)
+  YAMBUCK_NO_RELAUNCH     Set to 1 to not start Yambuck after installing
+  YAMBUCK_INSTALL_URL     Testing only: install this tarball URL instead of a
+                          GitHub release (requires --insecure-skip-verify)
+
+Examples:
+  curl -sf ${INSTALL_BASE_URL}/install.sh | bash
+  curl -sf ${INSTALL_BASE_URL}/install.sh | bash -s -- --system
 EOF
 }
 
+LOG_DIR="${HOME}/.config/yambuck/debug"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+LOG_FILE="${LOG_DIR}/update.log"
+
 log() {
   printf "[yambuck] %s\n" "$*"
+  printf "[%s] [yambuck] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG_FILE" 2>/dev/null || true
+}
+
+warn() {
+  printf "[yambuck] WARNING: %s\n" "$*" >&2
+  printf "[%s] [yambuck] WARNING: %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 fail() {
-  printf "[yambuck] ERROR: %s\n" "$*" >&2
+  printf "[yambuck] ERROR: %b\n" "$*" >&2
+  printf "[%s] [yambuck] ERROR: %b\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG_FILE" 2>/dev/null || true
   exit 1
 }
 
@@ -43,27 +77,110 @@ optional_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
-guard_install_dir() {
-  local path="$1"
-  if [[ -z "$path" || "$path" == "/" ]]; then
-    fail "refusing unsafe install dir: ${path:-<empty>}"
-  fi
+has_display() {
+  [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]
+}
 
-  if [[ "$install_system" == true ]]; then
-    [[ "$path" == "/usr/local/bin" ]] || fail "unexpected system install dir: $path"
+# The in-app updater runs this script detached from any terminal, so there
+# sudo cannot prompt and the graphical pkexec prompt is used instead.
+run_as_root() {
+  if [[ "$EUID" -eq 0 ]]; then
+    "$@"
+  elif optional_cmd sudo && sudo -n true 2>/dev/null; then
+    sudo "$@"
+  elif [[ -t 0 ]] && optional_cmd sudo; then
+    sudo "$@"
+  elif optional_cmd sudo && tty_available; then
+    sudo "$@" < /dev/tty
+  elif optional_cmd pkexec && has_display; then
+    pkexec "$@"
   else
-    [[ "$path" == "${HOME}/.local/bin" ]] || fail "unexpected user install dir: $path"
+    fail "root permissions required but neither sudo (with a terminal) nor pkexec (with a display) is available"
+  fi
+}
+
+# Piped from curl, stdin is the script, but sudo can still prompt through the
+# controlling terminal.
+tty_available() {
+  [[ -r /dev/tty ]] && { : < /dev/tty; } 2>/dev/null
+}
+
+# Returns 0 when root commands can run (already root, cached sudo, an
+# interactive sudo prompt, or a graphical pkexec prompt).
+acquire_root() {
+  if [[ "$EUID" -eq 0 ]]; then
+    return 0
+  fi
+  if optional_cmd sudo && sudo -n true 2>/dev/null; then
+    return 0
+  fi
+  if [[ -t 0 ]] && optional_cmd sudo; then
+    sudo -v
+  elif optional_cmd sudo && tty_available; then
+    sudo -v < /dev/tty
+  elif optional_cmd pkexec && has_display; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+stop_running_process() {
+  if optional_cmd pgrep && pgrep -x "$BIN_NAME" >/dev/null 2>&1; then
+    log "Closing running Yambuck"
+    if optional_cmd pkill; then
+      pkill -TERM -x "$BIN_NAME" >/dev/null 2>&1 || true
+      sleep 1
+      pkill -KILL -x "$BIN_NAME" >/dev/null 2>&1 || true
+    fi
   fi
 }
 
 resolve_arch() {
-  local arch
-  arch="$(uname -m)"
-  case "$arch" in
-    x86_64|amd64) printf "x86_64" ;;
-    aarch64|arm64) printf "aarch64" ;;
-    *) fail "unsupported architecture: $arch" ;;
+  case "$(uname -m)" in
+    x86_64|amd64) printf "x64" ;;
+    aarch64|arm64) fail "ARM64 builds of Yambuck are not available yet; only x64 (x86_64) is supported." ;;
+    *) fail "unsupported architecture: $(uname -m)" ;;
   esac
+}
+
+fetch_latest_release_tag() {
+  local tag
+  tag="$(curl -fsL --retry 3 --connect-timeout 10 "${GITHUB_API_HEADERS[@]}" \
+    "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep -o '"tag_name": *"[^"]*"' | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')" || true
+  [[ -n "$tag" ]] || fail "could not determine the latest release from GitHub (you may be rate limited; try again in a few minutes)"
+  printf "%s" "$tag"
+}
+
+# GitHub computes a SHA-256 digest for every uploaded release asset and
+# exposes it through the releases API; that is the source of truth.
+verify_checksum() {
+  local file="$1" asset_name="$2"
+  local release_json expected actual
+  release_json="$(curl -fsL --retry 3 --connect-timeout 10 "${GITHUB_API_HEADERS[@]}" \
+    "https://api.github.com/repos/${REPO}/releases/tags/${release_tag}")" \
+    || fail "could not fetch the checksum for ${asset_name} from GitHub. Try again later, or re-run with --insecure-skip-verify."
+  if optional_cmd python3; then
+    expected="$(printf "%s" "$release_json" | python3 -c '
+import json, sys
+name = sys.argv[1]
+for asset in json.load(sys.stdin).get("assets", []):
+    if asset.get("name") == name:
+        print(asset.get("digest") or "")
+' "$asset_name" 2>/dev/null)" || true
+  else
+    # No JSON parser: each asset lists "digest" shortly before its
+    # "browser_download_url", with only flat fields in between.
+    expected="$(printf "%s" "$release_json" | tr -d '\n' \
+      | grep -o "\"digest\": *\"sha256:[0-9a-f]*\"[^{}]*\"browser_download_url\": *\"[^\"]*/${asset_name//./\\.}\"" \
+      | grep -o 'sha256:[0-9a-f]*' | head -n1)" || true
+  fi
+  expected="${expected#sha256:}"
+  [[ -n "$expected" ]] || fail "GitHub did not provide a checksum for ${asset_name}. Re-run with --insecure-skip-verify to bypass verification."
+  actual="$(sha256sum "$file" | awk '{print $1}')"
+  [[ "$expected" == "$actual" ]] || fail "checksum mismatch (expected $expected, got $actual)"
+  log "Checksum verified"
 }
 
 write_branded_icon_svg() {
@@ -115,306 +232,272 @@ detect_active_icon_theme() {
   fi
 }
 
+# Some icon themes (e.g. Mint's) ignore hicolor MIME icons, so a user install
+# also drops the .yambuck file icon into the active theme.
 install_theme_overlay_icons() {
   local theme_name="$1"
-  local mime_icon_name="$2"
-  local theme_root="${HOME}/.local/share/icons/${theme_name}"
-  local theme_mime_dir="${theme_root}/mimetypes"
-  local theme_mime_scalable_dir="${theme_mime_dir}/scalable"
-  local theme_mime_symbolic_dir="${theme_mime_dir}/symbolic"
+  local theme_mime_dir="${HOME}/.local/share/icons/${theme_name}/mimetypes"
 
   log "Installing MIME icon overlay for active theme: ${theme_name}"
-  install -d "$theme_mime_scalable_dir" "$theme_mime_symbolic_dir"
-  write_branded_icon_svg > "${theme_mime_scalable_dir}/${mime_icon_name}.svg"
+  install -d "${theme_mime_dir}/scalable" "${theme_mime_dir}/symbolic"
+  write_branded_icon_svg > "${theme_mime_dir}/scalable/${mime_icon_name}.svg"
   write_branded_icon_svg > "${theme_mime_dir}/${mime_icon_name}.svg"
-  write_branded_icon_symbolic_svg > "${theme_mime_symbolic_dir}/${mime_icon_name}-symbolic.svg"
+  write_branded_icon_symbolic_svg > "${theme_mime_dir}/symbolic/${mime_icon_name}-symbolic.svg"
+  optional_cmd gtk-update-icon-cache && gtk-update-icon-cache -f -t -q "${HOME}/.local/share/icons/${theme_name}" >/dev/null 2>&1 || true
+}
+
+write_desktop_entry() {
+  cat <<EOF
+[Desktop Entry]
+Name=Yambuck
+Comment=Install .yambuck application packages
+Exec=${installed_bin} %F
+Terminal=false
+Type=Application
+Icon=${desktop_icon_name}
+StartupWMClass=yambuck
+Categories=Utility;PackageManager;
+MimeType=application/x-yambuck-package;
+StartupNotify=true
+EOF
+}
+
+write_mime_definition() {
+  cat <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+  <mime-type type="application/x-yambuck-package">
+    <comment>Yambuck package</comment>
+    <icon name="application-x-yambuck-package"/>
+    <glob pattern="*.yambuck"/>
+  </mime-type>
+</mime-info>
+EOF
+}
+
+# Installs a staged file. A user install copies it straight away; a system
+# install queues the copy into one root script, so an update started from the
+# app asks for the password once rather than once per file.
+place_file() {
+  local mode="$1" source="$2" target="$3"
+  if [[ "$install_system" == true ]]; then
+    printf "install -D -m %q %q %q\n" "$mode" "$source" "$target" >> "$root_script"
+  else
+    install -D -m "$mode" "$source" "$target"
+  fi
+}
+
+# A user install (~/.local/bin, ~/.local/share/applications) would shadow the
+# system one in PATH and the app menu, so a system install removes it.
+remove_user_install() {
+  local path
+  for path in "${USER_INSTALL_DIR}/${BIN_NAME}" "${HOME}/.local/share/applications/${desktop_file_name}"; do
+    if [[ -e "$path" || -L "$path" ]]; then
+      log "Removing previous user install: ${path}"
+      rm -f "$path"
+    fi
+  done
 }
 
 install_system=false
 non_interactive=false
 skip_verify=false
+relaunch=true
+if [[ "${YAMBUCK_NO_RELAUNCH:-}" == "1" || "${YAMBUCK_NO_RELAUNCH:-}" == "true" ]]; then
+  relaunch=false
+fi
 version=""
-channel="$DEFAULT_CHANNEL"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --system)
-      install_system=true
-      ;;
+    --system) install_system=true ;;
+    --relaunch) relaunch=true ;;
+    --no-relaunch) relaunch=false ;;
     --version)
       [[ $# -ge 2 ]] || fail "--version requires a value"
       version="$2"
       shift
       ;;
+    # Accepted and ignored so older commands keep working: there is only one
+    # channel now, GitHub's latest release.
     --channel)
       [[ $# -ge 2 ]] || fail "--channel requires a value"
-      channel="$2"
       shift
       ;;
-    --yes)
-      non_interactive=true
-      ;;
-    --insecure-skip-verify)
-      skip_verify=true
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      fail "unknown option: $1"
-      ;;
+    --yes) non_interactive=true ;;
+    --insecure-skip-verify) skip_verify=true ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown option: $1" ;;
   esac
   shift
 done
 
+[[ "$(uname -s)" == "Linux" ]] || fail "Yambuck is for Linux only."
+
 need_cmd curl
 need_cmd tar
+need_cmd install
+need_cmd sha256sum
 
+# Piped into bash (curl | bash), stdin is the script, so prompts can't be answered.
 if [[ ! -t 0 ]]; then
   non_interactive=true
 fi
 
 arch="$(resolve_arch)"
-os="linux"
-
-if [[ -z "$version" ]]; then
-  if [[ "$channel" == "latest" || "$channel" == "stable" ]]; then
-    version="latest"
-  else
-    fail "unsupported channel: $channel"
-  fi
-fi
 
 if [[ "$install_system" == true ]]; then
-  install_dir="/usr/local/bin"
+  install_dir="$SYSTEM_INSTALL_DIR"
+  log "System install requested; root access required"
+  acquire_root || fail "could not get root access for a system install (run the command in a terminal, or install pkexec)"
 else
-  install_dir="${HOME}/.local/bin"
-fi
-guard_install_dir "$install_dir"
-
-if [[ -n "${YAMBUCK_INSTALL_URL:-}" ]]; then
-  asset_url="$YAMBUCK_INSTALL_URL"
-else
-  if [[ "$version" == "latest" ]]; then
-    asset_url="https://github.com/${REPO}/releases/latest/download/yambuck-${os}-${arch}.tar.gz"
-  else
-    asset_url="https://github.com/${REPO}/releases/download/${version}/yambuck-${os}-${arch}.tar.gz"
+  install_dir="$USER_INSTALL_DIR"
+  if [[ -x "${SYSTEM_INSTALL_DIR}/${BIN_NAME}" ]]; then
+    log "Note: a system install exists in ${SYSTEM_INSTALL_DIR}; this user install takes precedence over it. Use --system to update that one instead."
   fi
 fi
+installed_bin="${install_dir}/${BIN_NAME}"
 
-if [[ -n "${YAMBUCK_CHECKSUM_URL:-}" ]]; then
-  checksum_url="$YAMBUCK_CHECKSUM_URL"
+if [[ -n "${YAMBUCK_INSTALL_URL:-}" ]]; then
+  # Testing only (local tarballs, CI before a release exists): there is no
+  # GitHub digest to check it against, so it must be explicitly unverified.
+  [[ "$skip_verify" == true ]] || fail "YAMBUCK_INSTALL_URL is for testing only and requires --insecure-skip-verify"
+  release_tag="${version:-custom}"
+  asset_name="$(basename "$YAMBUCK_INSTALL_URL")"
+  asset_url="$YAMBUCK_INSTALL_URL"
 else
-  checksum_url="${asset_url}.sha256"
+  if [[ -n "$version" ]]; then
+    release_tag="$version"
+  else
+    release_tag="$(fetch_latest_release_tag)"
+  fi
+  asset_name="${BIN_NAME}-${release_tag#v}-linux-${arch}.tar.gz"
+  asset_url="https://github.com/${REPO}/releases/download/${release_tag}/${asset_name}"
 fi
 
-log "Preparing Yambuck install"
-log "Target directory: ${install_dir}"
-log "Asset URL: ${asset_url}"
+log "Release: ${release_tag}"
+if [[ "$install_system" == true ]]; then
+  log "Install mode: system-wide (${install_dir})"
+else
+  log "Install mode: user (${install_dir})"
+fi
 
 if [[ "$non_interactive" == false ]]; then
   printf "Proceed with installation? [y/N] "
   read -r answer
-  if [[ "${answer:-}" != "y" && "${answer:-}" != "Y" ]]; then
-    fail "installation cancelled"
-  fi
-else
-  log "Non-interactive mode detected, continuing automatically"
+  [[ "${answer:-}" == "y" || "${answer:-}" == "Y" ]] || fail "installation cancelled"
 fi
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
+archive_path="${tmp_dir}/${asset_name}"
 
-archive_path="${tmp_dir}/yambuck.tar.gz"
-checksum_path="${tmp_dir}/yambuck.sha256"
+log "Downloading ${asset_url}"
+curl -fL --retry 3 --connect-timeout 15 -o "$archive_path" "$asset_url" \
+  || fail "download failed: ${asset_name} was not found in release ${release_tag}."
 
-log "Downloading release artifact"
-if ! curl -fL --retry 3 --connect-timeout 15 -o "$archive_path" "$asset_url"; then
-  fail "download failed. No release artifact was found for this target yet.\nTry local development run:\n  git clone https://github.com/${REPO}\n  cd yambuck/apps/yambuck-gui\n  npm install\n  npm run tauri dev"
-fi
-
-if [[ "$skip_verify" == false ]]; then
-  need_cmd sha256sum
-  log "Downloading checksum"
-  curl -fL --retry 3 --connect-timeout 15 -o "$checksum_path" "$checksum_url" || fail "checksum download failed"
-  expected="$(awk '{print $1}' "$checksum_path" | head -n1)"
-  actual="$(sha256sum "$archive_path" | awk '{print $1}')"
-  [[ -n "$expected" ]] || fail "checksum file invalid"
-  [[ "$expected" == "$actual" ]] || fail "checksum mismatch"
-  log "Checksum verified"
+if [[ "$skip_verify" == true ]]; then
+  warn "checksum verification disabled"
 else
-  log "WARNING: checksum verification disabled"
+  verify_checksum "$archive_path" "$asset_name"
 fi
 
 extract_dir="${tmp_dir}/extract"
 mkdir -p "$extract_dir"
-tar -xzf "$archive_path" -C "$extract_dir"
+tar -xzf "$archive_path" -C "$extract_dir" || fail "could not extract ${asset_name}"
 
+# Release tarballs carry bin/yambuck; a bare yambuck is tolerated too.
 candidate_bin=""
-if [[ -x "${extract_dir}/${BIN_NAME}" ]]; then
-  candidate_bin="${extract_dir}/${BIN_NAME}"
-elif [[ -x "${extract_dir}/bin/${BIN_NAME}" ]]; then
+if [[ -f "${extract_dir}/bin/${BIN_NAME}" ]]; then
   candidate_bin="${extract_dir}/bin/${BIN_NAME}"
-else
-  candidate_bin="$(find "$extract_dir" -maxdepth 3 -type f -name "$BIN_NAME" -perm -u+x | head -n1 || true)"
+elif [[ -f "${extract_dir}/${BIN_NAME}" ]]; then
+  candidate_bin="${extract_dir}/${BIN_NAME}"
 fi
-
-[[ -n "$candidate_bin" ]] || fail "downloaded archive did not contain ${BIN_NAME} binary"
-[[ -f "$candidate_bin" ]] || fail "downloaded archive candidate is not a file"
-[[ -x "$candidate_bin" ]] || fail "downloaded archive candidate is not executable"
-
-if [[ "$install_system" == true ]]; then
-  need_cmd sudo
-  need_cmd install
-  log "Installing binary with sudo"
-  sudo install -d "$install_dir"
-  sudo install -m 0755 "$candidate_bin" "${install_dir}/${BIN_NAME}"
-else
-  need_cmd install
-  log "Installing binary"
-  install -d "$install_dir"
-  install -m 0755 "$candidate_bin" "${install_dir}/${BIN_NAME}"
-fi
-
-installed_bin="${install_dir}/${BIN_NAME}"
-[[ -x "$installed_bin" ]] || fail "installed binary is missing or not executable at ${installed_bin}"
+[[ -n "$candidate_bin" ]] || fail "downloaded archive did not contain bin/${BIN_NAME}"
 
 desktop_file_name="yambuck.desktop"
 mime_xml_name="application-x-yambuck-package.xml"
 desktop_icon_name="com.yambuck.installer"
 mime_icon_name="application-x-yambuck-package"
-active_icon_theme=""
 
 if [[ "$install_system" == true ]]; then
-  desktop_dir="/usr/share/applications"
-  mime_packages_dir="/usr/share/mime/packages"
-  icon_apps_dir="/usr/share/icons/hicolor/scalable/apps"
-  icon_mime_scalable_dir="/usr/share/icons/hicolor/scalable/mimetypes"
-  icon_mime_symbolic_dir="/usr/share/icons/hicolor/symbolic/mimetypes"
-  yambuck_exec="${install_dir}/${BIN_NAME}"
-
-  log "Installing branded icons"
-  sudo install -d "$icon_apps_dir" "$icon_mime_scalable_dir" "$icon_mime_symbolic_dir"
-  write_branded_icon_svg | sudo tee "${icon_apps_dir}/${desktop_icon_name}.svg" >/dev/null
-  write_branded_icon_svg | sudo tee "${icon_mime_scalable_dir}/${mime_icon_name}.svg" >/dev/null
-  write_branded_icon_symbolic_svg | sudo tee "${icon_mime_symbolic_dir}/${mime_icon_name}-symbolic.svg" >/dev/null
-
-  log "Installing desktop launcher"
-  sudo install -d "$desktop_dir"
-  sudo tee "${desktop_dir}/${desktop_file_name}" >/dev/null <<EOF
-[Desktop Entry]
-Name=Yambuck
-Comment=Install .yambuck application packages
-Exec=${yambuck_exec} %F
-Terminal=false
-Type=Application
-Icon=${desktop_icon_name}
-StartupWMClass=yambuck
-Categories=Utility;PackageManager;
-MimeType=application/x-yambuck-package;
-StartupNotify=true
-EOF
-
-  log "Installing MIME type definition"
-  sudo install -d "$mime_packages_dir"
-  sudo tee "${mime_packages_dir}/${mime_xml_name}" >/dev/null <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
-  <mime-type type="application/x-yambuck-package">
-    <comment>Yambuck package</comment>
-    <icon name="application-x-yambuck-package"/>
-    <glob pattern="*.yambuck"/>
-  </mime-type>
-</mime-info>
-EOF
+  share_dir="/usr/share"
 else
-  desktop_dir="${HOME}/.local/share/applications"
-  mime_packages_dir="${HOME}/.local/share/mime/packages"
-  icon_apps_dir="${HOME}/.local/share/icons/hicolor/scalable/apps"
-  icon_mime_scalable_dir="${HOME}/.local/share/icons/hicolor/scalable/mimetypes"
-  icon_mime_symbolic_dir="${HOME}/.local/share/icons/hicolor/symbolic/mimetypes"
-  yambuck_exec="${install_dir}/${BIN_NAME}"
+  share_dir="${HOME}/.local/share"
+fi
+desktop_dir="${share_dir}/applications"
+mime_dir="${share_dir}/mime"
+icon_dir="${share_dir}/icons/hicolor"
+
+# Desktop integration (launcher, the .yambuck MIME type and file association,
+# branded icons), staged as files so both modes install them the same way.
+stage_dir="${tmp_dir}/stage"
+mkdir -p "$stage_dir"
+write_branded_icon_svg > "${stage_dir}/icon.svg"
+write_branded_icon_symbolic_svg > "${stage_dir}/icon-symbolic.svg"
+write_desktop_entry > "${stage_dir}/${desktop_file_name}"
+write_mime_definition > "${stage_dir}/${mime_xml_name}"
+
+root_script="${tmp_dir}/install-as-root.sh"
+printf "set -eu\n" > "$root_script"
+
+stop_running_process
+
+if [[ "$install_system" == true ]]; then
+  remove_user_install
+fi
+
+log "Installing ${installed_bin}"
+place_file 0755 "$candidate_bin" "$installed_bin"
+place_file 0644 "${stage_dir}/icon.svg" "${icon_dir}/scalable/apps/${desktop_icon_name}.svg"
+place_file 0644 "${stage_dir}/icon.svg" "${icon_dir}/scalable/mimetypes/${mime_icon_name}.svg"
+place_file 0644 "${stage_dir}/icon-symbolic.svg" "${icon_dir}/symbolic/mimetypes/${mime_icon_name}-symbolic.svg"
+place_file 0644 "${stage_dir}/${desktop_file_name}" "${desktop_dir}/${desktop_file_name}"
+place_file 0644 "${stage_dir}/${mime_xml_name}" "${mime_dir}/packages/${mime_xml_name}"
+
+# Icon, MIME and desktop cache refreshes for the install location.
+refresh_commands=()
+if optional_cmd gtk-update-icon-cache; then
+  refresh_commands+=("gtk-update-icon-cache -f -t -q $(printf %q "$icon_dir")")
+fi
+if optional_cmd update-mime-database; then
+  refresh_commands+=("update-mime-database $(printf %q "$mime_dir")")
+fi
+if optional_cmd update-desktop-database; then
+  refresh_commands+=("update-desktop-database $(printf %q "$desktop_dir")")
+fi
+
+if [[ "$install_system" == true ]]; then
+  for refresh in "${refresh_commands[@]}"; do
+    printf "%s >/dev/null 2>&1 || true\n" "$refresh" >> "$root_script"
+  done
+  # mktemp creates a private directory; root (via pkexec) must read it.
+  chmod -R a+rX "$tmp_dir"
+  log "Installing system files (needs root)"
+  run_as_root bash "$root_script" || fail "system install failed (root access was denied, or copying a file failed)"
+else
+  for refresh in "${refresh_commands[@]}"; do
+    bash -c "$refresh" >/dev/null 2>&1 || true
+  done
   active_icon_theme="$(detect_active_icon_theme)"
   if [[ -n "$active_icon_theme" ]]; then
-    log "Detected active icon theme: ${active_icon_theme}"
-  else
-    log "Could not detect active icon theme; using hicolor fallback only"
-  fi
-
-  log "Installing branded icons"
-  install -d "$icon_apps_dir" "$icon_mime_scalable_dir" "$icon_mime_symbolic_dir"
-  write_branded_icon_svg > "${icon_apps_dir}/${desktop_icon_name}.svg"
-  write_branded_icon_svg > "${icon_mime_scalable_dir}/${mime_icon_name}.svg"
-  write_branded_icon_symbolic_svg > "${icon_mime_symbolic_dir}/${mime_icon_name}-symbolic.svg"
-  if [[ -n "$active_icon_theme" ]]; then
-    install_theme_overlay_icons "$active_icon_theme" "$mime_icon_name"
-  fi
-
-  log "Installing desktop launcher"
-  install -d "$desktop_dir"
-  cat > "${desktop_dir}/${desktop_file_name}" <<EOF
-[Desktop Entry]
-Name=Yambuck
-Comment=Install .yambuck application packages
-Exec=${yambuck_exec} %F
-Terminal=false
-Type=Application
-Icon=${desktop_icon_name}
-StartupWMClass=yambuck
-Categories=Utility;PackageManager;
-MimeType=application/x-yambuck-package;
-StartupNotify=true
-EOF
-
-  log "Installing MIME type definition"
-  install -d "$mime_packages_dir"
-  cat > "${mime_packages_dir}/${mime_xml_name}" <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
-  <mime-type type="application/x-yambuck-package">
-    <comment>Yambuck package</comment>
-    <icon name="application-x-yambuck-package"/>
-    <glob pattern="*.yambuck"/>
-  </mime-type>
-</mime-info>
-EOF
-fi
-
-if optional_cmd gtk-update-icon-cache; then
-  log "Refreshing icon cache"
-  if [[ "$install_system" == true ]]; then
-    sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
-  else
-    gtk-update-icon-cache -f -t "${HOME}/.local/share/icons/hicolor" >/dev/null 2>&1 || true
-    if [[ -n "$active_icon_theme" ]]; then
-      gtk-update-icon-cache -f -t "${HOME}/.local/share/icons/${active_icon_theme}" >/dev/null 2>&1 || true
-    fi
+    install_theme_overlay_icons "$active_icon_theme"
   fi
 fi
 
-if optional_cmd update-mime-database; then
-  log "Refreshing MIME database"
-  if [[ "$install_system" == true ]]; then
-    sudo update-mime-database /usr/share/mime >/dev/null 2>&1 || true
-  else
-    update-mime-database "${HOME}/.local/share/mime" >/dev/null 2>&1 || true
-  fi
-fi
+[[ -x "$installed_bin" ]] || fail "installed binary is missing or not executable at ${installed_bin}"
+log "Installed $("$installed_bin" --version 2>/dev/null || printf "%s (version check unavailable)" "$installed_bin")"
 
-if optional_cmd update-desktop-database; then
-  log "Refreshing desktop database"
-  if [[ "$install_system" == true ]]; then
-    sudo update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
-  else
-    update-desktop-database "${HOME}/.local/share/applications" >/dev/null 2>&1 || true
-  fi
+if optional_cmd kbuildsycoca6; then
+  kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+elif optional_cmd kbuildsycoca5; then
+  kbuildsycoca5 --noincremental >/dev/null 2>&1 || true
 fi
 
 if optional_cmd xdg-mime; then
   current_default="$(xdg-mime query default application/x-yambuck-package 2>/dev/null || true)"
   if [[ -z "$current_default" ]]; then
-    log "Registering default handler for .yambuck files"
+    log "Registering Yambuck as the default handler for .yambuck files"
     xdg-mime default "$desktop_file_name" application/x-yambuck-package >/dev/null 2>&1 || true
   else
     log "Leaving existing default .yambuck handler unchanged (${current_default})"
@@ -422,11 +505,13 @@ if optional_cmd xdg-mime; then
 fi
 
 if [[ ":$PATH:" != *":${install_dir}:"* ]]; then
-  log "${install_dir} is not currently in PATH"
-  log "Add this line to your shell profile and restart terminal:"
+  log "Note: ${install_dir} is not in your PATH. Launch Yambuck from your app menu, or add this to your shell profile:"
   log "  export PATH=\"${install_dir}:\$PATH\""
 fi
 
-log "Installation complete"
-log "Run: ${BIN_NAME}"
-log "You can now open .yambuck files with Yambuck"
+log "Installation complete. Open a .yambuck file, or launch Yambuck from your application menu."
+
+if [[ "$relaunch" == true ]] && has_display; then
+  log "Starting Yambuck"
+  nohup "$installed_bin" >/dev/null 2>&1 &
+fi
