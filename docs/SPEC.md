@@ -212,6 +212,13 @@ Install decision table (v1):
 - user installs and system installs both update in-app (system installs elevate through `pkexec`)
 - a failed update relaunches the installed version with an update-failed dialog and log link
 
+## Diagnostics and Settings (App Standard)
+
+- every run logs to `~/.config/yambuck/debug/session.log` (the previous run is kept as `last-session.log`), headed by app, version, build, executable, OS / distribution, kernel, architecture, desktop and session type
+- panics are written to the session log before the process exits
+- Settings -> Debug -> Logs: `Copy log`, `Open log`, `Open log folder`, system info with copy, and the log level
+- settings live in `~/.config/yambuck/settings.json`; it and the installed-apps index are saved atomically, an unparseable file is moved aside as `<file>.invalid-<timestamp>` (the user is told once), and an unreadable settings file stops start-up with an error dialog
+
 ## Compatibility and Targets
 
 ### Product goal
