@@ -1,3 +1,4 @@
+mod atomic_file;
 mod install_flow;
 mod install_options;
 mod installed_apps;
@@ -6,6 +7,7 @@ mod package_inspection;
 mod storage;
 mod types;
 
+pub use atomic_file::{quarantine_invalid_file, take_storage_notices, write_file_atomically};
 pub use types::*;
 
 pub fn installer_context(app_version: &str) -> InstallerContext {

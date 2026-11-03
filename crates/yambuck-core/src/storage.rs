@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::atomic_file::{push_storage_notice, quarantine_invalid_file, write_file_atomically};
 use crate::{InstallScope, PackageInfo, YambuckError};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -39,14 +40,27 @@ struct OwnershipReceipt {
 
 pub(crate) fn read_index(scope: InstallScope) -> Result<Vec<InstalledAppRecord>, YambuckError> {
     let path = index_file_path(scope)?;
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
+    let content = match fs::read_to_string(&path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(_) => return Err(YambuckError::StorageUnavailable),
+    };
 
-    let content = fs::read_to_string(path).map_err(|_| YambuckError::StorageUnavailable)?;
-    let records = serde_json::from_str::<Vec<InstalledAppRecord>>(&content)
-        .map_err(|_| YambuckError::StorageUnavailable)?;
-    Ok(records)
+    match serde_json::from_str::<Vec<InstalledAppRecord>>(&content) {
+        Ok(records) => Ok(records),
+        // An unparseable index is set aside (never overwritten) and Yambuck
+        // carries on with an empty one; the user is told once.
+        Err(parse_error) => {
+            let quarantined =
+                quarantine_invalid_file(&path).map_err(|_| YambuckError::StorageUnavailable)?;
+            push_storage_notice(format!(
+                "The installed apps list {} could not be read ({parse_error}). It was moved to {} and Yambuck started a new one.",
+                path.display(),
+                quarantined.display()
+            ));
+            Ok(Vec::new())
+        }
+    }
 }
 
 pub(crate) fn managed_app_payload_root(scope: InstallScope) -> Result<PathBuf, YambuckError> {
@@ -83,7 +97,7 @@ pub(crate) fn write_index(
     fs::create_dir_all(parent).map_err(|_| YambuckError::StorageUnavailable)?;
     let content =
         serde_json::to_string_pretty(records).map_err(|_| YambuckError::StorageUnavailable)?;
-    fs::write(path, content).map_err(|_| YambuckError::StorageUnavailable)
+    write_file_atomically(&path, content.as_bytes()).map_err(|_| YambuckError::StorageUnavailable)
 }
 
 pub(crate) fn find_installed_record(
@@ -124,7 +138,8 @@ pub(crate) fn write_ownership_receipt(record: &InstalledAppRecord) -> Result<(),
     };
     let content =
         serde_json::to_string_pretty(&receipt).map_err(|_| YambuckError::StorageUnavailable)?;
-    fs::write(receipt_path, content).map_err(|_| YambuckError::StorageUnavailable)
+    write_file_atomically(&receipt_path, content.as_bytes())
+        .map_err(|_| YambuckError::StorageUnavailable)
 }
 
 pub(crate) fn maybe_remove_ownership_receipt(destination_path: &str) {
