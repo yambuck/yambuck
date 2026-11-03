@@ -4,11 +4,21 @@
     {% include site-head.html %}
   </head>
   <body class="{{ page.body_class }}">
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
-
+    {%- assign source_ext = page.name | split: "." | last -%}
+    {% if source_ext == "md" %}
+    <header class="hero hero-compact">
+      <div class="hero-inner">
+        {% include brand.html %}
+      </div>
+    </header>
     <main class="page">
-      {{ content }}
+      <article class="panel prose">
+        {{ content }}
+      </article>
+      {% include site-footer.html %}
     </main>
+    {% else %}
+    {{ content }}
+    {% endif %}
   </body>
 </html>

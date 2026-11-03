@@ -5,116 +5,130 @@ description: Yambuck is a beginner-friendly Linux app installer for direct downl
 canonical: https://yambuck.com/
 ---
 <header class="hero">
-  <div class="brand-lockup" aria-label="Yambuck">
-    <img src="{{ '/favicon.svg' | relative_url }}" alt="" aria-hidden="true" />
-    <span>Yambuck</span>
+  <div class="hero-inner">
+    {% include brand.html home=true %}
+    <div class="hero-row">
+      <div class="hero-copy">
+        <h1>Simple Linux app installs.</h1>
+        <p class="tagline">
+          Yambuck is a GUI installer for Linux software. Instead of distro-specific app stores and
+          package formats, it gives users one consistent install experience across distros.
+        </p>
+      </div>
+      {% include hero-art.html %}
+    </div>
   </div>
-  <h1>Simple Linux app installs.</h1>
-  <p class="hero-copy">
-    Yambuck is a GUI installer for Linux software. Instead of distro-specific app stores and
-    package formats, it gives users one consistent install experience across distros.
-  </p>
 </header>
 
-<section class="install-card" aria-labelledby="install-title">
-  <div class="install-card-header">
-    <h2 id="install-title">Install Yambuck</h2>
-    <span class="status">Alpha Preview</span>
-  </div>
-  <p>Install Yambuck once, then open <code>.yambuck</code> packages with a simple guided installer.</p>
-  <div class="install-variants" role="group" aria-label="Install type">
-    <button type="button" class="install-variant-btn active" data-variant="user" aria-pressed="true">User Install</button>
-    <button type="button" class="install-variant-btn" data-variant="system" aria-pressed="false">System Install</button>
-  </div>
-  <p class="command-hint">Open <strong>Terminal</strong> and run:</p>
-  <div class="command-shell">
-    <code id="install-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash</code>
-    <button id="copy-command" type="button">Copy</button>
-  </div>
-  <p class="command-note" id="install-variant-note">Installs Yambuck for your account in <code>~/.local/bin</code>. No password needed.</p>
-  <p class="command-note">
-    Manual download: <a href="https://github.com/yambuck/yambuck/releases/latest">latest release on GitHub</a>.
-  </p>
-  <p class="command-note">
-    Yambuck is in alpha preview. Core flows work, with ongoing reliability improvements.
-  </p>
-  <p class="command-note">
-    Need to remove Yambuck later?
-    <a href="{{ '/uninstall.html' | relative_url }}">Uninstall instructions</a>.
-  </p>
-</section>
-
-<section class="steps" aria-label="Quick start steps">
-  <article>
-    <p class="step-kicker">Step 1</p>
-    <h3>Install Yambuck</h3>
-    <p>Run the command above once to install Yambuck on your machine.</p>
-  </article>
-  <article>
-    <p class="step-kicker">Step 2</p>
-    <h3>Download example package</h3>
-    <p>Download a demo <code>.yambuck</code> file to try the install experience.</p>
-    <a
-      class="link-button step-action step-file-button"
-      href="https://github.com/yambuck/yambuck/releases/latest/download/example-app.yambuck"
-      aria-label="Download example-app.yambuck"
-    >
-      <span class="step-file-label">Download Example Package</span>
-    </a>
-  </article>
-  <article>
-    <p class="step-kicker">Step 3</p>
-    <h3>Open and install</h3>
-    <p>Open the downloaded <code>.yambuck</code> file and complete the guided installer steps.</p>
-  </article>
-</section>
-
-<section class="product-preview" aria-labelledby="preview-title">
-  <div class="install-card-header preview-header">
-    <h2 id="preview-title">Preview</h2>
-  </div>
-  <div class="preview-viewer">
-    <div class="preview-carousel">
-      <button type="button" class="preview-nav preview-nav-prev" id="preview-prev" aria-label="Previous preview image">&#10094;</button>
-      <div class="preview-image-wrap">
-        <img
-          id="preview-shot"
-          class="preview-shot"
-          src="{{ '/screenshots/yambuck-screenshot-v0.2.0-preview.png' | relative_url }}"
-          alt="Yambuck installer preview screen"
-        />
-      </div>
-      <button type="button" class="preview-nav preview-nav-next" id="preview-next" aria-label="Next preview image">&#10095;</button>
+<main class="page">
+  <section class="panel install" aria-labelledby="install-title">
+    <div class="panel-header">
+      <h2 id="install-title">Install Yambuck</h2>
+      <span class="status">Alpha Preview</span>
     </div>
-    <p class="preview-badge" id="preview-caption">Installer preview</p>
-  </div>
-  <div class="preview-actions">
-    <a class="link-button" href="{{ '/screenshots/' | relative_url }}">More Screenshots</a>
-  </div>
-</section>
+    <p class="panel-lede">Install Yambuck once, then open <code>.yambuck</code> packages with a simple guided installer.</p>
+    <div class="install-variants" role="group" aria-label="Install type">
+      <button type="button" class="install-variant-btn active" data-variant="user" aria-pressed="true">User Install</button>
+      <button type="button" class="install-variant-btn" data-variant="system" aria-pressed="false">System Install</button>
+    </div>
+    <p class="command-hint">Open <strong>Terminal</strong> and run:</p>
+    <div class="command-shell">
+      <code id="install-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash</code>
+      <button id="copy-command" class="copy-btn" type="button">Copy</button>
+    </div>
+    <p class="command-note command-note-center" id="install-variant-note">Installs Yambuck for your account in <code>~/.local/bin</code>. No password needed.</p>
+    <div class="panel-foot">
+      <p class="command-note">
+        Manual download: <a href="https://github.com/yambuck/yambuck/releases/latest">latest release on GitHub</a>.
+      </p>
+      <p class="command-note">
+        Yambuck is in alpha preview. Core flows work, with ongoing reliability improvements.
+      </p>
+      <p class="command-note">
+        Need to remove Yambuck later?
+        <a href="{{ '/uninstall.html' | relative_url }}">Uninstall instructions</a>.
+      </p>
+    </div>
+  </section>
 
-<section class="developer-note">
-  <h2>Developers &amp; Project Support</h2>
-  <p>
-    Package once. Distribute directly. Let users install with a familiar GUI flow.
-  </p>
-  <p class="command-note">
-    Trying Yambuck in alpha? Share feedback and issues on
-    <a href="https://github.com/yambuck/yambuck/issues">GitHub Issues</a>.
-  </p>
-  <div class="developer-actions">
-    <a class="link-button step-action" href="{{ '/donate.html' | relative_url }}">Support Yambuck</a>
-    <a class="link-button secondary step-action" href="https://github.com/yambuck/yambuck">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path
-          fill="currentColor"
-          d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.36 6.84 9.72.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.9-.64.07-.63.07-.63 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.66.34-1.1.62-1.35-2.22-.26-4.56-1.15-4.56-5.11 0-1.13.39-2.06 1.03-2.79-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.06A9.3 9.3 0 0112 7.48c.85 0 1.7.12 2.5.35 1.9-1.34 2.74-1.06 2.74-1.06.55 1.42.21 2.47.1 2.73.64.73 1.03 1.66 1.03 2.79 0 3.97-2.35 4.85-4.58 5.11.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.6.69.49A10.2 10.2 0 0022 12.25C22 6.59 17.52 2 12 2z"
-        />
-      </svg>
-      <span>View project on GitHub</span>
-    </a>
-  </div>
-</section>
+  <section class="steps" aria-label="Quick start steps">
+    <article class="step">
+      <p class="step-kicker">Step 1</p>
+      <h3>Install Yambuck</h3>
+      <p>Run the command above once to install Yambuck on your machine.</p>
+    </article>
+    <article class="step">
+      <p class="step-kicker">Step 2</p>
+      <h3>Download example package</h3>
+      <p>Download a demo <code>.yambuck</code> file to try the install experience.</p>
+      <a
+        class="button button-primary step-action"
+        href="https://github.com/yambuck/yambuck/releases/latest/download/example-app.yambuck"
+        aria-label="Download example-app.yambuck"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>
+        <span>Download Example Package</span>
+      </a>
+    </article>
+    <article class="step">
+      <p class="step-kicker">Step 3</p>
+      <h3>Open and install</h3>
+      <p>Open the downloaded <code>.yambuck</code> file and complete the guided installer steps.</p>
+    </article>
+  </section>
+
+  <section class="section product-preview" aria-labelledby="preview-title">
+    <h2 id="preview-title">Preview</h2>
+    <div class="preview-viewer">
+      <div class="preview-carousel">
+        <button type="button" class="round-btn preview-nav-prev" id="preview-prev" aria-label="Previous preview image">&#10094;</button>
+        <div class="preview-image-wrap">
+          <img
+            id="preview-shot"
+            class="shot preview-shot"
+            src="{{ '/screenshots/yambuck-screenshot-v0.2.0-preview.png' | relative_url }}"
+            alt="Yambuck installer preview screen"
+          />
+        </div>
+        <button type="button" class="round-btn preview-nav-next" id="preview-next" aria-label="Next preview image">&#10095;</button>
+      </div>
+      <p class="preview-badge" id="preview-caption">Installer preview</p>
+    </div>
+    <div class="preview-actions">
+      <a class="button button-secondary" href="{{ '/screenshots/' | relative_url }}">More Screenshots</a>
+    </div>
+  </section>
+
+  <section class="support developer-note">
+    <div class="support-copy">
+      <h2>Developers &amp; Project Support</h2>
+      <p>
+        Package once. Distribute directly. Let users install with a familiar GUI flow.
+      </p>
+      <p class="command-note">
+        Trying Yambuck in alpha? Share feedback and issues on
+        <a href="https://github.com/yambuck/yambuck/issues">GitHub Issues</a>.
+      </p>
+    </div>
+    <div class="support-actions">
+      <a class="button button-primary" href="{{ '/donate.html' | relative_url }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 3 5 6.5 5c2 0 3.5 1.1 4.5 2.6C12 6.1 13.5 5 15.5 5 19 5 21 8.6 19.6 11.8 17.5 16.4 12 21 12 21z" /></svg>
+        <span>Support Yambuck</span>
+      </a>
+      <a class="button button-secondary" href="https://github.com/yambuck/yambuck">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            fill="currentColor"
+            d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.36 6.84 9.72.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.9-.64.07-.63.07-.63 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.66.34-1.1.62-1.35-2.22-.26-4.56-1.15-4.56-5.11 0-1.13.39-2.06 1.03-2.79-.1-.26-.45-1.31.1-2.73 0 0 .84-.28 2.75 1.06A9.3 9.3 0 0112 7.48c.85 0 1.7.12 2.5.35 1.9-1.34 2.74-1.06 2.74-1.06.55 1.42.21 2.47.1 2.73.64.73 1.03 1.66 1.03 2.79 0 3.97-2.35 4.85-4.58 5.11.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.8 0 .27.18.6.69.49A10.2 10.2 0 0022 12.25C22 6.59 17.52 2 12 2z"
+          />
+        </svg>
+        <span>View project on GitHub</span>
+      </a>
+    </div>
+  </section>
+
+  {% include site-footer.html %}
+</main>
 
 <script>
   const copyButton = document.getElementById("copy-command");

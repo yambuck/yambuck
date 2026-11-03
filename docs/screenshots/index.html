@@ -6,76 +6,84 @@ canonical: https://yambuck.com/screenshots/
 body_class: screenshots-page
 ---
 <header class="hero">
-  <a class="brand-lockup" href="{{ '/index.html' | relative_url }}" aria-label="Yambuck home page">
-    <img src="{{ '/favicon.svg' | relative_url }}" alt="" aria-hidden="true" />
-    <span>Yambuck</span>
-  </a>
-  <h1>Screenshot Gallery</h1>
-  <p class="hero-copy">
-    End-to-end alpha flow: package discovery, guided install, launch, and installed-app management.
-  </p>
-  <p class="command-note">
-    <a href="{{ '/index.html' | relative_url }}">Back to install page</a>
-  </p>
+  <div class="hero-inner">
+    {% include brand.html %}
+    <div class="hero-row">
+      <div class="hero-copy">
+        <h1>Screenshot Gallery</h1>
+        <p class="tagline">
+          End-to-end alpha flow: package discovery, guided install, launch, and installed-app management.
+        </p>
+        <p class="crumb">
+          <a href="{{ '/index.html' | relative_url }}">Back to install page</a>
+        </p>
+      </div>
+      {% include hero-art.html %}
+    </div>
+  </div>
 </header>
 
-<section class="install-card" aria-labelledby="screenshots-title">
-  <div class="install-card-header">
-    <h2 id="screenshots-title">Current UI</h2>
-    <span class="status">Alpha Preview</span>
-  </div>
+<main class="page">
+  <section class="panel" aria-labelledby="screenshots-title">
+    <div class="panel-header">
+      <h2 id="screenshots-title">Current UI</h2>
+      <span class="status">Alpha Preview</span>
+    </div>
 
-  <div class="screenshots-grid" id="screenshots-grid">
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open choose package step screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-1.png' | relative_url }}" alt="Yambuck installer choose package step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-1.png' | relative_url }}" />
-      <figcaption>Choose package</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open package selected in GNOME Files screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-gnome-files.png' | relative_url }}" alt="Example package selected in GNOME Files" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-gnome-files.png' | relative_url }}" />
-      <figcaption>Package selected in GNOME Files</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open package details step screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-2-1.png' | relative_url }}" alt="Yambuck package details screen" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-2-1.png' | relative_url }}" />
-      <figcaption>Package details</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open trust verification step screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-3.png' | relative_url }}" alt="Yambuck trust and verification step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-3.png' | relative_url }}" />
-      <figcaption>Trust and verification</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open license agreement step screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-4.png' | relative_url }}" alt="Yambuck license agreement step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-4.png' | relative_url }}" />
-      <figcaption>License agreement</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open license text dialog screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-5.png' | relative_url }}" alt="Yambuck license text dialog" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-5.png' | relative_url }}" />
-      <figcaption>License text dialog</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open install scope step screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-6.png' | relative_url }}" alt="Yambuck install scope step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-6.png' | relative_url }}" />
-      <figcaption>Install scope</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open install complete step screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-7.png' | relative_url }}" alt="Yambuck install complete screen" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-7.png' | relative_url }}" />
-      <figcaption>Install complete</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open launched example app screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-example-app.png' | relative_url }}" alt="Launched Yambuck Example App window" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-example-app.png' | relative_url }}" />
-      <figcaption>Launched example app</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open installed apps list screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-apps.png' | relative_url }}" alt="Yambuck installed apps list" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-apps.png' | relative_url }}" />
-      <figcaption>Installed apps list</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open installed app technical details screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-2.png' | relative_url }}" alt="Yambuck installed app technical details" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-2.png' | relative_url }}" />
-      <figcaption>Installed app technical details</figcaption>
-    </figure>
-    <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open installed app details screenshot">
-      <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png' | relative_url }}" alt="Yambuck installed app details overview" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png' | relative_url }}" />
-      <figcaption>Installed app details</figcaption>
-    </figure>
-  </div>
-</section>
+    <div class="screenshots-grid" id="screenshots-grid">
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open choose package step screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-1.png' | relative_url }}" alt="Yambuck installer choose package step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-1.png' | relative_url }}" />
+        <figcaption>Choose package</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open package selected in GNOME Files screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-gnome-files.png' | relative_url }}" alt="Example package selected in GNOME Files" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-gnome-files.png' | relative_url }}" />
+        <figcaption>Package selected in GNOME Files</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open package details step screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-2-1.png' | relative_url }}" alt="Yambuck package details screen" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-2-1.png' | relative_url }}" />
+        <figcaption>Package details</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open trust verification step screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-3.png' | relative_url }}" alt="Yambuck trust and verification step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-3.png' | relative_url }}" />
+        <figcaption>Trust and verification</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open license agreement step screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-4.png' | relative_url }}" alt="Yambuck license agreement step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-4.png' | relative_url }}" />
+        <figcaption>License agreement</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open license text dialog screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-5.png' | relative_url }}" alt="Yambuck license text dialog" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-5.png' | relative_url }}" />
+        <figcaption>License text dialog</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open install scope step screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-6.png' | relative_url }}" alt="Yambuck install scope step" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-6.png' | relative_url }}" />
+        <figcaption>Install scope</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open install complete step screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-7.png' | relative_url }}" alt="Yambuck install complete screen" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installer-7.png' | relative_url }}" />
+        <figcaption>Install complete</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open launched example app screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-example-app.png' | relative_url }}" alt="Launched Yambuck Example App window" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-example-app.png' | relative_url }}" />
+        <figcaption>Launched example app</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open installed apps list screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-apps.png' | relative_url }}" alt="Yambuck installed apps list" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-apps.png' | relative_url }}" />
+        <figcaption>Installed apps list</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open installed app technical details screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-2.png' | relative_url }}" alt="Yambuck installed app technical details" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-2.png' | relative_url }}" />
+        <figcaption>Installed app technical details</figcaption>
+      </figure>
+      <figure class="screenshot-card" tabindex="0" role="button" aria-label="Open installed app details screenshot">
+        <img src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png' | relative_url }}" alt="Yambuck installed app details overview" data-full-src="{{ '/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png' | relative_url }}" />
+        <figcaption>Installed app details</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  {% include site-footer.html %}
+</main>
 
 <div class="lightbox" id="lightbox" aria-hidden="true">
   <button type="button" class="lightbox-nav lightbox-nav-prev" id="lightbox-prev" aria-label="Previous screenshot">&#10094;</button>

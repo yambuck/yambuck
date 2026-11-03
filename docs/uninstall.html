@@ -5,50 +5,60 @@ description: Uninstall Yambuck safely, or run a full purge for clean-slate testi
 canonical: https://yambuck.com/uninstall.html
 ---
 <header class="hero">
-  <a class="brand-lockup" href="{{ '/index.html' | relative_url }}" aria-label="Yambuck home page">
-    <img src="{{ '/favicon.svg' | relative_url }}" alt="" aria-hidden="true" />
-    <span>Yambuck</span>
-  </a>
-  <h1>Uninstall Yambuck</h1>
-  <p class="hero-copy">
-    Choose the safe default if you only want to remove Yambuck, or use full purge mode for
-    a complete clean-slate reset. If system paths exist, the script requests admin permission.
-  </p>
-  <p class="command-note"><a href="{{ '/index.html' | relative_url }}">Back to install page</a></p>
+  <div class="hero-inner">
+    {% include brand.html %}
+    <div class="hero-row">
+      <div class="hero-copy">
+        <h1>Uninstall Yambuck</h1>
+        <p class="tagline">
+          Choose the safe default if you only want to remove Yambuck, or use full purge mode for
+          a complete clean-slate reset. If system paths exist, the script requests admin permission.
+        </p>
+        <p class="crumb"><a href="{{ '/index.html' | relative_url }}">Back to install page</a></p>
+      </div>
+      {% include hero-art.html %}
+    </div>
+  </div>
 </header>
 
-<section class="install-card" aria-labelledby="safe-uninstall-title">
-  <div class="install-card-header">
-    <h2 id="safe-uninstall-title">Safe uninstall</h2>
-    <span class="status">Recommended</span>
-  </div>
-  <p>
-    Removes Yambuck itself and desktop integration from user and system locations when present.
-    Leaves Yambuck-managed apps in place.
-  </p>
-  <div class="command-shell">
-    <code id="safe-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash</code>
-    <button id="copy-safe-command" type="button">Copy</button>
-  </div>
-</section>
+<main class="page">
+  <section class="panel" aria-labelledby="safe-uninstall-title">
+    <div class="panel-header">
+      <h2 id="safe-uninstall-title">Safe uninstall</h2>
+      <span class="status">Recommended</span>
+    </div>
+    <p class="panel-lede">
+      Removes Yambuck itself and desktop integration from user and system locations when present.
+      Leaves Yambuck-managed apps in place.
+    </p>
+    <div class="command-shell">
+      <code id="safe-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash</code>
+      <button id="copy-safe-command" class="copy-btn" type="button">Copy</button>
+    </div>
+  </section>
 
-<section class="install-card" aria-labelledby="purge-uninstall-title">
-  <div class="install-card-header">
-    <h2 id="purge-uninstall-title">Full purge</h2>
-    <span class="status">Testing</span>
-  </div>
-  <p>
-    Removes Yambuck and all Yambuck-managed app payloads + metadata across user and system
-    scope for a full clean slate.
-  </p>
-  <div class="command-shell">
-    <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes</code>
-    <button id="copy-purge-command" type="button">Copy</button>
-  </div>
-  <p class="command-note">
-    Prefer explicit download? Get the script directly at <a href="{{ '/uninstall.sh' | relative_url }}">/uninstall.sh</a>.
-  </p>
-</section>
+  <section class="panel panel-secondary" aria-labelledby="purge-uninstall-title">
+    <div class="panel-header">
+      <h2 id="purge-uninstall-title">Full purge</h2>
+      <span class="status status-warn">Testing</span>
+    </div>
+    <p class="panel-lede">
+      Removes Yambuck and all Yambuck-managed app payloads + metadata across user and system
+      scope for a full clean slate.
+    </p>
+    <div class="command-shell">
+      <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes</code>
+      <button id="copy-purge-command" class="copy-btn" type="button">Copy</button>
+    </div>
+    <div class="panel-foot">
+      <p class="command-note">
+        Prefer explicit download? Get the script directly at <a href="{{ '/uninstall.sh' | relative_url }}">/uninstall.sh</a>.
+      </p>
+    </div>
+  </section>
+
+  {% include site-footer.html %}
+</main>
 
 <script>
   async function copyText(text) {
