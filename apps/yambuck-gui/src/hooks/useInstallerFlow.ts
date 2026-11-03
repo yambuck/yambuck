@@ -15,6 +15,17 @@ import {
   uninstallInstalledApp,
   validateInstallOptions,
 } from "../lib/tauri/api";
+import {
+  buildInstallFailureReport,
+  buildInstallPreflightReport,
+  buildPackageOpenErrorReport,
+  normalizeInstallFailureMessage,
+  normalizeOpenPackageError,
+  type InstallFailureState,
+  type InstallLifecycleState,
+  type PackageOpenError,
+} from "../lib/installerReports";
+import { useInstallerViewers } from "./useInstallerViewers";
 import { logUiAction, logUiError } from "../lib/ui-log";
 import { copyPlainText } from "../utils/clipboard";
 import { installerDecisionMessage, installerText } from "../i18n/installer";
@@ -43,54 +54,6 @@ type UseInstallerFlowOptions = {
   onToast: (tone: "info" | "success" | "warning" | "error", message: string) => void;
 };
 
-const normalizeOpenPackageError = (error: unknown): string => {
-  if (typeof error === "string") {
-    const trimmed = error.trim();
-    return trimmed || "Package validation failed.";
-  }
-
-  if (error instanceof Error) {
-    const trimmed = error.message.trim();
-    return trimmed || "Package validation failed.";
-  }
-
-  return "Package validation failed.";
-};
-
-type InstallFailureState = {
-  summary: string;
-  details: string;
-  capturedAtIso8601: string;
-  capturedAtDisplay: string;
-};
-
-type InstallLifecycleState =
-  | "queued"
-  | "downloading"
-  | "validating"
-  | "installing"
-  | "verifying"
-  | "success"
-  | "failed";
-
-const normalizeInstallFailureMessage = (error: unknown): string => {
-  if (typeof error === "string") {
-    const trimmed = error.trim();
-    if (trimmed) {
-      return trimmed;
-    }
-  }
-
-  if (error instanceof Error) {
-    const trimmed = error.message.trim();
-    if (trimmed) {
-      return trimmed;
-    }
-  }
-
-  return "Install failed. Check details and try again.";
-};
-
 export const useInstallerFlow = ({
   setPage,
   onRefreshInstalledApps,
@@ -110,12 +73,20 @@ export const useInstallerFlow = ({
   const [preflightBlockedMessage, setPreflightBlockedMessage] = useState("");
   const [installPreflight, setInstallPreflight] = useState<InstallPreflightResult | null>(null);
   const [checkingPreflight, setCheckingPreflight] = useState(false);
-  const [activeScreenshotIndex, setActiveScreenshotIndex] = useState<number | null>(null);
-  const [screenshotGallery, setScreenshotGallery] = useState<string[]>([]);
+  const {
+    activeScreenshotIndex,
+    screenshotGallery,
+    openScreenshotModal,
+    closeScreenshotModal,
+    cycleScreenshot,
+    licenseViewer,
+    openLicenseViewer,
+    closeLicenseViewer,
+    resetLicenseViewer,
+  } = useInstallerViewers();
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [showCompleteTechnicalDetails, setShowCompleteTechnicalDetails] = useState(false);
   const [licenseAccepted, setLicenseAccepted] = useState(false);
-  const [licenseViewer, setLicenseViewer] = useState<{ title: string; text: string } | null>(null);
   const [installOptionValues, setInstallOptionValues] = useState<Record<string, InstallOptionValue>>({});
   const [installOptionError, setInstallOptionError] = useState("");
   const [validatingInstallOptions, setValidatingInstallOptions] = useState(false);
@@ -124,12 +95,7 @@ export const useInstallerFlow = ({
   const [wipeOnReinstall, setWipeOnReinstall] = useState(false);
   const [confirmWipeOnReinstall, setConfirmWipeOnReinstall] = useState(false);
   const [allowDowngrade, setAllowDowngrade] = useState(false);
-  const [packageOpenError, setPackageOpenError] = useState<{
-    packageFile: string;
-    message: string;
-    capturedAtIso8601: string;
-    capturedAtDisplay: string;
-  } | null>(null);
+  const [packageOpenError, setPackageOpenError] = useState<PackageOpenError | null>(null);
   const [installFailure, setInstallFailure] = useState<InstallFailureState | null>(null);
 
   const getStepNext = useCallback(
@@ -195,12 +161,11 @@ export const useInstallerFlow = ({
     setPreview(null);
     setStep("details");
     setPreflightBlockedMessage("");
-    setActiveScreenshotIndex(null);
-    setScreenshotGallery([]);
+    closeScreenshotModal();
     setShowTechnicalDetails(false);
     setShowCompleteTechnicalDetails(false);
     setLicenseAccepted(false);
-    setLicenseViewer(null);
+    resetLicenseViewer();
     setInstallOptionValues({});
     setInstallOptionError("");
     setValidatingInstallOptions(false);
@@ -234,25 +199,6 @@ export const useInstallerFlow = ({
     setPage("installed");
   }, [clearSelectedPackage, setPage]);
 
-  const openScreenshotModal = (gallery: string[], index: number) => {
-    setScreenshotGallery(gallery);
-    setActiveScreenshotIndex(index);
-  };
-
-  const closeScreenshotModal = () => {
-    setActiveScreenshotIndex(null);
-    setScreenshotGallery([]);
-  };
-
-  const cycleScreenshot = (direction: -1 | 1) => {
-    if (screenshotGallery.length === 0 || activeScreenshotIndex === null) {
-      return;
-    }
-    const count = screenshotGallery.length;
-    const next = (activeScreenshotIndex + direction + count) % count;
-    setActiveScreenshotIndex(next);
-  };
-
   const isInstallFlowLocked = () => {
     if (!packageInfo) {
       return false;
@@ -275,7 +221,7 @@ export const useInstallerFlow = ({
       setShowTechnicalDetails(false);
       setShowCompleteTechnicalDetails(false);
       setLicenseAccepted(false);
-      setLicenseViewer(null);
+      resetLicenseViewer();
       initializeInstallOptionValues(inspected.workflow);
       setStep(inspected.workflow.wizardSteps[0] ?? "details");
       setPreview(null);
@@ -327,25 +273,21 @@ export const useInstallerFlow = ({
     }
   };
 
+  const copyReport = async (report: string, successKey: string, failureKey: string) => {
+    try {
+      await copyPlainText(report);
+      onToast("success", installerText(successKey));
+    } catch {
+      onToast("error", installerText(failureKey));
+    }
+  };
+
   const copyPackageOpenErrorDetails = async () => {
     if (!packageOpenError) {
       return;
     }
 
-    const details = [
-      "Yambuck package validation error",
-      `Time: ${packageOpenError.capturedAtIso8601}`,
-      `Package: ${packageOpenError.packageFile}`,
-      `Error: ${packageOpenError.message}`,
-    ].join("\n");
-
-    try {
-      await copyPlainText(details);
-
-      onToast("success", installerText("toast.errorDetailsCopied"));
-    } catch {
-      onToast("error", installerText("toast.errorDetailsCopyFailed"));
-    }
+    await copyReport(buildPackageOpenErrorReport(packageOpenError), "toast.errorDetailsCopied", "toast.errorDetailsCopyFailed");
   };
 
   const copyInstallFailureDetails = async () => {
@@ -353,24 +295,7 @@ export const useInstallerFlow = ({
       return;
     }
 
-    const details = [
-      "Yambuck install failure",
-      `Time: ${installFailure.capturedAtIso8601}`,
-      `App: ${packageInfo.displayName}`,
-      `App ID: ${packageInfo.appId}`,
-      `Scope: ${scope}`,
-      `Summary: ${installFailure.summary}`,
-      "",
-      "Technical details:",
-      installFailure.details,
-    ].join("\n");
-
-    try {
-      await copyPlainText(details);
-      onToast("success", installerText("toast.installFailureDetailsCopied"));
-    } catch {
-      onToast("error", installerText("toast.installFailureDetailsCopyFailed"));
-    }
+    await copyReport(buildInstallFailureReport(installFailure, packageInfo, scope), "toast.installFailureDetailsCopied", "toast.installFailureDetailsCopyFailed");
   };
 
   const copyInstallPreflightDetails = async () => {
@@ -379,57 +304,7 @@ export const useInstallerFlow = ({
       return;
     }
 
-    const capturedAt = toIso8601WithOffset(new Date());
-    const reasonLines = installPreflight.reasons.length === 0
-      ? ["- none"]
-      : installPreflight.reasons.flatMap((reason) => [
-        `- [${reason.code}] ${reason.message}`,
-        ...(reason.technicalDetails ? [`  technical: ${reason.technicalDetails}`] : []),
-      ]);
-    const runtimeDependencyLines = installPreflight.runtimeDependencyIssues.length === 0
-      ? ["- none"]
-      : installPreflight.runtimeDependencyIssues.flatMap((issue) => [
-        `- [${issue.severity}] [${issue.reasonCode}] (${issue.checkType}:${issue.id}) ${issue.message}`,
-        ...(issue.technicalHint ? [`  hint: ${issue.technicalHint}`] : []),
-        ...(issue.technicalDetails ? [`  technical: ${issue.technicalDetails}`] : []),
-      ]);
-
-    const details = [
-      "Yambuck install compatibility report",
-      `Time: ${capturedAt}`,
-      `Status: ${installPreflight.status}`,
-      "",
-      "Package:",
-      `- Display name: ${installPreflight.package.displayName}`,
-      `- Version: ${installPreflight.package.version}`,
-      `- App ID: ${installPreflight.package.appId}`,
-      `- Package UUID: ${installPreflight.package.packageUuid}`,
-      `- Target: ${installPreflight.package.selectedTargetId ?? "none"}`,
-      "",
-      "Host:",
-      `- OS: ${installPreflight.host.os}`,
-      `- Arch: ${installPreflight.host.architecture}`,
-      `- Distro: ${installPreflight.host.distribution}`,
-      `- Kernel: ${installPreflight.host.kernelVersion}`,
-      `- Desktop: ${installPreflight.host.desktop}`,
-      `- Session: ${installPreflight.host.sessionType}`,
-      "",
-      "Reasons:",
-      ...reasonLines,
-      "",
-      "Runtime dependency issues:",
-      ...runtimeDependencyLines,
-      "",
-      `Summary: ${installPreflight.message}`,
-      "Action: Please contact the app developer or publisher and share this report.",
-    ].join("\n");
-
-    try {
-      await copyPlainText(details);
-      onToast("success", installerText("toast.compatibilityReportCopied"));
-    } catch {
-      onToast("error", installerText("toast.compatibilityReportCopyFailed"));
-    }
+    await copyReport(buildInstallPreflightReport(installPreflight, toIso8601WithOffset(new Date())), "toast.compatibilityReportCopied", "toast.compatibilityReportCopyFailed");
   };
 
   const choosePackage = async () => {
@@ -710,16 +585,6 @@ export const useInstallerFlow = ({
   const setDowngradeAllowed = (value: boolean) => {
     logUiAction("installer-set-downgrade-allowed", { value });
     setAllowDowngrade(value);
-  };
-
-  const openLicenseViewer = (title: string, text: string) => {
-    logUiAction("installer-open-license-viewer", { title });
-    setLicenseViewer({ title, text });
-  };
-
-  const closeLicenseViewer = () => {
-    logUiAction("installer-close-license-viewer");
-    setLicenseViewer(null);
   };
 
   const handleInstallFailure = async (
