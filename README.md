@@ -34,19 +34,27 @@ At a glance, the flow is:
 **Install Yambuck:**
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
+curl -sf https://yambuck.com/install.sh | bash
 ```
+
+Install for all users (`/usr/local/bin`, asks for your password):
+
+```bash
+curl -sf https://yambuck.com/install.sh | bash -s -- --system
+```
+
+Yambuck updates itself from the app (Settings → Check for Updates); re-running the install command does the same.
 
 Uninstall Yambuck (safe default, keeps managed apps):
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
+curl -sf https://yambuck.com/uninstall.sh | bash
 ```
 
 Full purge (remove Yambuck and Yambuck-managed apps):
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
+curl -sf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 ```
 
 ## Current Status
@@ -62,7 +70,7 @@ Reference package for exploratory testing: `example-app.yambuck` from the latest
 - package inspection and rich preview
 - guided install flow with scope selection (`Just for me` and `All users`)
 - installed-apps management and uninstall flow
-- update feed wiring and in-app update checks
+- in-app updates from GitHub releases (user and system installs)
 - ownership-aware install tracking for deterministic management behavior
 
 ## Screenshots
@@ -86,8 +94,8 @@ See the full screenshot gallery: `docs/screenshots/index.html`
 - Check Rust/Tauri compile health: `cargo check --manifest-path apps/yambuck-gui/src-tauri/Cargo.toml`
 - Build example package: `./scripts/build-example-app-yambuck.sh`
 - Run example smoke flow: `./scripts/smoke-example-app.sh`
-- Build release artifact + checksum: `./scripts/package-bootstrap-artifact.sh`
-- Prepare full release bundle: `./scripts/release-all.sh --version 0.1.23`
+- Build the release tarball in the Ubuntu 22.04 container (needs podman): `npm run release:linux && node scripts/package-release.mjs`
+- Release procedure: `docs/RELEASE.md`
 
 ## Project Layout
 

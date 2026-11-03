@@ -206,10 +206,11 @@ Install decision table (v1):
 
 - checks on startup and manual check action
 - user-controlled updates only (no silent auto-update)
-- `Update and restart` / `Later`
-- update metadata source: `https://yambuck.com/updates/stable.json`
-- feed points to immutable GitHub Release artifact URLs + checksums
-- in-app apply flow must support both user installs and system installs (with elevation when required)
+- `Update Now` / `View Release Notes` / `Later`
+- update source: GitHub `releases/latest` (Release and Update Standard; no hand-maintained feed)
+- applying an update re-runs the one-line installer, which verifies the GitHub asset digest
+- user installs and system installs both update in-app (system installs elevate through `pkexec`)
+- a failed update relaunches the installed version with an update-failed dialog and log link
 
 ## Compatibility and Targets
 
@@ -239,5 +240,5 @@ Install decision table (v1):
 
 Operational release process is documented in:
 
-- `docs/RELEASE_RUNBOOK.md`
+- `docs/RELEASE.md`
 - `docs/UPDATES_SPEC.md`

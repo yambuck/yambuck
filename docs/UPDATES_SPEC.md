@@ -1,100 +1,40 @@
-# Yambuck Updates Spec (v1)
+# Yambuck Updates Spec
 
-## Goal
+**Superseded.** Yambuck's install and update mechanism follows the shared
+[Release and Update Standard](https://github.com/jackbrumley/jackbrumley.github.io/blob/main/RELEASE_STANDARD.md)
+(the same one Voquill, Rusty G6 and SomeDrive use). The standard is the
+contract; `docs/RELEASE.md` is Yambuck's release procedure and `AGENTS.md`
+lists Yambuck's variations. This page only records what is Yambuck-specific.
 
-Provide a simple, user-controlled update experience where users are informed before changes and can update with one click, then restart.
+## How Updates Work Now
 
-## User Experience
+- **Check:** on startup (silently; failures are only logged) and from
+  Settings → Check for Updates, the app reads
+  `https://api.github.com/repos/yambuck/yambuck/releases/latest` and compares
+  plain `X.Y.Z` versions. There is no hand-maintained feed.
+- **Prompt:** when a newer release exists, the update dialog shows the current
+  and latest versions with **Update Now**, **View Release Notes** and
+  **Later**. Never silent: the user always chooses.
+- **Install:** **Update Now** re-runs the one-line installer in a detached
+  process and exits the app:
+  - user install (`~/.local/bin/yambuck`): `curl -sf https://yambuck.com/install.sh | bash`
+  - system install (`/usr/local/bin/yambuck`):
+    `curl -sf https://yambuck.com/install.sh | bash -s -- --system`.
+    The installer obtains root itself; started from the app there is no
+    terminal, so it uses the desktop's graphical `pkexec` prompt, once.
+- **Verify:** the installer checks the tarball against the SHA-256 digest
+  GitHub publishes for the asset and refuses to install on a mismatch.
+- **Restart:** the installer relaunches Yambuck when it finishes.
+- **Failure:** if the installer fails (download, checksum, cancelled password
+  prompt, copy), the still-installed version is relaunched with
+  `--update-failed` and shows "Yambuck could not install the update, so this
+  version is still installed" with **Open Update Log**. Nothing was replaced.
+  The installer's full output is in `~/.config/yambuck/debug/update.log`.
 
-- Yambuck checks for updates on startup and periodically (every 12 hours).
-- If an update is available, Yambuck shows:
-  - current version
-  - new version
-  - short release note summary / link
-- User chooses:
-  - `Update and restart` (recommended)
-  - `Later`
-- On success:
-  - show confirmation
-  - restart app automatically when possible, or show "Please reopen Yambuck" fallback.
+## Legacy Feed (`docs/updates/stable.json`)
 
-Failure UX requirements:
-
-- Never show success state when any update stage fails.
-- Keep current running version active on any failure.
-- Show dedicated failure state with:
-  - short plain-language summary of what failed
-  - copy-friendly technical logs/details
-  - recovery actions: `Retry`, `Copy logs`, `Open logs`
-- Failure messaging must state whether elevation/permission was required and not granted.
-
-## Update Source of Truth
-
-Use a Yambuck-hosted update feed JSON:
-
-- `https://yambuck.com/updates/stable.json`
-
-This feed points to immutable release assets hosted on GitHub Releases.
-
-## Feed Schema (v1)
-
-```json
-{
-  "channel": "stable",
-  "version": "0.1.3",
-  "publishedAt": "2026-04-14T00:00:00Z",
-  "notesUrl": "https://github.com/yambuck/yambuck/releases/tag/v0.1.3",
-  "linux": {
-    "x86_64": {
-      "url": "https://github.com/yambuck/yambuck/releases/download/v0.1.3/yambuck-linux-x86_64.tar.gz",
-      "sha256": "<sha256>"
-    },
-    "aarch64": {
-      "url": "https://github.com/yambuck/yambuck/releases/download/v0.1.3/yambuck-linux-aarch64.tar.gz",
-      "sha256": "<sha256>"
-    }
-  }
-}
-```
-
-## Update Mechanics
-
-- Download target artifact for current arch.
-- Verify checksum from feed.
-- Stage updated binary in temp path.
-- Replace installed binary atomically:
-  - user install: `~/.local/bin/yambuck`
-  - system install: `/usr/local/bin/yambuck` (requires elevation)
-- Restart process after swap.
-
-Reliability constraints:
-
-- Update apply is all-or-nothing (transactional swap semantics).
-- If swap/apply fails, previous binary remains intact and usable.
-
-## Privilege Model
-
-- Per-user install updates without elevation.
-- System install update must prompt for elevation when user clicks update.
-
-## Safety and Transparency
-
-- Never auto-update silently in v1.
-- Always notify user before update.
-- Show progress states: `Checking`, `Downloading`, `Verifying`, `Applying`, `Restarting`.
-- On failure, show actionable message and keep current version.
-- If checksum/verification fails, block apply and surface clear integrity error details.
-
-## Out of Scope (v1)
-
-- delta patch updates
-- rollback UI
-- mandatory signature-based update policy (planned later)
-
-## Open Gaps Tracking
-
-Any implementation gaps against this spec should be tracked in `TODO.md`.
-
-## Operations Note
-
-Release/update operational steps are documented in `docs/RELEASE_RUNBOOK.md`.
+Versions up to and including v0.3.6 used a feed at
+`https://yambuck.com/updates/stable.json` and swapped their own binary. The
+file is kept so those installs can update once more; the one-time transition
+step is in `docs/RELEASE.md` ("One-Time Transition From the Update Feed").
+After that it is frozen.

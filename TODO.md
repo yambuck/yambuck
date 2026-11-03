@@ -11,7 +11,6 @@ Completed items should be removed from this file.
 - [ ] Implement deterministic host payload selection for multi-arch packages and block unsupported hosts before install begins.
 - [ ] Implement post-install cleanup to retain only selected host payload artifacts and remove unused architecture binaries.
 - [ ] Keep default install flow minimal; move app-specific/technical controls behind collapsed `Advanced` sections.
-- [ ] Implement system-scope in-app update apply flow with elevation and failure-safe parity with user-scope updates.
 - [ ] Complete Linux desktop validation matrix and document outcomes (Mint/Cinnamon, GNOME, KDE; X11 and Wayland; MIME/icon/launcher behavior).
 
 ## Next
@@ -31,4 +30,4 @@ Completed items should be removed from this file.
 ## Ideas / Parking Lot
 
 - Keep a short section in `docs/PACKAGE_SPEC.md` that labels items as `enforced now` vs `planned` to reduce ambiguity while v1 is still being completed.
-- Consider adding a one-command "pre-release sanity" script that bundles core checks (build, smoke install/uninstall, feed validation).
+- Consider adding a one-command "pre-release sanity" script that bundles core checks (build, smoke install/uninstall).

@@ -95,5 +95,6 @@ The direction is set. The work now is reliability, correctness, and cross-enviro
 - Install/update/bootstrap specifics:
   - `docs/BOOTSTRAP_SPEC.md`
   - `docs/UPDATES_SPEC.md`
+  - `docs/RELEASE.md`
   - `docs/UNINSTALL.md`
 - Active implementation backlog: `TODO.md`
