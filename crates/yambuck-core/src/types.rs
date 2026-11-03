@@ -214,18 +214,6 @@ pub struct PreflightCheckResult {
     pub reasons: Vec<String>,
 }
 
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateCheckResult {
-    pub current_version: String,
-    pub latest_version: String,
-    pub update_available: bool,
-    pub channel: String,
-    pub notes_url: Option<String>,
-    pub download_url: Option<String>,
-    pub sha256: Option<String>,
-}
-
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum InstallScope {
@@ -260,8 +248,6 @@ pub enum YambuckError {
     AppNotInstalled,
     StorageUnavailable,
     MetadataUnavailable,
-    InvalidUpdateFeed,
-    UnsupportedArchitecture,
     InstallFailed,
     LaunchFailed,
 }
@@ -290,10 +276,6 @@ impl Display for YambuckError {
             YambuckError::StorageUnavailable => formatter.write_str("local storage unavailable"),
             YambuckError::MetadataUnavailable => {
                 formatter.write_str("installed app metadata unavailable")
-            }
-            YambuckError::InvalidUpdateFeed => formatter.write_str("invalid update feed"),
-            YambuckError::UnsupportedArchitecture => {
-                formatter.write_str("unsupported system architecture")
             }
             YambuckError::InstallFailed => formatter.write_str("install failed"),
             YambuckError::LaunchFailed => formatter.write_str("launch failed"),

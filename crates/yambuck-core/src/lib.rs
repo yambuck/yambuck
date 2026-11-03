@@ -5,7 +5,6 @@ mod manifest;
 mod package_inspection;
 mod storage;
 mod types;
-mod update_feed;
 
 pub use types::*;
 
@@ -110,12 +109,4 @@ pub fn launch_installed_app(app_id: &str, scope: InstallScope) -> Result<(), Yam
 
 pub fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, YambuckError> {
     installed_apps::preflight_install_check(app_id)
-}
-
-pub fn evaluate_update_feed(
-    feed_json: &str,
-    current_version: &str,
-    machine_arch: &str,
-) -> Result<UpdateCheckResult, YambuckError> {
-    update_feed::evaluate_update_feed(feed_json, current_version, machine_arch)
 }
