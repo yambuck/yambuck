@@ -15,6 +15,7 @@ Completed items should be removed from this file.
 
 ## Next
 
+- [ ] Split `PackageBuilderPage.tsx` (~2300 lines) into per-step components and shared builder hooks, then `MockPackageBuilderPage.tsx` (~1050) to match, and drop both from the `scripts/check-file-lines.mjs` allowlist (1000-line hard limit).
 - [ ] Enforce strict semver validation for `manifestVersion` to match `docs/PACKAGE_SPEC.md` v1 bar.
 - [ ] Add lightweight command/script to export `v1` manifest schema artifact from code-defined structs.
 - [ ] Standardize user-facing copy across install/uninstall success, failure, warnings, retries, and policy blocks.
@@ -23,7 +24,6 @@ Completed items should be removed from this file.
 - [ ] Design and prototype GUI-first `Build Package` tab flow (new package + open/edit existing package) from `docs/PACKAGE_BUILDER_GUI_DRAFT.md`.
 - [ ] Define interruption resilience policy (power loss/crash during install) with resume-or-rollback guarantees.
 - [ ] Fix title-bar window controls so maximize and close glyphs are visually centered in circular buttons.
-- [ ] Add double-click title-bar behavior to toggle maximize/restore (fullscreen-style window expansion).
 - [ ] Add lightweight release-gate checklist for spec/code alignment before release (package conformance, reliability checks, desktop validation sign-off).
 - [ ] Revisit uninstall CLI flag model after logging/elevation stabilization (consider reintroducing scoped purge flags with clear UX contract).
 

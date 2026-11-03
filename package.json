@@ -1,9 +1,13 @@
 {
-  "name": "yambuck-release",
+  "name": "yambuck",
   "private": true,
-  "description": "Release tooling for Yambuck (the app itself lives in apps/yambuck-gui).",
+  "description": "Repository scripts for Yambuck: the pre-submit checks and release tooling (the app itself lives in apps/yambuck-gui).",
   "type": "module",
   "scripts": {
+    "typecheck": "npm --prefix apps/yambuck-gui run typecheck",
+    "lint": "npm --prefix apps/yambuck-gui run lint",
+    "check:structure": "node scripts/check-file-lines.mjs",
+    "build": "npm --prefix apps/yambuck-gui run build",
     "release:linux": "node scripts/build-linux-release.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:notes": "node scripts/release-notes-template.mjs",
