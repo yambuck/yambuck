@@ -1,0 +1,13 @@
+{
+  "name": "yambuck-release",
+  "private": true,
+  "description": "Release tooling for Yambuck (the app itself lives in apps/yambuck-gui).",
+  "type": "module",
+  "scripts": {
+    "release:linux": "node scripts/build-linux-release.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:notes": "node scripts/release-notes-template.mjs",
+    "release:verify": "node scripts/verify-release.mjs",
+    "release:promote": "node scripts/promote-release.mjs"
+  }
+}
