@@ -41,6 +41,19 @@ Yambuck's variations from the standard:
   `pkexec` when there is no terminal, asked once) and removes a shadowing user
   install. There is no `--appimage`. The in-app updater passes `--system` when
   the running binary is under `/usr/local/bin`.
+- **App identity:** `com.yambuck.yambuck` (Tauri `identifier`, `APP_ID` in
+  `apps/yambuck-gui/src-tauri/src/support/identity.rs`, GTK prgname / Wayland
+  app_id, `StartupWMClass`, launcher `com.yambuck.yambuck.desktop`, app icon
+  name). `productName` is `yambuck`. The launcher template is
+  `apps/yambuck-gui/src-tauri/packaging/com.yambuck.yambuck.desktop`; there is
+  no Tauri bundle, so no bundler stub. Both `docs/install.sh` and the app's own
+  desktop integration (which re-creates the user launcher for the running
+  binary) write it; a unit test keeps install.sh's copy in step. Legacy
+  cleanup list (removed by install.sh, uninstall.sh and the app, with a
+  `.yambuck` default-handler association moved to the new launcher):
+  `com.yambuck.installer.desktop`, `yambuck.desktop` and the
+  `com.yambuck.installer` app icons. Launchers Yambuck writes for apps it
+  installs are not affected.
 - **Post-install steps:** desktop launcher, `.yambuck` MIME type and default
   file association, branded app/MIME icons (plus an active-theme MIME icon
   overlay for user installs), then icon/MIME/desktop cache refreshes.

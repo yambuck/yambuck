@@ -140,6 +140,15 @@ standard from that version on. Old system installs (`/usr/local/bin`) never
 could update in-app; their users run
 `curl -sf https://yambuck.com/install.sh | bash -s -- --system` once.
 
+The same release also changes the app ID from `com.yambuck.installer` to
+`com.yambuck.yambuck` (see `AGENTS.md`). Both upgrade paths (install.sh, and
+an old updater that only swaps the binary, after which the new app's desktop
+integration runs) remove the old launchers and move the `.yambuck` file
+association to `com.yambuck.yambuck.desktop`. The webview data directory
+moves to `~/.local/share/com.yambuck.yambuck`; the old one only held caches
+and the "builder gate dismissed" flag, so that dialog shows once more. Say so
+in the release notes.
+
 After that, `stable.json` is frozen: later releases do not touch it. Keep
 serving it (it costs nothing and catches anyone still on v0.3.6 or earlier);
 it can be deleted once no supported install predates the standard.

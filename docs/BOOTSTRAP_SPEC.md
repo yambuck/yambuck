@@ -91,8 +91,12 @@ Trust and safety constraints:
 ## Post-Install Expectations
 
 - executable installed as `yambuck`; `yambuck --version` prints the version
-- desktop launcher, `.yambuck` MIME type, file association (when no other
-  default handler is set) and branded icons installed for the chosen scope
+- desktop launcher `com.yambuck.yambuck.desktop` (named after the app ID,
+  `StartupWMClass=com.yambuck.yambuck`), `.yambuck` MIME type, file
+  association (when no other default handler is set, or the default is a
+  legacy Yambuck launcher) and branded icons installed for the chosen scope
+- launchers and icons from before the app ID (`com.yambuck.installer.desktop`,
+  `yambuck.desktop`, `com.yambuck.installer` icons) are removed
 - output includes short trust reminder that Yambuck install/uninstall actions apply only to Yambuck-managed apps
 
 ## Reference Paths
