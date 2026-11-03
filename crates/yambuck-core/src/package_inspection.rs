@@ -68,7 +68,7 @@ pub fn inspect_package_workflow(package_file: &str) -> Result<InstallWorkflow, Y
     match parsed_manifest {
         ParsedManifest::V1(manifest_v1) => {
             let package_info =
-                inspect_manifest_v1(package_file, file_name, manifest_v1, &mut archive)?;
+                inspect_manifest_v1(package_file, file_name, *manifest_v1, &mut archive)?;
             Ok(InstallWorkflow {
                 manifest_major: 1,
                 wizard_steps: build_v1_wizard_steps(&package_info),

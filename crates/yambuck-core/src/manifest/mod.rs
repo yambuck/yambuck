@@ -5,9 +5,12 @@ use crate::YambuckError;
 pub(crate) mod v1;
 pub(crate) mod v2;
 
+/// A parsed manifest of a supported major version. The v1 manifest is boxed:
+/// it is several hundred bytes while v2 is still a stub, and the enum would
+/// otherwise reserve v1's size for every value.
 #[derive(Debug)]
 pub(crate) enum ParsedManifest {
-    V1(v1::PackageManifestV1),
+    V1(Box<v1::PackageManifestV1>),
     V2(v2::PackageManifestV2),
 }
 
@@ -57,7 +60,8 @@ pub(crate) fn parse_manifest(manifest_content: &str) -> Result<ParsedManifest, Y
 
     let manifest_version = extract_manifest_version(manifest_object)?;
     match parse_manifest_major(manifest_version) {
-        Some(1) => v1::parse_manifest_v1(manifest_value).map(ParsedManifest::V1),
+        Some(1) => v1::parse_manifest_v1(manifest_value)
+            .map(|manifest| ParsedManifest::V1(Box::new(manifest))),
         Some(2) => v2::parse_manifest_v2(manifest_value).map(ParsedManifest::V2),
         Some(_) => Err(YambuckError::UnsupportedManifestVersion(
             manifest_version.to_string(),
