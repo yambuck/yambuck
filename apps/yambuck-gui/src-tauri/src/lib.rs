@@ -12,13 +12,12 @@ use zip::{ZipArchive, ZipWriter};
 use yambuck_core::{
     CompatibilityReason, InstallDecision, InstallOptionSubmission, InstallPreview, InstallWorkflow,
     InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
-    RuntimeDependencyIssue, UninstallResult, UpdateCheckResult,
+    RuntimeDependencyIssue, UninstallResult,
 };
 
 mod commands;
 mod support;
 
-pub(crate) const DEFAULT_UPDATE_FEED_URL: &str = "https://yambuck.com/updates/stable.json";
 const OPEN_PACKAGE_EVENT: &str = "yambuck://open-package";
 static WORKFLOW_COUNTER: AtomicU64 = AtomicU64::new(1);
 static BUILDER_SESSION_COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -886,56 +885,6 @@ pub(crate) fn get_startup_package_arg_impl() -> Option<String> {
     support::launch_args::package_arg_from_launch_args(&args)
 }
 
-pub(crate) async fn check_for_updates_impl(
-    feed_url: Option<String>,
-) -> Result<UpdateCheckResult, String> {
-    let url = feed_url.unwrap_or_else(|| DEFAULT_UPDATE_FEED_URL.to_string());
-    let _ = support::logging::append_log("INFO", &format!("Checking updates from {url}"));
-    let response = reqwest::get(url)
-        .await
-        .map_err(|error| format!("failed to fetch update feed: {error}"))?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "update feed request failed with status {}",
-            response.status()
-        ));
-    }
-
-    let feed_json = response
-        .text()
-        .await
-        .map_err(|error| format!("failed to read update feed response: {error}"))?;
-
-    let result = yambuck_core::evaluate_update_feed(
-        &feed_json,
-        env!("CARGO_PKG_VERSION"),
-        std::env::consts::ARCH,
-    )
-    .map_err(|error| error.to_string())?;
-
-    if result.update_available {
-        let _ = support::logging::append_log(
-            "INFO",
-            &format!(
-                "Update available: {} -> {}",
-                result.current_version, result.latest_version
-            ),
-        );
-    } else {
-        let _ = support::logging::append_log("INFO", "No update available");
-    }
-
-    Ok(result)
-}
-
-pub(crate) async fn apply_update_and_restart_impl(
-    download_url: String,
-    expected_sha256: String,
-) -> Result<(), String> {
-    support::update_apply::apply_update_and_restart(download_url, expected_sha256).await
-}
-
 pub(crate) fn get_system_info_impl() -> Result<support::system_info::SystemInfo, String> {
     support::system_info::get_system_info()
 }
@@ -970,8 +919,13 @@ pub(crate) fn open_logs_directory_impl() -> Result<(), String> {
     Ok(())
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+/// Options parsed from the command line in `main.rs`.
+pub struct LaunchOptions {
+    /// The in-app updater relaunched this version because the install failed.
+    pub update_failed: bool,
+}
+
+pub fn run(launch: LaunchOptions) {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -987,12 +941,15 @@ pub fn run() {
                 let _ = app.emit(OPEN_PACKAGE_EVENT, payload);
             }
         }))
-        .setup(|_app| {
+        .setup(move |app| {
             if let Err(error) = support::desktop_integration::ensure_desktop_integration() {
                 let _ = support::logging::append_log(
                     "WARN",
                     &format!("Desktop integration setup failed: {error}"),
                 );
+            }
+            if launch.update_failed {
+                commands::update::show_update_failed_dialog(app.handle());
             }
             Ok(())
         })
@@ -1005,7 +962,7 @@ pub fn run() {
             commands::installer::discard_install_workflow,
             commands::installer::create_install_preview,
             commands::update::check_for_updates,
-            commands::update::apply_update_and_restart,
+            commands::update::install_update,
             commands::system::get_system_info,
             commands::logs::get_recent_logs,
             commands::logs::clear_logs,

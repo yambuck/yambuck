@@ -146,10 +146,8 @@ export type UpdateCheckResult = {
   currentVersion: string;
   latestVersion: string;
   updateAvailable: boolean;
-  channel: string;
-  notesUrl?: string;
-  downloadUrl?: string;
-  sha256?: string;
+  releaseUrl: string;
+  notesUrl: string | null;
 };
 
 export type SystemInfo = {
@@ -161,7 +159,7 @@ export type SystemInfo = {
   desktopEnvironment: string;
   sessionType: string;
   installPath: string;
-  updateFeedUrl: string;
+  updateCheckUrl: string;
 };
 
 export type PreflightCheckResult = {

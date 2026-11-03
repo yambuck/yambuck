@@ -72,8 +72,7 @@ export const completeInstall = (
   allowDowngrade: boolean,
 ) => invoke<InstalledApp>("complete_install", { workflowId, scope, destinationPath, submissions, allowDowngrade });
 
-export const applyUpdateAndRestart = (downloadUrl: string, expectedSha256: string) =>
-  invoke("apply_update_and_restart", { downloadUrl, expectedSha256 });
+export const installUpdate = () => invoke("install_update");
 
 export const createBuilderSession = () =>
   invoke<BuilderSessionState>("create_builder_session");

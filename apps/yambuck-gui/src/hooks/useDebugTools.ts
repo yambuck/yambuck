@@ -61,7 +61,7 @@ export const useDebugTools = ({ onToast }: UseDebugToolsOptions) => {
       `Desktop: ${systemInfo.desktopEnvironment}`,
       `Session: ${systemInfo.sessionType}`,
       `Install path: ${systemInfo.installPath}`,
-      `Update feed: ${systemInfo.updateFeedUrl}`,
+      `Update check: ${systemInfo.updateCheckUrl}`,
     ];
 
     await copyText(lines.join("\n"), appText("toast.systemInfoCopied"));

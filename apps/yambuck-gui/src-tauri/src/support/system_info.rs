@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::process::Command;
 
-use crate::DEFAULT_UPDATE_FEED_URL;
+use crate::commands::update::GITHUB_LATEST_RELEASE_API_URL;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,7 +14,7 @@ pub struct SystemInfo {
     pub desktop_environment: String,
     pub session_type: String,
     pub install_path: String,
-    pub update_feed_url: String,
+    pub update_check_url: String,
 }
 
 pub fn get_system_info() -> Result<SystemInfo, String> {
@@ -45,7 +45,7 @@ pub fn get_system_info() -> Result<SystemInfo, String> {
         desktop_environment,
         session_type,
         install_path: current_exe.display().to_string(),
-        update_feed_url: DEFAULT_UPDATE_FEED_URL.to_string(),
+        update_check_url: GITHUB_LATEST_RELEASE_API_URL.to_string(),
     })
 }
 

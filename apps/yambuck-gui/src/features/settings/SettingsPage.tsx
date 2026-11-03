@@ -122,7 +122,7 @@ export const SettingsPage = ({
               <li>{appText("settings.debug.session")}: <code class={systemInfoCode}>{systemInfo.sessionType}</code></li>
               <li>{appText("settings.debug.arch")}: <code class={systemInfoCode}>{systemInfo.arch}</code></li>
               <li>{appText("settings.debug.installPath")}: <code class={systemInfoCode}>{systemInfo.installPath}</code></li>
-              <li>{appText("settings.debug.updateFeed")}: <code class={systemInfoCode}>{systemInfo.updateFeedUrl}</code></li>
+              <li>{appText("settings.debug.updateCheck")}: <code class={systemInfoCode}>{systemInfo.updateCheckUrl}</code></li>
             </ul>
           ) : null}
           <div class={`actions start compact ${actions} ${actionsStart} ${actionsCompact}`}>

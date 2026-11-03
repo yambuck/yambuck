@@ -49,16 +49,6 @@ pub fn clear_logs() -> Result<(), String> {
     Ok(())
 }
 
-pub fn update_helper_log_path() -> Result<PathBuf, String> {
-    let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
-    Ok(PathBuf::from(home)
-        .join(".local")
-        .join("share")
-        .join("yambuck")
-        .join("logs")
-        .join("update-helper.log"))
-}
-
 pub fn log_file_path() -> Result<PathBuf, String> {
     let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
     Ok(PathBuf::from(home)

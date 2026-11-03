@@ -1,7 +1,6 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useState } from "preact/hooks";
 import { appText } from "../i18n/app";
-import { applyUpdateAndRestart, checkForUpdates as checkForUpdatesApi } from "../lib/tauri/api";
+import { checkForUpdates as checkForUpdatesApi, installUpdate, logUiEvent } from "../lib/tauri/api";
 import type { UpdateCheckResult } from "../types/app";
 
 type UseUpdateManagerOptions = {
@@ -30,8 +29,13 @@ export const useUpdateManager = ({ onErrorToast, onInfoToast }: UseUpdateManager
       if (showNoUpdateMessage) {
         setIsUpdateModalOpen(true);
       }
-    } catch {
-      onErrorToast(appText("toast.updateCheckFailed"));
+    } catch (error) {
+      // The silent startup check only logs its failures; a manual check tells
+      // the user.
+      void logUiEvent("WARN", `Update check failed: ${String(error)}`).catch(() => undefined);
+      if (showNoUpdateMessage) {
+        onErrorToast(appText("toast.updateCheckFailed"));
+      }
     } finally {
       setCheckingUpdates(false);
     }
@@ -57,19 +61,16 @@ export const useUpdateManager = ({ onErrorToast, onInfoToast }: UseUpdateManager
       return;
     }
 
-    if (!updateResult.downloadUrl || !updateResult.sha256) {
-      onErrorToast(appText("toast.updateMetadataIncomplete"));
-      return;
-    }
-
     setApplyingUpdate(true);
-    onInfoToast(appText("toast.updateApplying", { version: updateResult.latestVersion }));
+    onInfoToast(appText("toast.updateApplying"));
 
+    // The backend starts the installer in a detached process and exits the
+    // app shortly after; the installer relaunches the new version (or this
+    // one with --update-failed if it fails).
     try {
-      await applyUpdateAndRestart(updateResult.downloadUrl, updateResult.sha256);
-      await getCurrentWindow().close();
-    } catch {
-      onErrorToast(appText("toast.updateApplyFailed"));
+      await installUpdate();
+    } catch (error) {
+      onErrorToast(appText("toast.updateApplyFailed", { error: String(error) }));
       setApplyingUpdate(false);
     }
   };

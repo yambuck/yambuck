@@ -33,8 +33,8 @@ export const UpdateModal = ({
           : appText("update.noneBody")}
       </p>
       <div class={`update-actions ${updateActions}`}>
-        {updateResult.updateAvailable && updateResult.notesUrl ? (
-          <a class={ghostLink} href={updateResult.notesUrl} target="_blank" rel="noreferrer">
+        {updateResult.updateAvailable ? (
+          <a class={ghostLink} href={updateResult.releaseUrl} target="_blank" rel="noreferrer">
             {appText("update.releaseNotes")}
           </a>
         ) : null}
