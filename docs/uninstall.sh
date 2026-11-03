@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Yambuck uninstaller for Linux.
-#   curl -sf https://yambuck.com/uninstall.sh | bash
+#   curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
 
 usage() {
   cat <<'EOF'
@@ -23,8 +23,8 @@ Options:
   -h, --help           Show this help message
 
 Examples:
-  curl -sf https://yambuck.com/uninstall.sh | bash
-  curl -sf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
+  curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
+  curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 EOF
 }
 
@@ -297,7 +297,7 @@ fi
 if [[ "$purge_managed_apps" == false && ( -d "$system_metadata_root" || -d "$system_app_payload_root" ) ]]; then
   log "System-managed app data still exists."
   log "Run full purge to remove everything:"
-  log "curl -sf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes"
+  log "curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes"
 fi
 
 log "Uninstall complete"

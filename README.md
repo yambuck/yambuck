@@ -34,13 +34,13 @@ At a glance, the flow is:
 **Install Yambuck:**
 
 ```bash
-curl -sf https://yambuck.com/install.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
 ```
 
 Install for all users (`/usr/local/bin`, asks for your password):
 
 ```bash
-curl -sf https://yambuck.com/install.sh | bash -s -- --system
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system
 ```
 
 Yambuck updates itself from the app (Settings → Check for Updates); re-running the install command does the same.
@@ -48,13 +48,13 @@ Yambuck updates itself from the app (Settings → Check for Updates); re-running
 Uninstall Yambuck (safe default, keeps managed apps):
 
 ```bash
-curl -sf https://yambuck.com/uninstall.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
 ```
 
 Full purge (remove Yambuck and Yambuck-managed apps):
 
 ```bash
-curl -sf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
 ```
 
 ## Current Status

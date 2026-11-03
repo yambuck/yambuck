@@ -96,7 +96,7 @@ in-app updater and the one-line installer serve the new version.
 - An older installed version offers the update and **Update Now** installs and
   relaunches it (user install, and a system install, which asks for the
   password through the desktop's authentication dialog).
-- `curl -sf https://yambuck.com/install.sh | bash` installs the new version.
+- `curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash` installs the new version.
 
 ## One-Time Transition From the Update Feed
 
@@ -138,7 +138,7 @@ Steps:
 Old user installs then update once through their own updater and use the
 standard from that version on. Old system installs (`/usr/local/bin`) never
 could update in-app; their users run
-`curl -sf https://yambuck.com/install.sh | bash -s -- --system` once.
+`curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system` once.
 
 The same release also changes the app ID from `com.yambuck.installer` to
 `com.yambuck.yambuck` (see `AGENTS.md`). Both upgrade paths (install.sh, and

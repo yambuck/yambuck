@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Yambuck one-line installer for Linux.
-#   curl -sf https://yambuck.com/install.sh | bash
+#   curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
 # The in-app updater re-runs this same script (adding --system for a
 # /usr/local/bin install), so keep its options stable.
 # Follows the Release and Update Standard; see docs/RELEASE.md.
@@ -51,8 +51,8 @@ Environment:
                           GitHub release (requires --insecure-skip-verify)
 
 Examples:
-  curl -sf ${INSTALL_BASE_URL}/install.sh | bash
-  curl -sf ${INSTALL_BASE_URL}/install.sh | bash -s -- --system
+  curl --proto '=https' --tlsv1.2 -sSf ${INSTALL_BASE_URL}/install.sh | bash
+  curl --proto '=https' --tlsv1.2 -sSf ${INSTALL_BASE_URL}/install.sh | bash -s -- --system
 EOF
 }
 

@@ -130,9 +130,11 @@ fn update_command(current_exe: Option<&Path>) -> String {
     let is_system_install = current_exe.is_some_and(|path| path.starts_with(SYSTEM_INSTALL_DIR));
 
     if is_system_install {
-        format!("curl -sf {INSTALL_SITE}/install.sh | bash -s -- --system")
+        format!(
+            "curl --proto '=https' --tlsv1.2 -sSf {INSTALL_SITE}/install.sh | bash -s -- --system"
+        )
     } else {
-        format!("curl -sf {INSTALL_SITE}/install.sh | bash")
+        format!("curl --proto '=https' --tlsv1.2 -sSf {INSTALL_SITE}/install.sh | bash")
     }
 }
 
@@ -315,11 +317,11 @@ mod tests {
     fn system_installs_update_as_system_installs() {
         assert_eq!(
             update_command(Some(Path::new("/usr/local/bin/yambuck"))),
-            "curl -sf https://yambuck.com/install.sh | bash -s -- --system"
+            "curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system"
         );
         assert_eq!(
             update_command(Some(Path::new("/home/user/.local/bin/yambuck"))),
-            "curl -sf https://yambuck.com/install.sh | bash"
+            "curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash"
         );
     }
 

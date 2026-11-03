@@ -17,19 +17,19 @@ section 6. This page records Yambuck's product rules on top of it.
 Primary command shown on website:
 
 ```bash
-curl -sf https://yambuck.com/install.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
 ```
 
 System-wide variant:
 
 ```bash
-curl -sf https://yambuck.com/install.sh | bash -s -- --system
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system
 ```
 
 Companion uninstall command:
 
 ```bash
-curl -sf https://yambuck.com/uninstall.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
 ```
 
 ## Scope and Privilege

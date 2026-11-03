@@ -27,7 +27,7 @@ canonical: https://yambuck.com/uninstall.html
     Leaves Yambuck-managed apps in place.
   </p>
   <div class="command-shell">
-    <code id="safe-command">curl -sf https://yambuck.com/uninstall.sh | bash</code>
+    <code id="safe-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash</code>
     <button id="copy-safe-command" type="button">Copy</button>
   </div>
 </section>
@@ -42,7 +42,7 @@ canonical: https://yambuck.com/uninstall.html
     scope for a full clean slate.
   </p>
   <div class="command-shell">
-    <code id="purge-command">curl -sf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes</code>
+    <code id="purge-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes</code>
     <button id="copy-purge-command" type="button">Copy</button>
   </div>
   <p class="command-note">

@@ -28,7 +28,7 @@ canonical: https://yambuck.com/
   </div>
   <p class="command-hint">Open <strong>Terminal</strong> and run:</p>
   <div class="command-shell">
-    <code id="install-command">curl -sf https://yambuck.com/install.sh | bash</code>
+    <code id="install-command">curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash</code>
     <button id="copy-command" type="button">Copy</button>
   </div>
   <p class="command-note" id="install-variant-note">Installs Yambuck for your account in <code>~/.local/bin</code>. No password needed.</p>
@@ -125,11 +125,11 @@ canonical: https://yambuck.com/
   // Install commands per the Release and Update Standard (docs/install.sh options).
   const installVariants = {
     user: {
-      command: "curl -sf https://yambuck.com/install.sh | bash",
+      command: "curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash",
       note: "Installs Yambuck for your account in <code>~/.local/bin</code>. No password needed.",
     },
     system: {
-      command: "curl -sf https://yambuck.com/install.sh | bash -s -- --system",
+      command: "curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system",
       note: "Installs Yambuck for all users in <code>/usr/local/bin</code>. Asks for your password.",
     },
   };

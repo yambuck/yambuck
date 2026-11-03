@@ -17,9 +17,9 @@ lists Yambuck's variations. This page only records what is Yambuck-specific.
   **Later**. Never silent: the user always chooses.
 - **Install:** **Update Now** re-runs the one-line installer in a detached
   process and exits the app:
-  - user install (`~/.local/bin/yambuck`): `curl -sf https://yambuck.com/install.sh | bash`
+  - user install (`~/.local/bin/yambuck`): `curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash`
   - system install (`/usr/local/bin/yambuck`):
-    `curl -sf https://yambuck.com/install.sh | bash -s -- --system`.
+    `curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system`.
     The installer obtains root itself; started from the app there is no
     terminal, so it uses the desktop's graphical `pkexec` prompt, once.
 - **Verify:** the installer checks the tarball against the SHA-256 digest
