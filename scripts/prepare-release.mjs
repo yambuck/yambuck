@@ -28,7 +28,8 @@ const VERSION_FILES = APPS.flatMap((app) => [
   { path: `${app}/src-tauri/tauri.conf.json`, pattern: /^(  "version": ")[^"]+(",)$/m },
   { path: `${app}/src-tauri/Cargo.toml`, pattern: /^(version = ")[^"]+(")$/m },
 ]);
-const LOCKFILES = APPS.flatMap((app) => [`${app}/package-lock.json`, `${app}/src-tauri/Cargo.lock`]);
+// One Cargo workspace (root Cargo.toml), so one Cargo.lock.
+const LOCKFILES = [...APPS.map((app) => `${app}/package-lock.json`), "Cargo.lock"];
 
 function fail(message) {
   console.error(`\nRelease preparation failed: ${message}`);
@@ -76,8 +77,8 @@ for (const file of VERSION_FILES) {
 }
 for (const app of APPS) {
   run("npm", ["install", "--package-lock-only", "--prefix", app]);
-  run("cargo", ["update", "--workspace", "--manifest-path", `${app}/src-tauri/Cargo.toml`]);
 }
+run("cargo", ["update", "--workspace"]);
 
 run("git", ["add", ...releaseFiles]);
 run("git", ["commit", "-m", `chore: bump version to ${version}`]);

@@ -1,0 +1,11 @@
+# One Cargo workspace for the Yambuck GUI, its core library and the example
+# app, so `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and
+# `cargo test` run from the repository root (App Standard section 7) and share
+# one lockfile and target directory.
+[workspace]
+resolver = "2"
+members = [
+    "crates/yambuck-core",
+    "apps/yambuck-gui/src-tauri",
+    "apps/example-app/src-tauri",
+]

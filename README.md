@@ -91,7 +91,7 @@ See the full screenshot gallery: `docs/screenshots/index.html`
 - Run GUI app with hot reload: `npm --prefix apps/yambuck-gui run tauri dev`
 - Run frontend only: `npm --prefix apps/yambuck-gui run dev`
 - Build frontend bundle: `npm --prefix apps/yambuck-gui run build`
-- Check Rust/Tauri compile health: `cargo check --manifest-path apps/yambuck-gui/src-tauri/Cargo.toml`
+- Check Rust/Tauri compile health: `cargo check --workspace`
 - Build example package: `./scripts/build-example-app-yambuck.sh`
 - Run example smoke flow: `./scripts/smoke-example-app.sh`
 - Build the release tarball in the Ubuntu 22.04 container (needs podman): `npm run release:linux && node scripts/package-release.mjs`

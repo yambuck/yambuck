@@ -100,7 +100,9 @@ npm --prefix "$APP_DIR" run build
 log "Building release binary"
 cargo build --release --features custom-protocol --manifest-path "${TAURI_DIR}/Cargo.toml"
 
-BIN_SOURCE="${CARGO_TARGET_DIR:-${TAURI_DIR}/target}/release/example-app"
+# The example app is a member of the root Cargo workspace, so it builds into
+# the workspace target directory unless CARGO_TARGET_DIR says otherwise.
+BIN_SOURCE="${CARGO_TARGET_DIR:-${ROOT_DIR}/target}/release/example-app"
 if [[ ! -x "$BIN_SOURCE" ]]; then
   printf "Could not find release binary at %s\n" "$BIN_SOURCE" >&2
   exit 1
