@@ -1,0 +1,79 @@
+# Checks every push to dev/main and every pull request (App Standard
+# section 7): the pre-submit checklist from AGENTS.md, the installer scripts'
+# syntax and the frontend build. Yambuck ships Linux only. Release builds
+# are made only by release.yml.
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checks:
+    name: Checks (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            apps/yambuck-gui/package-lock.json
+            apps/example-app/package-lock.json
+
+      # Installs the version (and components) pinned in rust-toolchain.toml.
+      - name: Install Rust toolchain
+        run: rustup toolchain install
+
+      # The WebKitGTK set from the release Containerfile.
+      - name: Install Linux system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev pkg-config
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install npm dependencies
+        run: |
+          npm --prefix apps/yambuck-gui ci
+          npm --prefix apps/example-app ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run check:structure
+
+      # Also produces the dist/ folders Tauri embeds, which cargo needs below.
+      - name: Build frontends
+        run: |
+          npm run build
+          npm --prefix apps/example-app run build
+
+      - name: cargo fmt
+        run: cargo fmt --check
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test
+
+      - name: Check installer script syntax
+        run: |
+          for script in docs/install.sh docs/uninstall.sh scripts/*.sh \
+            apps/yambuck-gui/src-tauri/packaging/linux/build-in-container.sh; do
+            bash -n "$script"
+          done
