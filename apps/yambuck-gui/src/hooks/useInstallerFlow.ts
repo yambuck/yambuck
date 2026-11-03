@@ -7,7 +7,7 @@ import {
   discardInstallWorkflow,
   evaluateInstallPreflight,
   getInstallDecision,
-  openLogsDirectory,
+  openLogFolder,
   getRecentLogs,
   getStartupPackageArg,
   inspectPackageWorkflow,
@@ -40,7 +40,7 @@ type UseInstallerFlowOptions = {
   setPage: (page: AppPage) => void;
   onRefreshInstalledApps: () => Promise<void>;
   onLaunchInstalledApp: (app: InstalledApp) => Promise<void>;
-  onToast: (tone: "info" | "success" | "warning" | "error", message: string, durationMs?: number) => void;
+  onToast: (tone: "info" | "success" | "warning" | "error", message: string) => void;
 };
 
 const normalizeOpenPackageError = (error: unknown): string => {
@@ -408,10 +408,10 @@ export const useInstallerFlow = ({
       "",
       "Host:",
       `- OS: ${installPreflight.host.os}`,
-      `- Arch: ${installPreflight.host.arch}`,
-      `- Distro: ${installPreflight.host.distro}`,
+      `- Arch: ${installPreflight.host.architecture}`,
+      `- Distro: ${installPreflight.host.distribution}`,
       `- Kernel: ${installPreflight.host.kernelVersion}`,
-      `- Desktop: ${installPreflight.host.desktopEnvironment}`,
+      `- Desktop: ${installPreflight.host.desktop}`,
       `- Session: ${installPreflight.host.sessionType}`,
       "",
       "Reasons:",
@@ -529,7 +529,7 @@ export const useInstallerFlow = ({
           appId: packageInfo.appId,
           status: result.status,
         });
-        onToast("error", result.message, 5600);
+        onToast("error", result.message);
         return;
       }
 
@@ -545,7 +545,7 @@ export const useInstallerFlow = ({
           action: decision.action,
         });
         setPreflightBlockedMessage(decision.message);
-        onToast("error", installerDecisionMessage(decision), 6200);
+        onToast("error", installerDecisionMessage(decision));
         return;
       }
 
@@ -555,7 +555,7 @@ export const useInstallerFlow = ({
         || decision.action === "downgrade";
       setManagedExistingInstall(isScopedExisting);
       if (decision.action === "downgrade") {
-        onToast("warning", installerDecisionMessage(decision), 6200);
+        onToast("warning", installerDecisionMessage(decision));
       } else if (isScopedExisting) {
         onToast("info", installerDecisionMessage(decision));
       }
@@ -765,7 +765,7 @@ export const useInstallerFlow = ({
       scope: installScope,
       reason: summary,
     });
-    onToast("error", installerText("toast.installFailed"), 5200);
+    onToast("error", installerText("toast.installFailed"));
   };
 
   const completeInstall = async (
@@ -933,7 +933,7 @@ export const useInstallerFlow = ({
           appId: selectedPackage.appId,
           reason: "preflight-blocked",
         });
-        onToast("error", preflight.message, 5600);
+        onToast("error", preflight.message);
         return;
       }
 
@@ -1052,7 +1052,7 @@ export const useInstallerFlow = ({
 
   const openInstallLogsDirectory = async () => {
     try {
-      await openLogsDirectory();
+      await openLogFolder();
       logUiAction("installer-open-logs-directory");
     } catch {
       logUiError("installer-open-logs-directory-failed");

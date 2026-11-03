@@ -8,8 +8,6 @@ use std::process::Stdio;
 
 use serde::{Deserialize, Serialize};
 
-use crate::support::logging::append_log;
-
 pub(crate) const GITHUB_LATEST_RELEASE_API_URL: &str =
     "https://api.github.com/repos/yambuck/yambuck/releases/latest";
 const INSTALL_SITE: &str = "https://yambuck.com";
@@ -38,10 +36,7 @@ struct GitHubLatestRelease {
 #[tauri::command]
 pub async fn check_for_updates() -> Result<UpdateCheckResult, String> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
-    let _ = append_log(
-        "INFO",
-        &format!("Checking updates from {GITHUB_LATEST_RELEASE_API_URL}"),
-    );
+    log::info!("Checking updates from {GITHUB_LATEST_RELEASE_API_URL}");
 
     let client = reqwest::Client::builder()
         .build()
@@ -80,12 +75,7 @@ pub async fn check_for_updates() -> Result<UpdateCheckResult, String> {
         .ok_or_else(|| format!("Invalid latest app version: {latest_version}"))?;
 
     let update_available = parsed_latest > parsed_current;
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Update check: current={current_version} latest={latest_version} available={update_available}"
-        ),
-    );
+    log::info!("Update check: current={current_version} latest={latest_version} available={update_available}");
 
     Ok(UpdateCheckResult {
         current_version,
@@ -105,17 +95,14 @@ pub async fn check_for_updates() -> Result<UpdateCheckResult, String> {
 /// `--update-failed`.
 #[tauri::command]
 pub async fn install_update(app_handle: tauri::AppHandle) -> Result<(), String> {
-    let _ = append_log("INFO", "Starting in-app update");
+    log::info!("Starting in-app update");
 
     spawn_update_process()?;
 
     let handle = app_handle.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(600)).await;
-        let _ = append_log(
-            "INFO",
-            &format!("Exiting {PRODUCT_NAME} for update installation"),
-        );
+        log::info!("Exiting {PRODUCT_NAME} for update installation");
         handle.exit(0);
     });
 
@@ -141,11 +128,9 @@ fn update_command(current_exe: Option<&Path>) -> String {
 /// The installer's output, and what the update-failed dialog opens.
 /// install.sh appends its own timestamped lines to the same file.
 pub(crate) fn update_log_path() -> PathBuf {
-    let debug_dir = dirs::config_dir()
-        .map(|dir| dir.join("yambuck").join("debug"))
-        .unwrap_or_else(std::env::temp_dir);
-    let _ = std::fs::create_dir_all(&debug_dir);
-    debug_dir.join("update.log")
+    crate::support::paths::debug_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("update.log")
 }
 
 /// A fresh update log, as the updater's stdout and stderr. Opened in append
@@ -200,7 +185,7 @@ fn spawn_update_process() -> Result<(), String> {
 
     let current_exe = std::env::current_exe().ok();
     let script = update_script(current_exe.as_deref());
-    let _ = append_log("INFO", &format!("Spawning update process:\n{script}"));
+    log::info!("Spawning update process:\n{script}");
     let (stdout, stderr) = update_log_outputs()?;
 
     let mut command = std::process::Command::new("bash");
@@ -233,12 +218,9 @@ pub fn show_update_failed_dialog(app_handle: &tauri::AppHandle) {
     use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 
     let log_path = update_log_path();
-    let _ = append_log(
-        "WARN",
-        &format!(
-            "Relaunched after a failed update; details in {}",
-            log_path.display()
-        ),
+    log::warn!(
+        "Relaunched after a failed update; details in {}",
+        log_path.display()
     );
     app_handle
         .dialog()
@@ -255,8 +237,8 @@ pub fn show_update_failed_dialog(app_handle: &tauri::AppHandle) {
         ))
         .show(move |open_log| {
             if open_log {
-                if let Err(error) = tauri_plugin_opener::open_path(&log_path, None::<&str>) {
-                    let _ = append_log("WARN", &format!("Failed to open the update log: {error}"));
+                if let Err(error) = crate::commands::diagnostics::open_with_system(&log_path) {
+                    log::warn!("Failed to open the update log: {error}");
                 }
             }
         });

@@ -2,7 +2,7 @@ export type WizardStep = "details" | "trust" | "license" | "scope" | "decision" 
 export type InstallScope = "user" | "system";
 export type UninstallStep = "confirm" | "options" | "running" | "result";
 export type AppPage = "installer" | "installed" | "installedReview" | "installedUninstall" | "packageBuilder" | "mockPackageBuilder" | "settings" | "mockPreview" | "mockInstalled" | "mockInstalledReview" | "mockInstalledUninstall" | "mockInstallFlow" | "uiDebugLab";
-export type SettingsTab = "general" | "debug";
+export type SettingsTab = "general" | "updates" | "debug";
 
 export type InstallerContext = {
   productName: string;
@@ -151,16 +151,20 @@ export type UpdateCheckResult = {
 };
 
 export type SystemInfo = {
+  appName: string;
   appVersion: string;
+  buildProfile: string;
+  executable: string;
   os: string;
-  arch: string;
+  distribution: string;
   kernelVersion: string;
-  distro: string;
-  desktopEnvironment: string;
+  architecture: string;
+  desktop: string;
   sessionType: string;
-  installPath: string;
   updateCheckUrl: string;
 };
+
+export type LogLevel = "error" | "warn" | "info" | "debug" | "trace";
 
 export type PreflightCheckResult = {
   status: "ok" | "managed_existing" | "external_conflict";

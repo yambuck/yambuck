@@ -9,6 +9,7 @@ import type {
   InstallPreview,
   InstalledApp,
   InstalledAppDetails,
+  LogLevel,
   InstallerContext,
   PreflightCheckResult,
   SystemInfo,
@@ -36,14 +37,29 @@ export const checkForUpdates = () => invoke<UpdateCheckResult>("check_for_update
 
 export const getSystemInfo = () => invoke<SystemInfo>("get_system_info");
 
-export const getRecentLogs = (limit = 300) => invoke<string>("get_recent_logs", { limit });
+export const getSessionLogText = () => invoke<string>("get_session_log_text");
+
+/** The last `limit` lines of this session's log. */
+export const getRecentLogs = async (limit = 300) => {
+  const text = await getSessionLogText();
+  return text.split("\n").slice(-limit).join("\n");
+};
+
+export const copySessionLog = () => invoke("copy_session_log");
+
+export const openSessionLog = () => invoke("open_session_log");
+
+export const getLogLevel = () => invoke<LogLevel>("get_log_level");
+
+export const setLogLevel = (level: LogLevel) => invoke<LogLevel>("set_log_level", { level });
+
+export const takeNotices = () => invoke<string[]>("take_notices");
 
 export const logUiEvent = (level: "INFO" | "WARN" | "ERROR", message: string) =>
   invoke("log_ui_event", { level, message });
 
-export const clearLogs = () => invoke("clear_logs");
 
-export const openLogsDirectory = () => invoke("open_logs_directory");
+export const openLogFolder = () => invoke("open_log_folder");
 
 export const listInstalledApps = () => invoke<InstalledApp[]>("list_installed_apps");
 

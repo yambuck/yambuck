@@ -66,7 +66,7 @@ export const routeFromHash = (hash: string): RouteState => {
     }
     return {
       page: "settings",
-      settingsTab: segments[1] === "debug" ? "debug" : "general",
+      settingsTab: segments[1] === "debug" ? "debug" : segments[1] === "updates" ? "updates" : "general",
       installedReviewTarget: null,
       mockInstalledReviewAppId: null,
     };
@@ -124,7 +124,10 @@ export const hashFromRoute = ({ page, settingsTab, installedReviewTarget, mockIn
     return "#/debug/package-builder";
   }
   if (page === "settings") {
-    return settingsTab === "debug" ? "#/settings/debug" : "#/settings";
+    if (settingsTab === "debug") {
+      return "#/settings/debug";
+    }
+    return settingsTab === "updates" ? "#/settings/updates" : "#/settings";
   }
   if (page === "uiDebugLab") {
     return "#/settings/debug/ui-lab";

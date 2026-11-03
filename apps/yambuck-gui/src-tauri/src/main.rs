@@ -21,6 +21,9 @@ struct Cli {
 }
 
 fn main() {
+    // First, so a panic anywhere after this is logged.
+    yambuck_gui_lib::install_logging();
+
     // Before anything touches GTK: the app ID as Wayland app_id, and the
     // WebKitGTK / GDK environment. Harmless for the elevated helper below,
     // which never starts GTK.

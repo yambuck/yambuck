@@ -1,7 +1,11 @@
 pub mod desktop_integration;
 pub mod elevation;
+pub mod fatal_dialog;
 pub mod identity;
 pub mod launch_args;
-pub mod logging;
+pub mod notices;
+pub mod paths;
+pub mod session_log;
+pub mod settings;
 pub mod startup_env;
 pub mod system_info;

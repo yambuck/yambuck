@@ -5,7 +5,6 @@ use std::process::Command;
 use crate::support::identity::{
     desktop_file_name, APP_ID, DESKTOP_ENTRY_TEMPLATE, LEGACY_DESKTOP_FILE_NAMES, LEGACY_ICON_NAMES,
 };
-use crate::support::logging::append_log;
 
 // Yambuck's own launcher, MIME type and icons only. Launchers for apps that
 // Yambuck installs are written by yambuck-core, not here.
@@ -27,11 +26,7 @@ pub(crate) fn ensure_desktop_integration() -> Result<(), String> {
         return Ok(());
     }
 
-    let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
-    let xdg_data_home = std::env::var("XDG_DATA_HOME")
-        .ok()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(&home).join(".local").join("share"));
+    let xdg_data_home = crate::support::paths::user_data_home()?;
 
     let desktop_dir = xdg_data_home.join("applications");
     let mime_packages_dir = xdg_data_home.join("mime").join("packages");
@@ -41,10 +36,7 @@ pub(crate) fn ensure_desktop_integration() -> Result<(), String> {
     let desktop_file_path = desktop_dir.join(desktop_file_name());
     let mime_xml_path = mime_packages_dir.join(MIME_XML_NAME);
 
-    let _ = append_log(
-        "INFO",
-        "Ensuring Linux desktop MIME/icon integration for .yambuck files",
-    );
+    log::info!("Ensuring Linux desktop MIME/icon integration for .yambuck files");
 
     fs::create_dir_all(&desktop_dir).map_err(|error| error.to_string())?;
     fs::create_dir_all(&mime_packages_dir).map_err(|error| error.to_string())?;
@@ -96,16 +88,10 @@ fn remove_legacy_integration(desktop_dir: &Path, icon_root: &Path) {
         if path.exists() {
             match fs::remove_file(&path) {
                 Ok(()) => {
-                    let _ = append_log(
-                        "INFO",
-                        &format!("Removed legacy Yambuck desktop file {}", path.display()),
-                    );
+                    log::info!("Removed legacy Yambuck desktop file {}", path.display());
                 }
                 Err(error) => {
-                    let _ = append_log(
-                        "WARN",
-                        &format!("Could not remove legacy {}: {error}", path.display()),
-                    );
+                    log::warn!("Could not remove legacy {}: {error}", path.display());
                 }
             }
         }
@@ -194,10 +180,7 @@ fn write_icon_assets(icon_root: &Path) -> Result<(), String> {
 
 fn write_theme_overlay_icons(xdg_data_home: &Path, theme_name: &str) -> Result<(), String> {
     let theme_root = xdg_data_home.join("icons").join(theme_name);
-    let _ = append_log(
-        "INFO",
-        &format!("Writing icon overrides for active theme: {theme_name}"),
-    );
+    log::info!("Writing icon overrides for active theme: {theme_name}");
 
     for size_dir in ["16", "24", "32"] {
         write_icon(
@@ -318,40 +301,32 @@ fn maybe_set_default_handler(desktop_file_path: &Path) {
         || LEGACY_DESKTOP_FILE_NAMES.contains(&current_default.as_str())
         || mimeapps_default_is_legacy()
     {
-        let _ = append_log(
-            "INFO",
-            &format!(
-                "Registering {desktop_name} as the default .yambuck handler (was: {})",
-                if current_default.is_empty() {
-                    "none"
-                } else {
-                    &current_default
-                }
-            ),
+        log::info!(
+            "Registering {desktop_name} as the default .yambuck handler (was: {})",
+            if current_default.is_empty() {
+                "none"
+            } else {
+                &current_default
+            }
         );
         run_optional_command("xdg-mime", &["default", desktop_name, MIME_TYPE]);
         return;
     }
 
     if current_default == desktop_name {
-        let _ = append_log("INFO", "Yambuck is already the default .yambuck handler");
+        log::info!("Yambuck is already the default .yambuck handler");
         return;
     }
 
-    let _ = append_log(
-        "INFO",
-        &format!("Leaving existing .yambuck default handler unchanged ({current_default})"),
-    );
+    log::info!("Leaving existing .yambuck default handler unchanged ({current_default})");
 }
 
 /// True when the user's mimeapps.list still has a pre-app-ID launcher as the
 /// first `.yambuck` handler. xdg-mime may already report the new launcher
 /// once the old file is gone, but the stale entry stays until rewritten.
 fn mimeapps_default_is_legacy() -> bool {
-    let config_home = std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")));
-    config_home
+    crate::support::paths::user_config_home()
+        .ok()
         .and_then(|dir| fs::read_to_string(dir.join("mimeapps.list")).ok())
         .is_some_and(|contents| mimeapps_contents_name_legacy_default(&contents))
 }
@@ -367,26 +342,17 @@ fn mimeapps_contents_name_legacy_default(contents: &str) -> bool {
 
 fn run_optional_command(command: &str, args: &[&str]) {
     if !has_command(command) {
-        let _ = append_log(
-            "WARN",
-            &format!("Desktop integration helper not found: {command}"),
-        );
+        log::warn!("Desktop integration helper not found: {command}");
         return;
     }
 
     match Command::new(command).args(args).status() {
         Ok(status) if status.success() => {}
         Ok(status) => {
-            let _ = append_log(
-                "WARN",
-                &format!("Desktop integration helper failed: {command} exited with {status}"),
-            );
+            log::warn!("Desktop integration helper failed: {command} exited with {status}");
         }
         Err(error) => {
-            let _ = append_log(
-                "WARN",
-                &format!("Desktop integration helper failed to start: {command} ({error})"),
-            );
+            log::warn!("Desktop integration helper failed to start: {command} ({error})");
         }
     }
 }

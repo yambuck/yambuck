@@ -26,8 +26,8 @@ import { useInstallerFlow } from "./hooks/useInstallerFlow";
 import { useToastManager } from "./hooks/useToastManager";
 import { useUpdateManager } from "./hooks/useUpdateManager";
 import { useWindowControls } from "./hooks/useWindowControls";
-import { getInstallerContext } from "./lib/tauri/api";
-import { logUiAction } from "./lib/ui-log";
+import { getInstallerContext, takeNotices } from "./lib/tauri/api";
+import { logUiAction, logUiError } from "./lib/ui-log";
 import { mockInstalledApps, mockPackageInfo, toMockInstalledAppDetails } from "./mocks/mockData";
 import { copyPlainText } from "./utils/clipboard";
 import { appText } from "./i18n/app";
@@ -134,17 +134,10 @@ function App() {
   } = useInstalledAppsManager({
     onToast: pushToast,
   });
-  const {
-    systemInfo,
-    logText,
-    loadingDebug,
-    loadDebugData,
-    copySystemInfo,
-    copyLogs,
-    clearLogs,
-  } = useDebugTools({
+  const debugTools = useDebugTools({
     onToast: pushToast,
   });
+  const { loadDebugData } = debugTools;
   const {
     step,
     setStep,
@@ -308,14 +301,25 @@ function App() {
     });
   }, [page, installedReviewTarget, installedAppDetails?.appId, installedAppDetails?.installScope]);
 
+  // One-time notices from the backend, e.g. a settings file or installed-apps
+  // list that could not be parsed and was set aside (App Standard section 5).
+  const showBackendNotices = async () => {
+    try {
+      (await takeNotices()).forEach((notice) => pushToast("warning", notice));
+    } catch (error) {
+      logUiError("take-notices-failed", { error: String(error) });
+    }
+  };
+
   useEffect(() => {
     if (page === "installed" || page === "installedReview") {
-      void refreshInstalledApps();
+      void refreshInstalledApps().then(showBackendNotices);
     }
   }, [page]);
 
   useEffect(() => {
     void checkForUpdates(false);
+    void showBackendNotices();
   }, []);
 
   useEffect(() => {
@@ -701,25 +705,25 @@ function App() {
     <SettingsPage
       settingsTab={settingsTab}
       onChangeSettingsTab={setSettingsTab}
-      checkingUpdates={checkingUpdates}
-      onCheckForUpdates={() => void checkForUpdates(true)}
-      loadingDebug={loadingDebug}
-      systemInfo={systemInfo}
-      logText={logText}
-      onLoadDebugData={() => void loadDebugData()}
-      onCopySystemInfo={() => void copySystemInfo()}
-      onOpenMockPreview={() => setPage("mockPreview")}
-      onOpenMockInstalledApps={() => {
-        setMockInstalledReviewAppId(null);
-        setPage("mockInstalled");
+      updates={{
+        currentVersion: context?.appVersion ?? null,
+        checking: checkingUpdates,
+        lastCheckedLabel: relativeLastChecked(),
+        onCheck: () => void checkForUpdates(true),
       }}
-      onOpenMockPackageBuilder={() => setPage("mockPackageBuilder")}
-      onOpenUiDebugLab={() => {
-        setSettingsTab("debug");
-        setPage("uiDebugLab");
+      debug={debugTools}
+      uiLab={{
+        onOpenMockPreview: () => setPage("mockPreview"),
+        onOpenMockInstalledApps: () => {
+          setMockInstalledReviewAppId(null);
+          setPage("mockInstalled");
+        },
+        onOpenMockPackageBuilder: () => setPage("mockPackageBuilder"),
+        onOpenUiDebugLab: () => {
+          setSettingsTab("debug");
+          setPage("uiDebugLab");
+        },
       }}
-      onCopyLogs={() => void copyLogs()}
-      onClearLogs={() => void clearLogs()}
     />
   );
 

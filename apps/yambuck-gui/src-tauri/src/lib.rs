@@ -313,27 +313,21 @@ fn inspect_package_workflow_with_shared_validation(
     package_file: &str,
     context: &str,
 ) -> Result<InstallWorkflow, String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!("[{context}] validating package with shared install inspection: {package_file}"),
-    );
+    log::info!("[{context}] validating package with shared install inspection: {package_file}");
 
     let workflow =
         yambuck_core::inspect_package_workflow(package_file).map_err(|error| error.to_string())?;
 
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "[{context}] validation passed appId={} version={} target={} compatibility={}",
-            workflow.package_info.app_id.as_str(),
-            workflow.package_info.version.as_str(),
-            workflow
-                .package_info
-                .selected_target_id
-                .clone()
-                .unwrap_or_else(|| "none".to_string()),
-            workflow.package_info.compatibility_status.as_str()
-        ),
+    log::info!(
+        "[{context}] validation passed appId={} version={} target={} compatibility={}",
+        workflow.package_info.app_id.as_str(),
+        workflow.package_info.version.as_str(),
+        workflow
+            .package_info
+            .selected_target_id
+            .clone()
+            .unwrap_or_else(|| "none".to_string()),
+        workflow.package_info.compatibility_status.as_str()
     );
 
     Ok(workflow)
@@ -344,7 +338,7 @@ pub(crate) fn discard_install_workflow_impl(workflow_id: &str) -> Result<(), Str
 }
 
 pub(crate) fn get_installer_context_impl() -> InstallerContext {
-    let _ = support::logging::append_log("INFO", "Loaded installer context");
+    log::info!("Loaded installer context");
     yambuck_core::installer_context(env!("CARGO_PKG_VERSION"))
 }
 
@@ -360,7 +354,7 @@ pub(crate) fn inspect_package_workflow_impl(
 }
 
 pub(crate) fn create_builder_session_impl() -> Result<BuilderSessionState, String> {
-    let _ = support::logging::append_log("INFO", "[builder] creating new builder session");
+    log::info!("[builder] creating new builder session");
     let session_id = next_builder_session_id();
     let workspace_dir = create_builder_workspace(&session_id)?;
 
@@ -387,10 +381,7 @@ pub(crate) fn create_builder_session_impl() -> Result<BuilderSessionState, Strin
 }
 
 pub(crate) fn open_builder_package_impl(package_file: &str) -> Result<BuilderSessionState, String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!("[builder-open] requested package: {package_file}"),
-    );
+    log::info!("[builder-open] requested package: {package_file}");
     let package_path = Path::new(package_file);
     if !package_path.exists() {
         return Err("selected package file does not exist".to_string());
@@ -428,10 +419,7 @@ pub(crate) fn stage_builder_files_impl(
     session_id: &str,
     files: Vec<BuilderStagedFile>,
 ) -> Result<(), String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!("[builder-stage] session={session_id} files={}", files.len()),
-    );
+    log::info!("[builder-stage] session={session_id} files={}", files.len());
     with_builder_session_mut(session_id, |entry| {
         for item in &files {
             let source_path = Path::new(&item.source_path);
@@ -455,10 +443,7 @@ pub(crate) fn save_builder_session_as_impl(
     output_path: &str,
     manifest_json: &str,
 ) -> Result<(), String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!("[builder-save-as] session={session_id} output={output_path}"),
-    );
+    log::info!("[builder-save-as] session={session_id} output={output_path}");
     let output = Path::new(output_path).to_path_buf();
 
     with_builder_session_mut(session_id, |entry| {
@@ -477,7 +462,7 @@ pub(crate) fn save_builder_session_impl(
     session_id: &str,
     manifest_json: &str,
 ) -> Result<(), String> {
-    let _ = support::logging::append_log("INFO", &format!("[builder-save] session={session_id}"));
+    log::info!("[builder-save] session={session_id}");
     let output_path = with_builder_session_mut(session_id, |entry| {
         entry
             .package_file
@@ -492,8 +477,7 @@ pub(crate) fn validate_builder_session_impl(
     session_id: &str,
     manifest_json: &str,
 ) -> Result<(), String> {
-    let _ =
-        support::logging::append_log("INFO", &format!("[builder-validate] session={session_id}"));
+    log::info!("[builder-validate] session={session_id}");
 
     with_builder_session_mut(session_id, |entry| {
         write_workspace_manifest(&entry.workspace_dir, manifest_json)?;
@@ -510,8 +494,7 @@ pub(crate) fn validate_builder_session_impl(
 }
 
 pub(crate) fn discard_builder_session_impl(session_id: &str) -> Result<(), String> {
-    let _ =
-        support::logging::append_log("INFO", &format!("[builder-discard] session={session_id}"));
+    log::info!("[builder-discard] session={session_id}");
     let mut sessions = BUILDER_SESSIONS
         .lock()
         .map_err(|_| "failed to lock builder session store".to_string())?;
@@ -547,12 +530,11 @@ pub(crate) fn create_install_preview_impl(
     scope: &str,
     verified_publisher: bool,
 ) -> Result<InstallPreview, String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "create_install_preview command received workflowId={} scope={} verifiedPublisher={}",
-            workflow_id, scope, verified_publisher
-        ),
+    log::info!(
+        "create_install_preview command received workflowId={} scope={} verifiedPublisher={}",
+        workflow_id,
+        scope,
+        verified_publisher
     );
 
     let workflow = get_workflow_from_session(workflow_id)?;
@@ -568,22 +550,19 @@ pub(crate) fn create_install_preview_impl(
     .map_err(|error| error.to_string());
 
     if let Ok(preview) = &preview_result {
-        let _ = support::logging::append_log(
-            "INFO",
-            &format!(
-                "create_install_preview succeeded appId={} scope={} destination={}",
-                package_info.app_id, scope, preview.destination_path
-            ),
+        log::info!(
+            "create_install_preview succeeded appId={} scope={} destination={}",
+            package_info.app_id,
+            scope,
+            preview.destination_path
         );
     }
 
     if let Err(error) = &preview_result {
-        let _ = support::logging::append_log(
-            "ERROR",
-            &format!(
-                "create_install_preview failed appId={} scope={}: {error}",
-                package_info.app_id, scope
-            ),
+        log::error!(
+            "create_install_preview failed appId={} scope={}: {error}",
+            package_info.app_id,
+            scope
         );
     }
 
@@ -611,11 +590,8 @@ pub(crate) fn uninstall_installed_app_impl(
 ) -> Result<UninstallResult, String> {
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "Starting uninstall for appId={app_id} scope={scope} removeUserData={remove_user_data}"
-        ),
+    log::info!(
+        "Starting uninstall for appId={app_id} scope={scope} removeUserData={remove_user_data}"
     );
     let uninstall_result = match install_scope {
         yambuck_core::InstallScope::User => {
@@ -629,26 +605,16 @@ pub(crate) fn uninstall_installed_app_impl(
 
     match uninstall_result {
         Ok(result) => {
-            let _ = support::logging::append_log(
-                "INFO",
-                &format!(
-                    "Uninstall completed for appId={} scope={} warnings={} removedAppFiles={} removedUserData={}",
+            log::info!("Uninstall completed for appId={} scope={} warnings={} removedAppFiles={} removedUserData={}",
                     result.app_id,
                     scope,
                     result.warnings.len(),
                     result.removed_app_files,
-                    result.removed_user_data
-                ),
-            );
+                    result.removed_user_data);
             Ok(result)
         }
         Err(error) => {
-            let _ = support::logging::append_log(
-                "ERROR",
-                &format!(
-                    "Uninstall failed for appId={app_id} scope={scope} removeUserData={remove_user_data}: {error}"
-                ),
-            );
+            log::error!("Uninstall failed for appId={app_id} scope={scope} removeUserData={remove_user_data}: {error}");
             Err(error)
         }
     }
@@ -661,48 +627,37 @@ pub(crate) fn complete_install_impl(
     submissions: Vec<InstallOptionSubmission>,
     allow_downgrade: bool,
 ) -> Result<InstalledApp, String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "complete_install command received workflowId={} scope={} allowDowngrade={} submissions={}",
-            workflow_id,
-            scope,
-            allow_downgrade,
-            submissions.len()
-        ),
+    log::info!(
+        "complete_install command received workflowId={} scope={} allowDowngrade={} submissions={}",
+        workflow_id,
+        scope,
+        allow_downgrade,
+        submissions.len()
     );
 
     let workflow = get_workflow_from_session(workflow_id)?;
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "Starting install for appId={} scope={scope} destination={destination_path}",
-            workflow.package_info.app_id
-        ),
+    log::info!(
+        "Starting install for appId={} scope={scope} destination={destination_path}",
+        workflow.package_info.app_id
     );
 
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "Validating install options for appId={} scope={} submissions={}",
-            workflow.package_info.app_id,
-            scope,
-            submissions.len()
-        ),
+    log::info!(
+        "Validating install options for appId={} scope={} submissions={}",
+        workflow.package_info.app_id,
+        scope,
+        submissions.len()
     );
 
     yambuck_core::validate_install_options(&workflow.install_options, submissions)
         .map_err(|error| error.to_string())?;
     let package_info = workflow.package_info;
 
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "Re-inspecting package before install appId={} packageFile={}",
-            package_info.app_id, package_info.package_file
-        ),
+    log::info!(
+        "Re-inspecting package before install appId={} packageFile={}",
+        package_info.app_id,
+        package_info.package_file
     );
 
     let verified_package = yambuck_core::inspect_package(&package_info.package_file)
@@ -717,12 +672,10 @@ pub(crate) fn complete_install_impl(
         );
     }
 
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "Install dispatch selected path appId={} scope={}",
-            package_info.app_id, scope
-        ),
+    log::info!(
+        "Install dispatch selected path appId={} scope={}",
+        package_info.app_id,
+        scope
     );
 
     let install_result = match install_scope {
@@ -742,31 +695,29 @@ pub(crate) fn complete_install_impl(
     let installed_app = match install_result {
         Ok(installed_app) => installed_app,
         Err(error) => {
-            let _ = support::logging::append_log(
-                "ERROR",
-                &format!(
-                    "Install failed for appId={} scope={scope} destination={destination_path}: {error}",
-                    package_info.app_id
-                ),
+            log::error!(
+                "Install failed for appId={} scope={scope} destination={destination_path}: {error}",
+                package_info.app_id
             );
             return Err(error);
         }
     };
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "Install completed for appId={} scope={scope}",
-            installed_app.app_id
-        ),
+    log::info!(
+        "Install completed for appId={} scope={scope}",
+        installed_app.app_id
     );
     if let Err(error) = support::desktop_integration::ensure_desktop_integration() {
-        let _ = support::logging::append_log(
-            "WARN",
-            &format!("Desktop integration refresh failed after install: {error}"),
-        );
+        log::warn!("Desktop integration refresh failed after install: {error}");
     }
     remove_workflow_session(workflow_id)?;
     Ok(installed_app)
+}
+
+/// Installs the panic hook and the `log` backend. First thing in `main`, so
+/// even a start-up panic reaches the session log once it is open.
+pub fn install_logging() {
+    support::session_log::install_panic_hook();
+    support::session_log::install_logger();
 }
 
 /// Linux start-up (App Standard section 2, Release Standard section 10): the
@@ -799,19 +750,16 @@ pub(crate) fn preflight_install_check_impl(app_id: &str) -> Result<PreflightChec
 pub(crate) fn evaluate_install_preflight_impl(
     workflow_id: &str,
 ) -> Result<InstallPreflightResult, String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "evaluate_install_preflight command received workflowId={}",
-            workflow_id
-        ),
+    log::info!(
+        "evaluate_install_preflight command received workflowId={}",
+        workflow_id
     );
 
     let workflow = get_workflow_from_session(workflow_id)?;
     let package_info = workflow.package_info;
     let ownership_preflight = yambuck_core::preflight_install_check(&package_info.app_id)
         .map_err(|error| error.to_string())?;
-    let host = support::system_info::get_system_info()?;
+    let host = support::system_info::SystemInfo::collect();
     let runtime_dependency_issues =
         yambuck_core::evaluate_runtime_dependency_issues(&package_info.package_file)
             .map_err(|error| error.to_string())?;
@@ -880,14 +828,11 @@ pub(crate) fn evaluate_install_preflight_impl(
         },
     };
 
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!(
-            "evaluate_install_preflight result appId={} status={} reasons={}",
-            result.package.app_id,
-            result.status,
-            result.reasons.len()
-        ),
+    log::info!(
+        "evaluate_install_preflight result appId={} status={} reasons={}",
+        result.package.app_id,
+        result.status,
+        result.reasons.len()
     );
 
     Ok(result)
@@ -898,40 +843,6 @@ pub(crate) fn get_startup_package_arg_impl() -> Option<String> {
     support::launch_args::package_arg_from_launch_args(&args)
 }
 
-pub(crate) fn get_system_info_impl() -> Result<support::system_info::SystemInfo, String> {
-    support::system_info::get_system_info()
-}
-
-pub(crate) fn get_recent_logs_impl(limit: Option<usize>) -> Result<String, String> {
-    support::logging::get_recent_logs(limit)
-}
-
-pub(crate) fn clear_logs_impl() -> Result<(), String> {
-    support::logging::clear_logs()
-}
-
-pub(crate) fn log_ui_event_impl(level: Option<String>, message: String) -> Result<(), String> {
-    let normalized = level.unwrap_or_else(|| "INFO".to_string());
-    support::logging::append_log(&normalized, &message)
-}
-
-pub(crate) fn open_logs_directory_impl() -> Result<(), String> {
-    let log_file = support::logging::log_file_path()?;
-    let log_dir = log_file
-        .parent()
-        .ok_or_else(|| "invalid log directory path".to_string())?
-        .to_path_buf();
-
-    std::fs::create_dir_all(&log_dir).map_err(|error| error.to_string())?;
-
-    let mut command = std::process::Command::new("xdg-open");
-    command.arg(&log_dir);
-    support::startup_env::restore_for_child(&mut command);
-    command.spawn().map_err(|error| error.to_string())?;
-
-    Ok(())
-}
-
 /// Options parsed from the command line in `main.rs`.
 pub struct LaunchOptions {
     /// The in-app updater relaunched this version because the install failed.
@@ -940,6 +851,7 @@ pub struct LaunchOptions {
 
 pub fn run(launch: LaunchOptions) {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -955,11 +867,30 @@ pub fn run(launch: LaunchOptions) {
             }
         }))
         .setup(move |app| {
+            // After the single-instance guard: a second launch exits before
+            // this, so it never rotates the running instance's session log.
+            if let Err(error) = support::session_log::initialize_session_log() {
+                eprintln!("Failed to start the session log: {error}");
+            }
+            match support::settings::load() {
+                Ok(settings) => {
+                    if let Err(error) = support::session_log::apply_log_level(&settings.log_level) {
+                        log::warn!("{error}");
+                    }
+                }
+                Err(unreadable) => {
+                    let message = format!(
+                        "Yambuck cannot read its settings file:\n{}\n\n{}\n\nFix its permissions or move it away, then start Yambuck again.",
+                        unreadable.path.display(),
+                        unreadable.error
+                    );
+                    log::error!("{}", message.replace('\n', " "));
+                    support::fatal_dialog::show_error("Yambuck cannot start", &message);
+                    std::process::exit(1);
+                }
+            }
             if let Err(error) = support::desktop_integration::ensure_desktop_integration() {
-                let _ = support::logging::append_log(
-                    "WARN",
-                    &format!("Desktop integration setup failed: {error}"),
-                );
+                log::warn!("Desktop integration setup failed: {error}");
             }
             if launch.update_failed {
                 commands::update::show_update_failed_dialog(app.handle());
@@ -976,11 +907,15 @@ pub fn run(launch: LaunchOptions) {
             commands::installer::create_install_preview,
             commands::update::check_for_updates,
             commands::update::install_update,
-            commands::system::get_system_info,
-            commands::logs::get_recent_logs,
-            commands::logs::clear_logs,
-            commands::logs::log_ui_event,
-            commands::logs::open_logs_directory,
+            commands::diagnostics::copy_session_log,
+            commands::diagnostics::open_session_log,
+            commands::diagnostics::open_log_folder,
+            commands::diagnostics::get_system_info,
+            commands::diagnostics::get_session_log_text,
+            commands::diagnostics::get_log_level,
+            commands::diagnostics::set_log_level,
+            commands::diagnostics::log_ui_event,
+            commands::diagnostics::take_notices,
             commands::installer::preflight_install_check,
             commands::installer::evaluate_install_preflight,
             commands::installer::get_startup_package_arg,

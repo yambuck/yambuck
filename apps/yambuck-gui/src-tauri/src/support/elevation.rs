@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::support::logging::append_log;
 use yambuck_core::{InstallScope, InstalledApp, PackageInfo, UninstallResult};
 
 const ELEVATED_INSTALL_MODE_ARG: &str = "--yambuck-elevated-install";
@@ -103,10 +102,7 @@ pub(crate) fn install_with_elevation_if_needed(
     allow_downgrade: bool,
 ) -> Result<InstalledApp, String> {
     if is_effectively_root() {
-        let _ = append_log(
-            "INFO",
-            "System install running as root; skipping elevation prompt",
-        );
+        log::info!("System install running as root; skipping elevation prompt");
         return yambuck_core::install_and_register(
             package_info,
             InstallScope::System,
@@ -118,13 +114,8 @@ pub(crate) fn install_with_elevation_if_needed(
 
     let context = ElevationRuntimeContext::collect();
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "System install requested; elevation required (session={}, desktop={}, flatpakSandboxed={})",
-            context.session_type, context.desktop_environment, context.flatpak_sandboxed
-        ),
-    );
+    log::info!("System install requested; elevation required (session={}, desktop={}, flatpakSandboxed={})",
+            context.session_type, context.desktop_environment, context.flatpak_sandboxed);
 
     run_native_elevated_install(package_info, destination_path, allow_downgrade, &context)
 }
@@ -134,10 +125,7 @@ pub(crate) fn uninstall_with_elevation_if_needed(
     remove_user_data: bool,
 ) -> Result<UninstallResult, String> {
     if is_effectively_root() {
-        let _ = append_log(
-            "INFO",
-            "System uninstall running as root; skipping elevation prompt",
-        );
+        log::info!("System uninstall running as root; skipping elevation prompt");
         return yambuck_core::uninstall_installed_app(
             app_id,
             InstallScope::System,
@@ -148,24 +136,17 @@ pub(crate) fn uninstall_with_elevation_if_needed(
 
     let context = ElevationRuntimeContext::collect();
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "System uninstall requested; elevation required (session={}, desktop={}, flatpakSandboxed={})",
-            context.session_type, context.desktop_environment, context.flatpak_sandboxed
-        ),
-    );
+    log::info!("System uninstall requested; elevation required (session={}, desktop={}, flatpakSandboxed={})",
+            context.session_type, context.desktop_environment, context.flatpak_sandboxed);
 
     run_native_elevated_uninstall(app_id, remove_user_data, &context)
 }
 
 fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 {
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Elevated install helper started requestPath={} responsePath={}",
-            request_path, response_path
-        ),
+    log::info!(
+        "Elevated install helper started requestPath={} responsePath={}",
+        request_path,
+        response_path
     );
 
     let request_content = match fs::read_to_string(request_path) {
@@ -205,13 +186,10 @@ fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 
         request.allow_downgrade,
     );
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Elevated install helper finished core install appId={} success={}",
-            request.package_info.app_id,
-            result.is_ok()
-        ),
+    log::info!(
+        "Elevated install helper finished core install appId={} success={}",
+        request.package_info.app_id,
+        result.is_ok()
     );
 
     let response = match result {
@@ -244,12 +222,10 @@ fn run_elevated_install_command(request_path: &str, response_path: &str) -> i32 
 }
 
 fn run_elevated_uninstall_command(request_path: &str, response_path: &str) -> i32 {
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Elevated uninstall helper started requestPath={} responsePath={}",
-            request_path, response_path
-        ),
+    log::info!(
+        "Elevated uninstall helper started requestPath={} responsePath={}",
+        request_path,
+        response_path
     );
 
     let request_content = match fs::read_to_string(request_path) {
@@ -288,13 +264,10 @@ fn run_elevated_uninstall_command(request_path: &str, response_path: &str) -> i3
         request.remove_user_data,
     );
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Elevated uninstall helper finished core uninstall appId={} success={}",
-            request.app_id,
-            result.is_ok()
-        ),
+    log::info!(
+        "Elevated uninstall helper finished core uninstall appId={} success={}",
+        request.app_id,
+        result.is_ok()
     );
 
     let response = match result {
@@ -330,10 +303,7 @@ fn run_native_elevated_install(
     context: &ElevationRuntimeContext,
 ) -> Result<InstalledApp, String> {
     let strategy = select_strategy(context).ok_or_else(|| {
-        let _ = append_log(
-            "ERROR",
-            "Elevation failed: no supported native elevation strategy is available",
-        );
+        log::error!("Elevation failed: no supported native elevation strategy is available");
         if context.flatpak_sandboxed {
             "All-users install requires administrator permission. No host elevation bridge was found in this Flatpak environment. Install policykit support or use 'Just for me'.".to_string()
         } else {
@@ -366,14 +336,11 @@ fn run_native_elevated_install(
     let current_exe = std::env::current_exe()
         .map_err(|error| format!("Could not resolve application executable path: {error}"))?;
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Requesting elevation using strategy={} (session={}, desktop={})",
-            strategy.label(),
-            context.session_type,
-            context.desktop_environment,
-        ),
+    log::info!(
+        "Requesting elevation using strategy={} (session={}, desktop={})",
+        strategy.label(),
+        context.session_type,
+        context.desktop_environment
     );
     let status = run_elevation_command(
         &strategy,
@@ -384,16 +351,13 @@ fn run_native_elevated_install(
         context,
     )?;
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Elevation install command returned success={} code={} responsePathExists={}",
-            status.success(),
-            status
-                .code()
-                .map_or_else(|| "none".to_string(), |code| code.to_string()),
-            response_path.exists(),
-        ),
+    log::info!(
+        "Elevation install command returned success={} code={} responsePathExists={}",
+        status.success(),
+        status
+            .code()
+            .map_or_else(|| "none".to_string(), |code| code.to_string()),
+        response_path.exists()
     );
 
     let output = if response_path.exists() {
@@ -413,14 +377,11 @@ fn run_native_elevated_install(
             let message = output.error.unwrap_or_else(|| {
                 "System install failed after requesting administrator permissions.".to_string()
             });
-            let _ = append_log(
-                "ERROR",
-                &format!("Elevated system install failed: {message}"),
-            );
+            log::error!("Elevated system install failed: {message}");
             return Err(message);
         }
 
-        let _ = append_log("INFO", "System install completed with elevated permissions");
+        log::info!("System install completed with elevated permissions");
         return output
             .installed_app
             .map(|item| InstalledApp {
@@ -456,10 +417,7 @@ fn run_native_elevated_install(
         )
     };
 
-    let _ = append_log(
-        "ERROR",
-        &format!("Elevated system install failed: {message}"),
-    );
+    log::error!("Elevated system install failed: {message}");
     Err(message)
 }
 
@@ -469,10 +427,7 @@ fn run_native_elevated_uninstall(
     context: &ElevationRuntimeContext,
 ) -> Result<UninstallResult, String> {
     let strategy = select_strategy(context).ok_or_else(|| {
-        let _ = append_log(
-            "ERROR",
-            "Elevation failed: no supported native elevation strategy is available",
-        );
+        log::error!("Elevation failed: no supported native elevation strategy is available");
         if context.flatpak_sandboxed {
             "All-users uninstall requires administrator permission. No host elevation bridge was found in this Flatpak environment.".to_string()
         } else {
@@ -504,14 +459,11 @@ fn run_native_elevated_uninstall(
     let current_exe = std::env::current_exe()
         .map_err(|error| format!("Could not resolve application executable path: {error}"))?;
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Requesting elevation for uninstall using strategy={} (session={}, desktop={})",
-            strategy.label(),
-            context.session_type,
-            context.desktop_environment,
-        ),
+    log::info!(
+        "Requesting elevation for uninstall using strategy={} (session={}, desktop={})",
+        strategy.label(),
+        context.session_type,
+        context.desktop_environment
     );
     let status = run_elevation_command(
         &strategy,
@@ -522,16 +474,13 @@ fn run_native_elevated_uninstall(
         context,
     )?;
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Elevation uninstall command returned success={} code={} responsePathExists={}",
-            status.success(),
-            status
-                .code()
-                .map_or_else(|| "none".to_string(), |code| code.to_string()),
-            response_path.exists(),
-        ),
+    log::info!(
+        "Elevation uninstall command returned success={} code={} responsePathExists={}",
+        status.success(),
+        status
+            .code()
+            .map_or_else(|| "none".to_string(), |code| code.to_string()),
+        response_path.exists()
     );
 
     let output = if response_path.exists() {
@@ -551,17 +500,11 @@ fn run_native_elevated_uninstall(
             let message = output.error.unwrap_or_else(|| {
                 "System uninstall failed after requesting administrator permissions.".to_string()
             });
-            let _ = append_log(
-                "ERROR",
-                &format!("Elevated system uninstall failed: {message}"),
-            );
+            log::error!("Elevated system uninstall failed: {message}");
             return Err(message);
         }
 
-        let _ = append_log(
-            "INFO",
-            "System uninstall completed with elevated permissions",
-        );
+        log::info!("System uninstall completed with elevated permissions");
         return output
             .uninstall_result
             .map(|item| UninstallResult {
@@ -596,10 +539,7 @@ fn run_native_elevated_uninstall(
         )
     };
 
-    let _ = append_log(
-        "ERROR",
-        &format!("Elevated system uninstall failed: {message}"),
-    );
+    log::error!("Elevated system uninstall failed: {message}");
     Err(message)
 }
 
@@ -634,35 +574,27 @@ fn run_elevation_command(
         }
     };
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Launching elevation command strategy={} modeArg={} exe={} requestPath={} responsePath={} session={} desktop={}",
+    log::info!("Launching elevation command strategy={} modeArg={} exe={} requestPath={} responsePath={} session={} desktop={}",
             strategy.label(),
             mode_arg,
             current_exe.display(),
             request_path.display(),
             response_path.display(),
             context.session_type,
-            context.desktop_environment,
-        ),
-    );
+            context.desktop_environment);
 
     let status = command
         .status()
         .map_err(|error| format!("Could not start elevation prompt: {error}"))?;
 
-    let _ = append_log(
-        "INFO",
-        &format!(
-            "Elevation command finished strategy={} modeArg={} success={} code={}",
-            strategy.label(),
-            mode_arg,
-            status.success(),
-            status
-                .code()
-                .map_or_else(|| "none".to_string(), |code| code.to_string()),
-        ),
+    log::info!(
+        "Elevation command finished strategy={} modeArg={} success={} code={}",
+        strategy.label(),
+        mode_arg,
+        status.success(),
+        status
+            .code()
+            .map_or_else(|| "none".to_string(), |code| code.to_string())
     );
 
     Ok(status)
