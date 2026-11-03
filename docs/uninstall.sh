@@ -142,6 +142,9 @@ mapfile -t system_files < <(printf "%s\n" "/usr/local/bin/yambuck"; yambuck_shar
 
 user_config_root="${HOME}/.config/yambuck"
 user_metadata_root="${HOME}/.local/share/yambuck"
+# Where Yambuck up to 0.3.8 kept its own log; it now logs to
+# ~/.config/yambuck/debug. Not managed-app data, so always removed.
+user_legacy_log_dir="${HOME}/.local/share/yambuck/logs"
 user_app_payload_root="${HOME}/.local/share/yambuck/apps"
 # The webview's data (cache, local storage), named by the app ID.
 user_webview_roots=("${HOME}/.local/share/${APP_ID}" "${HOME}/.local/share/com.yambuck.installer")
@@ -160,7 +163,7 @@ is_allowed_file_target() {
 is_allowed_dir_target() {
   local path="$1"
   case "$path" in
-    "$user_metadata_root"|"$user_app_payload_root"|"$user_config_root"|"${user_webview_roots[0]}"|"${user_webview_roots[1]}"|"$system_metadata_root"|"$system_app_payload_root")
+    "$user_metadata_root"|"$user_app_payload_root"|"$user_legacy_log_dir"|"$user_config_root"|"${user_webview_roots[0]}"|"${user_webview_roots[1]}"|"$system_metadata_root"|"$system_app_payload_root")
       return 0
       ;;
     *)
@@ -249,6 +252,8 @@ done
 for path in "${system_files[@]}"; do
   remove_file_if_exists "$path" true
 done
+
+remove_dir_if_exists "$user_legacy_log_dir" false
 
 if [[ "$purge_managed_apps" == true ]]; then
   remove_dir_if_exists "$user_metadata_root" false
