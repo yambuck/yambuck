@@ -1871,7 +1871,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
                   </div>
                 ) : null}
                 {form.iconPath ? (
-                  <button class={assetThumbRemove} type="button" onClick={clearIconAsset} title={appText("builder.files.remove")}>
+                  <button class={assetThumbRemove} type="button" onClick={clearIconAsset} title={appText("builder.files.remove")} aria-label={appText("builder.files.remove")}>
                     <IconX size={14} stroke={2.4} />
                   </button>
                 ) : (
@@ -1937,7 +1937,7 @@ export const PackageBuilderPage = ({ onToast }: PackageBuilderPageProps) => {
                         <span class={assetThumbDocIcon}><IconFileText size={56} stroke={1.8} /></span>
                       </div>
                     </button>
-                    <button class={assetThumbRemove} type="button" onClick={clearLicenseAsset} title={appText("builder.files.remove")}>
+                    <button class={assetThumbRemove} type="button" onClick={clearLicenseAsset} title={appText("builder.files.remove")} aria-label={appText("builder.files.remove")}>
                       <IconX size={14} stroke={2.4} />
                     </button>
                   </>

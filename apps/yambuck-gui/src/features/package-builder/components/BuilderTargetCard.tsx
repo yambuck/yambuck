@@ -155,7 +155,7 @@ export const BuilderTargetCard = ({
             </button>
           )}
           {binaryTargetPath ? (
-            <button class={assetThumbRemove} type="button" onClick={onClearBinary} title={appText("builder.files.remove")}>
+            <button class={assetThumbRemove} type="button" onClick={onClearBinary} title={appText("builder.files.remove")} aria-label={appText("builder.files.remove")}>
               <IconX size={14} stroke={2.4} />
             </button>
           ) : null}
