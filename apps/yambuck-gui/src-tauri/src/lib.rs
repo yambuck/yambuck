@@ -7,13 +7,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
-use zip::write::SimpleFileOptions;
-use zip::{ZipArchive, ZipWriter};
 use yambuck_core::{
     CompatibilityReason, InstallDecision, InstallOptionSubmission, InstallPreview, InstallWorkflow,
     InstalledApp, InstalledAppDetails, InstallerContext, PackageInfo, PreflightCheckResult,
     RuntimeDependencyIssue, UninstallResult,
 };
+use zip::write::SimpleFileOptions;
+use zip::{ZipArchive, ZipWriter};
 
 mod commands;
 mod support;
@@ -225,7 +225,11 @@ fn extract_package_to_workspace(package_file: &Path, workspace_dir: &Path) -> Re
     Ok(())
 }
 
-fn collect_workspace_files(root: &Path, current: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
+fn collect_workspace_files(
+    root: &Path,
+    current: &Path,
+    files: &mut Vec<PathBuf>,
+) -> Result<(), String> {
     for entry in fs::read_dir(current).map_err(|error| error.to_string())? {
         let entry = entry.map_err(|error| error.to_string())?;
         let path = entry.path();
@@ -311,13 +315,11 @@ fn inspect_package_workflow_with_shared_validation(
 ) -> Result<InstallWorkflow, String> {
     let _ = support::logging::append_log(
         "INFO",
-        &format!(
-            "[{context}] validating package with shared install inspection: {package_file}"
-        ),
+        &format!("[{context}] validating package with shared install inspection: {package_file}"),
     );
 
-    let workflow = yambuck_core::inspect_package_workflow(package_file)
-        .map_err(|error| error.to_string())?;
+    let workflow =
+        yambuck_core::inspect_package_workflow(package_file).map_err(|error| error.to_string())?;
 
     let _ = support::logging::append_log(
         "INFO",
@@ -471,11 +473,11 @@ pub(crate) fn save_builder_session_as_impl(
     })
 }
 
-pub(crate) fn save_builder_session_impl(session_id: &str, manifest_json: &str) -> Result<(), String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!("[builder-save] session={session_id}"),
-    );
+pub(crate) fn save_builder_session_impl(
+    session_id: &str,
+    manifest_json: &str,
+) -> Result<(), String> {
+    let _ = support::logging::append_log("INFO", &format!("[builder-save] session={session_id}"));
     let output_path = with_builder_session_mut(session_id, |entry| {
         entry
             .package_file
@@ -486,11 +488,12 @@ pub(crate) fn save_builder_session_impl(session_id: &str, manifest_json: &str) -
     save_builder_session_as_impl(session_id, &output_path, manifest_json)
 }
 
-pub(crate) fn validate_builder_session_impl(session_id: &str, manifest_json: &str) -> Result<(), String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!("[builder-validate] session={session_id}"),
-    );
+pub(crate) fn validate_builder_session_impl(
+    session_id: &str,
+    manifest_json: &str,
+) -> Result<(), String> {
+    let _ =
+        support::logging::append_log("INFO", &format!("[builder-validate] session={session_id}"));
 
     with_builder_session_mut(session_id, |entry| {
         write_workspace_manifest(&entry.workspace_dir, manifest_json)?;
@@ -507,10 +510,8 @@ pub(crate) fn validate_builder_session_impl(session_id: &str, manifest_json: &st
 }
 
 pub(crate) fn discard_builder_session_impl(session_id: &str) -> Result<(), String> {
-    let _ = support::logging::append_log(
-        "INFO",
-        &format!("[builder-discard] session={session_id}"),
-    );
+    let _ =
+        support::logging::append_log("INFO", &format!("[builder-discard] session={session_id}"));
     let mut sessions = BUILDER_SESSIONS
         .lock()
         .map_err(|_| "failed to lock builder session store".to_string())?;
@@ -700,8 +701,7 @@ pub(crate) fn complete_install_impl(
         "INFO",
         &format!(
             "Re-inspecting package before install appId={} packageFile={}",
-            package_info.app_id,
-            package_info.package_file
+            package_info.app_id, package_info.package_file
         ),
     );
 

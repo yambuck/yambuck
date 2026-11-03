@@ -1,5 +1,5 @@
-use crate::InstallWorkflowSession;
 use crate::InstallPreflightResult;
+use crate::InstallWorkflowSession;
 use crate::{BuilderSessionState, BuilderStagedFile};
 use yambuck_core::{
     InstallDecision, InstallOptionSubmission, InstallPreview, InstalledApp, InstalledAppDetails,

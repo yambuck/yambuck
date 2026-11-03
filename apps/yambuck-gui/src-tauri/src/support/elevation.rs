@@ -389,7 +389,9 @@ fn run_native_elevated_install(
         &format!(
             "Elevation install command returned success={} code={} responsePathExists={}",
             status.success(),
-            status.code().map_or_else(|| "none".to_string(), |code| code.to_string()),
+            status
+                .code()
+                .map_or_else(|| "none".to_string(), |code| code.to_string()),
             response_path.exists(),
         ),
     );
@@ -525,7 +527,9 @@ fn run_native_elevated_uninstall(
         &format!(
             "Elevation uninstall command returned success={} code={} responsePathExists={}",
             status.success(),
-            status.code().map_or_else(|| "none".to_string(), |code| code.to_string()),
+            status
+                .code()
+                .map_or_else(|| "none".to_string(), |code| code.to_string()),
             response_path.exists(),
         ),
     );
@@ -655,7 +659,9 @@ fn run_elevation_command(
             strategy.label(),
             mode_arg,
             status.success(),
-            status.code().map_or_else(|| "none".to_string(), |code| code.to_string()),
+            status
+                .code()
+                .map_or_else(|| "none".to_string(), |code| code.to_string()),
         ),
     );
 
