@@ -769,6 +769,11 @@ pub(crate) fn complete_install_impl(
     Ok(installed_app)
 }
 
+/// Sets the GTK prgname / Wayland app_id to the app ID (see support::identity).
+pub fn configure_app_identity() {
+    support::identity::configure_app_identity();
+}
+
 pub fn maybe_run_elevated_mode(args: &[String]) -> Option<i32> {
     support::elevation::maybe_run_elevated_mode(args)
 }

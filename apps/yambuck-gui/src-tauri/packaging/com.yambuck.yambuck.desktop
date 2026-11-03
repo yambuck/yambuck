@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Yambuck
+Comment=Install .yambuck application packages
+Exec=yambuck %F
+Terminal=false
+Type=Application
+Icon=com.yambuck.yambuck
+StartupWMClass=com.yambuck.yambuck
+Categories=Utility;PackageManager;
+MimeType=application/x-yambuck-package;
+StartupNotify=true

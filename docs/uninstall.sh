@@ -17,7 +17,8 @@ Default behavior:
 
 Options:
   --purge-managed-apps Also remove all Yambuck-managed app payloads + metadata (user + system)
-                       and Yambuck's own logs (~/.config/yambuck)
+                       and Yambuck's own logs and webview data (~/.config/yambuck,
+                       ~/.local/share/com.yambuck.yambuck)
   --yes                Skip confirmation prompts
   -h, --help           Show this help message
 
@@ -114,43 +115,52 @@ if [[ ! -t 0 ]]; then
   non_interactive=true
 fi
 
-user_bin_path="${HOME}/.local/bin/yambuck"
-user_desktop_file="${HOME}/.local/share/applications/yambuck.desktop"
-user_legacy_desktop_file="${HOME}/.local/share/applications/com.yambuck.installer.desktop"
-user_mime_xml="${HOME}/.local/share/mime/packages/application-x-yambuck-package.xml"
-user_app_icon="${HOME}/.local/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"
-user_mime_icon="${HOME}/.local/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg"
-user_mime_symbolic_icon="${HOME}/.local/share/icons/hicolor/symbolic/mimetypes/application-x-yambuck-package-symbolic.svg"
+# The app ID (Release and Update Standard, section 10) names the launcher
+# and app icon; the legacy names are launchers/icons from before it.
+APP_ID="com.yambuck.yambuck"
+DESKTOP_FILE_NAMES=("${APP_ID}.desktop" "com.yambuck.installer.desktop" "yambuck.desktop")
+APP_ICON_NAMES=("${APP_ID}" "com.yambuck.installer")
+
+# Yambuck's own files under a share root (~/.local/share or /usr/share).
+yambuck_share_files() {
+  local share="$1" name
+  for name in "${DESKTOP_FILE_NAMES[@]}"; do
+    printf "%s\n" "${share}/applications/${name}"
+  done
+  printf "%s\n" "${share}/mime/packages/application-x-yambuck-package.xml"
+  for name in "${APP_ICON_NAMES[@]}"; do
+    printf "%s\n" "${share}/icons/hicolor/scalable/apps/${name}.svg" \
+      "${share}/icons/hicolor/32x32/apps/${name}.png" \
+      "${share}/icons/hicolor/128x128/apps/${name}.png"
+  done
+  printf "%s\n" "${share}/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg" \
+    "${share}/icons/hicolor/symbolic/mimetypes/application-x-yambuck-package-symbolic.svg"
+}
+
+mapfile -t user_files < <(printf "%s\n" "${HOME}/.local/bin/yambuck"; yambuck_share_files "${HOME}/.local/share")
+mapfile -t system_files < <(printf "%s\n" "/usr/local/bin/yambuck"; yambuck_share_files "/usr/share")
+
 user_config_root="${HOME}/.config/yambuck"
 user_metadata_root="${HOME}/.local/share/yambuck"
 user_app_payload_root="${HOME}/.local/share/yambuck/apps"
+# The webview's data (cache, local storage), named by the app ID.
+user_webview_roots=("${HOME}/.local/share/${APP_ID}" "${HOME}/.local/share/com.yambuck.installer")
 
-system_bin_path="/usr/local/bin/yambuck"
-system_desktop_file="/usr/share/applications/yambuck.desktop"
-system_legacy_desktop_file="/usr/share/applications/com.yambuck.installer.desktop"
-system_mime_xml="/usr/share/mime/packages/application-x-yambuck-package.xml"
-system_app_icon="/usr/share/icons/hicolor/scalable/apps/com.yambuck.installer.svg"
-system_mime_icon="/usr/share/icons/hicolor/scalable/mimetypes/application-x-yambuck-package.svg"
-system_mime_symbolic_icon="/usr/share/icons/hicolor/symbolic/mimetypes/application-x-yambuck-package-symbolic.svg"
 system_metadata_root="/var/lib/yambuck"
 system_app_payload_root="/opt/yambuck/apps"
 
 is_allowed_file_target() {
-  local path="$1"
-  case "$path" in
-    "$user_bin_path"|"$user_desktop_file"|"$user_legacy_desktop_file"|"$user_mime_xml"|"$user_app_icon"|"$user_mime_icon"|"$user_mime_symbolic_icon"|"$system_bin_path"|"$system_desktop_file"|"$system_legacy_desktop_file"|"$system_mime_xml"|"$system_app_icon"|"$system_mime_icon"|"$system_mime_symbolic_icon")
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  local path="$1" candidate
+  for candidate in "${user_files[@]}" "${system_files[@]}"; do
+    [[ "$path" == "$candidate" ]] && return 0
+  done
+  return 1
 }
 
 is_allowed_dir_target() {
   local path="$1"
   case "$path" in
-    "$user_metadata_root"|"$user_app_payload_root"|"$user_config_root"|"$system_metadata_root"|"$system_app_payload_root")
+    "$user_metadata_root"|"$user_app_payload_root"|"$user_config_root"|"${user_webview_roots[0]}"|"${user_webview_roots[1]}"|"$system_metadata_root"|"$system_app_payload_root")
       return 0
       ;;
     *)
@@ -190,9 +200,11 @@ remove_dir_if_exists() {
 }
 
 system_changes_required=false
-if [[ -e "$system_bin_path" || -e "$system_desktop_file" || -e "$system_legacy_desktop_file" || -e "$system_mime_xml" || -e "$system_app_icon" || -e "$system_mime_icon" || -e "$system_mime_symbolic_icon" ]]; then
-  system_changes_required=true
-fi
+for path in "${system_files[@]}"; do
+  if [[ -e "$path" || -L "$path" ]]; then
+    system_changes_required=true
+  fi
+done
 if [[ "$purge_managed_apps" == true && ( -d "$system_metadata_root" || -d "$system_app_payload_root" ) ]]; then
   system_changes_required=true
 fi
@@ -231,26 +243,20 @@ if [[ "$system_changes_required" == true && "$EUID" -ne 0 ]]; then
   acquire_root || fail "system cleanup requires root access (run the command in a terminal, or install pkexec)"
 fi
 
-remove_file_if_exists "$user_bin_path" false
-remove_file_if_exists "$user_desktop_file" false
-remove_file_if_exists "$user_legacy_desktop_file" false
-remove_file_if_exists "$user_mime_xml" false
-remove_file_if_exists "$user_app_icon" false
-remove_file_if_exists "$user_mime_icon" false
-remove_file_if_exists "$user_mime_symbolic_icon" false
-
-remove_file_if_exists "$system_bin_path" true
-remove_file_if_exists "$system_desktop_file" true
-remove_file_if_exists "$system_legacy_desktop_file" true
-remove_file_if_exists "$system_mime_xml" true
-remove_file_if_exists "$system_app_icon" true
-remove_file_if_exists "$system_mime_icon" true
-remove_file_if_exists "$system_mime_symbolic_icon" true
+for path in "${user_files[@]}"; do
+  remove_file_if_exists "$path" false
+done
+for path in "${system_files[@]}"; do
+  remove_file_if_exists "$path" true
+done
 
 if [[ "$purge_managed_apps" == true ]]; then
   remove_dir_if_exists "$user_metadata_root" false
   remove_dir_if_exists "$user_app_payload_root" false
   remove_dir_if_exists "$user_config_root" false
+  for path in "${user_webview_roots[@]}"; do
+    remove_dir_if_exists "$path" false
+  done
   remove_dir_if_exists "$system_metadata_root" true
   remove_dir_if_exists "$system_app_payload_root" true
 fi

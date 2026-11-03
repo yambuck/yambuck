@@ -136,7 +136,7 @@ jobs:
         run: |
           bash docs/install.sh --version "$TAG" --yes --no-relaunch
           "$HOME/.local/bin/yambuck" --version | grep -F "${TAG#v}"
-          test -f "$HOME/.local/share/applications/yambuck.desktop"
+          test -f "$HOME/.local/share/applications/com.yambuck.yambuck.desktop"
 
       # Replaces the user install with the system-wide one (and removes the
       # user copy that would shadow it).
@@ -144,7 +144,7 @@ jobs:
         run: |
           bash docs/install.sh --version "$TAG" --yes --no-relaunch --system
           /usr/local/bin/yambuck --version | grep -F "${TAG#v}"
-          test -f /usr/share/applications/yambuck.desktop
+          test -f /usr/share/applications/com.yambuck.yambuck.desktop
           test ! -e "$HOME/.local/bin/yambuck"
 
       - name: Uninstall
@@ -152,4 +152,4 @@ jobs:
           bash docs/uninstall.sh --yes
           test ! -e /usr/local/bin/yambuck
           test ! -e "$HOME/.local/bin/yambuck"
-          test ! -e /usr/share/applications/yambuck.desktop
+          test ! -e /usr/share/applications/com.yambuck.yambuck.desktop

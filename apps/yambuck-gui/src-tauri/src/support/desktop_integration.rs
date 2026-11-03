@@ -2,12 +2,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::support::identity::{
+    desktop_file_name, APP_ID, DESKTOP_ENTRY_TEMPLATE, LEGACY_DESKTOP_FILE_NAMES, LEGACY_ICON_NAMES,
+};
 use crate::support::logging::append_log;
 
-const DESKTOP_FILE_NAME: &str = "com.yambuck.installer.desktop";
+// Yambuck's own launcher, MIME type and icons only. Launchers for apps that
+// Yambuck installs are written by yambuck-core, not here.
 const MIME_XML_NAME: &str = "application-x-yambuck-package.xml";
 const MIME_TYPE: &str = "application/x-yambuck-package";
-const APP_ICON_NAME: &str = "com.yambuck.installer";
+const APP_ICON_NAME: &str = APP_ID;
 const MIME_ICON_NAME: &str = "application-x-yambuck-package";
 
 const ICON_32_PNG: &[u8] = include_bytes!("../../icons/32x32.png");
@@ -34,7 +38,7 @@ pub(crate) fn ensure_desktop_integration() -> Result<(), String> {
     let icon_root = xdg_data_home.join("icons").join("hicolor");
     let active_theme = detect_active_icon_theme();
 
-    let desktop_file_path = desktop_dir.join(DESKTOP_FILE_NAME);
+    let desktop_file_path = desktop_dir.join(desktop_file_name());
     let mime_xml_path = mime_packages_dir.join(MIME_XML_NAME);
 
     let _ = append_log(
@@ -45,6 +49,7 @@ pub(crate) fn ensure_desktop_integration() -> Result<(), String> {
     fs::create_dir_all(&desktop_dir).map_err(|error| error.to_string())?;
     fs::create_dir_all(&mime_packages_dir).map_err(|error| error.to_string())?;
 
+    remove_legacy_integration(&desktop_dir, &icon_root);
     write_icon_assets(&icon_root)?;
     if let Some(theme_name) = active_theme.as_deref() {
         write_theme_overlay_icons(&xdg_data_home, theme_name)?;
@@ -61,6 +66,50 @@ pub(crate) fn ensure_desktop_integration() -> Result<(), String> {
     maybe_set_default_handler(&desktop_file_path);
 
     Ok(())
+}
+
+/// Removes Yambuck's own launchers and app icons from before the app ID was
+/// standardized (`com.yambuck.installer.desktop`, and `yambuck.desktop` from
+/// older install.sh runs), so the menu shows one Yambuck.
+fn remove_legacy_integration(desktop_dir: &Path, icon_root: &Path) {
+    let mut legacy_paths: Vec<PathBuf> = LEGACY_DESKTOP_FILE_NAMES
+        .iter()
+        .map(|name| desktop_dir.join(name))
+        .collect();
+    for icon_name in LEGACY_ICON_NAMES {
+        legacy_paths.push(
+            icon_root
+                .join("scalable")
+                .join("apps")
+                .join(format!("{icon_name}.svg")),
+        );
+        for size_dir in ["32x32", "128x128"] {
+            legacy_paths.push(
+                icon_root
+                    .join(size_dir)
+                    .join("apps")
+                    .join(format!("{icon_name}.png")),
+            );
+        }
+    }
+    for path in legacy_paths {
+        if path.exists() {
+            match fs::remove_file(&path) {
+                Ok(()) => {
+                    let _ = append_log(
+                        "INFO",
+                        &format!("Removed legacy Yambuck desktop file {}", path.display()),
+                    );
+                }
+                Err(error) => {
+                    let _ = append_log(
+                        "WARN",
+                        &format!("Could not remove legacy {}: {error}", path.display()),
+                    );
+                }
+            }
+        }
+    }
 }
 
 fn write_icon_assets(icon_root: &Path) -> Result<(), String> {
@@ -190,11 +239,21 @@ fn write_theme_overlay_icons(xdg_data_home: &Path, theme_name: &str) -> Result<(
 fn write_desktop_file(path: &Path) -> Result<(), String> {
     let current_exe = std::env::current_exe().map_err(|error| error.to_string())?;
     let exec_path = shell_quote_path(&current_exe);
-    let desktop_file = format!(
-        "[Desktop Entry]\nName=Yambuck\nComment=Install .yambuck application packages\nExec={exec_path} %F\nTerminal=false\nType=Application\nIcon={APP_ICON_NAME}\nCategories=Utility;PackageManager;\nMimeType={MIME_TYPE};\nStartupNotify=true\n"
-    );
+    write_text_asset(path, &render_desktop_entry(&exec_path))
+}
 
-    write_text_asset(path, &desktop_file)
+/// The packaged launcher with `Exec=` pointing at the running executable.
+fn render_desktop_entry(exec_path: &str) -> String {
+    DESKTOP_ENTRY_TEMPLATE
+        .lines()
+        .map(|line| {
+            if line.starts_with("Exec=") {
+                format!("Exec={exec_path} %F\n")
+            } else {
+                format!("{line}\n")
+            }
+        })
+        .collect()
 }
 
 fn write_mime_xml(path: &Path) -> Result<(), String> {
@@ -238,10 +297,11 @@ fn refresh_desktop_databases(
 }
 
 fn maybe_set_default_handler(desktop_file_path: &Path) {
+    let fallback_name = desktop_file_name();
     let desktop_name = desktop_file_path
         .file_name()
         .and_then(|value| value.to_str())
-        .unwrap_or(DESKTOP_FILE_NAME);
+        .unwrap_or(&fallback_name);
 
     let current_default = Command::new("xdg-mime")
         .arg("query")
@@ -254,10 +314,20 @@ fn maybe_set_default_handler(desktop_file_path: &Path) {
         .map(|value| value.trim().to_string())
         .unwrap_or_default();
 
-    if current_default.is_empty() {
+    if current_default.is_empty()
+        || LEGACY_DESKTOP_FILE_NAMES.contains(&current_default.as_str())
+        || mimeapps_default_is_legacy()
+    {
         let _ = append_log(
             "INFO",
-            "No default .yambuck handler set; registering Yambuck as default",
+            &format!(
+                "Registering {desktop_name} as the default .yambuck handler (was: {})",
+                if current_default.is_empty() {
+                    "none"
+                } else {
+                    &current_default
+                }
+            ),
         );
         run_optional_command("xdg-mime", &["default", desktop_name, MIME_TYPE]);
         return;
@@ -272,6 +342,27 @@ fn maybe_set_default_handler(desktop_file_path: &Path) {
         "INFO",
         &format!("Leaving existing .yambuck default handler unchanged ({current_default})"),
     );
+}
+
+/// True when the user's mimeapps.list still has a pre-app-ID launcher as the
+/// first `.yambuck` handler. xdg-mime may already report the new launcher
+/// once the old file is gone, but the stale entry stays until rewritten.
+fn mimeapps_default_is_legacy() -> bool {
+    let config_home = std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")));
+    config_home
+        .and_then(|dir| fs::read_to_string(dir.join("mimeapps.list")).ok())
+        .is_some_and(|contents| mimeapps_contents_name_legacy_default(&contents))
+}
+
+fn mimeapps_contents_name_legacy_default(contents: &str) -> bool {
+    contents.lines().any(|line| {
+        line.strip_prefix(MIME_TYPE)
+            .and_then(|rest| rest.strip_prefix('='))
+            .and_then(|handlers| handlers.split(';').next())
+            .is_some_and(|first| LEGACY_DESKTOP_FILE_NAMES.contains(&first.trim()))
+    })
 }
 
 fn run_optional_command(command: &str, args: &[&str]) {
@@ -351,4 +442,35 @@ fn detect_active_icon_theme() -> Option<String> {
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{mimeapps_contents_name_legacy_default, render_desktop_entry};
+    use crate::support::identity::APP_ID;
+
+    #[test]
+    fn launcher_points_at_the_running_executable() {
+        let entry = render_desktop_entry("\"/home/user/.local/bin/yambuck\"");
+        assert!(entry.contains("\nExec=\"/home/user/.local/bin/yambuck\" %F\n"));
+        assert!(entry.contains(&format!("\nStartupWMClass={APP_ID}\n")));
+        assert!(entry.contains("\nMimeType=application/x-yambuck-package;\n"));
+        assert_eq!(entry.matches("Exec=").count(), 1);
+    }
+
+    #[test]
+    fn stale_legacy_mime_defaults_are_detected() {
+        let legacy =
+            "[Default Applications]\napplication/x-yambuck-package=com.yambuck.installer.desktop\n";
+        assert!(mimeapps_contents_name_legacy_default(legacy));
+        assert!(mimeapps_contents_name_legacy_default(
+            "application/x-yambuck-package=yambuck.desktop;\n"
+        ));
+        assert!(!mimeapps_contents_name_legacy_default(
+            "application/x-yambuck-package=com.yambuck.yambuck.desktop;\n"
+        ));
+        assert!(!mimeapps_contents_name_legacy_default(
+            "application/x-yambuck-package=other.desktop;yambuck.desktop;\n"
+        ));
+    }
 }

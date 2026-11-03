@@ -9,6 +9,13 @@ set -euo pipefail
 
 REPO="yambuck/yambuck"
 BIN_NAME="yambuck"
+# The app ID (Release and Update Standard, section 10): launcher name,
+# StartupWMClass and the Wayland app_id. Never change it.
+APP_ID="com.yambuck.yambuck"
+# Launchers and app icons Yambuck used before the app ID was standardized;
+# removed on every install so the menu shows one Yambuck.
+LEGACY_DESKTOP_FILE_NAMES=("com.yambuck.installer.desktop" "yambuck.desktop")
+LEGACY_ICON_NAMES=("com.yambuck.installer")
 INSTALL_BASE_URL="https://yambuck.com"
 USER_INSTALL_DIR="${HOME}/.local/bin"
 SYSTEM_INSTALL_DIR="/usr/local/bin"
@@ -254,8 +261,8 @@ Comment=Install .yambuck application packages
 Exec=${installed_bin} %F
 Terminal=false
 Type=Application
-Icon=${desktop_icon_name}
-StartupWMClass=yambuck
+Icon=${APP_ID}
+StartupWMClass=${APP_ID}
 Categories=Utility;PackageManager;
 MimeType=application/x-yambuck-package;
 StartupNotify=true
@@ -297,6 +304,52 @@ remove_user_install() {
       rm -f "$path"
     fi
   done
+}
+
+# Removes launchers and app icons left by earlier app IDs, in the install
+# location (queued for root in a system install) and, for the user's own
+# files, always.
+remove_legacy_integration() {
+  local name path paths=() user_share="${HOME}/.local/share"
+  for name in "${LEGACY_DESKTOP_FILE_NAMES[@]}"; do
+    paths+=("${user_share}/applications/${name}")
+    [[ "$install_system" == true ]] && paths+=("/usr/share/applications/${name}")
+  done
+  for name in "${LEGACY_ICON_NAMES[@]}"; do
+    for path in "scalable/apps/${name}.svg" "32x32/apps/${name}.png" "128x128/apps/${name}.png"; do
+      paths+=("${user_share}/icons/hicolor/${path}")
+      [[ "$install_system" == true ]] && paths+=("/usr/share/icons/hicolor/${path}")
+    done
+  done
+  for path in "${paths[@]}"; do
+    [[ -e "$path" || -L "$path" ]] || continue
+    log "Removing legacy launcher/icon: ${path}"
+    if [[ "$path" == /usr/* ]]; then
+      printf "rm -f %q\n" "$path" >> "$root_script"
+    else
+      rm -f "$path"
+    fi
+  done
+}
+
+is_legacy_desktop_file_name() {
+  local name
+  for name in "${LEGACY_DESKTOP_FILE_NAMES[@]}"; do
+    [[ "$1" == "$name" ]] && return 0
+  done
+  return 1
+}
+
+# True when the user's mimeapps.list still has a legacy launcher as the
+# .yambuck default. xdg-mime may already report the new launcher once the old
+# file is gone, but the stale entry stays until it is rewritten.
+mimeapps_names_legacy_launcher() {
+  local mimeapps="${XDG_CONFIG_HOME:-${HOME}/.config}/mimeapps.list" name
+  [[ -f "$mimeapps" ]] || return 1
+  for name in "${LEGACY_DESKTOP_FILE_NAMES[@]}"; do
+    grep -Eq "^application/x-yambuck-package=${name//./\\.}(;|$)" "$mimeapps" && return 0
+  done
+  return 1
 }
 
 install_system=false
@@ -415,9 +468,9 @@ elif [[ -f "${extract_dir}/${BIN_NAME}" ]]; then
 fi
 [[ -n "$candidate_bin" ]] || fail "downloaded archive did not contain bin/${BIN_NAME}"
 
-desktop_file_name="yambuck.desktop"
+desktop_file_name="${APP_ID}.desktop"
 mime_xml_name="application-x-yambuck-package.xml"
-desktop_icon_name="com.yambuck.installer"
+desktop_icon_name="${APP_ID}"
 mime_icon_name="application-x-yambuck-package"
 
 if [[ "$install_system" == true ]]; then
@@ -446,6 +499,7 @@ stop_running_process
 if [[ "$install_system" == true ]]; then
   remove_user_install
 fi
+remove_legacy_integration
 
 log "Installing ${installed_bin}"
 place_file 0755 "$candidate_bin" "$installed_bin"
@@ -496,8 +550,10 @@ fi
 
 if optional_cmd xdg-mime; then
   current_default="$(xdg-mime query default application/x-yambuck-package 2>/dev/null || true)"
-  if [[ -z "$current_default" ]]; then
-    log "Registering Yambuck as the default handler for .yambuck files"
+  # An association with a pre-app-ID launcher name is moved to the new one,
+  # so double-clicking a .yambuck file keeps opening Yambuck.
+  if [[ -z "$current_default" ]] || is_legacy_desktop_file_name "$current_default" || mimeapps_names_legacy_launcher; then
+    log "Registering ${desktop_file_name} as the default handler for .yambuck files"
     xdg-mime default "$desktop_file_name" application/x-yambuck-package >/dev/null 2>&1 || true
   else
     log "Leaving existing default .yambuck handler unchanged (${current_default})"

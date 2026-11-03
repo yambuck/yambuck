@@ -21,6 +21,9 @@ struct Cli {
 }
 
 fn main() {
+    // Before anything touches GTK: the Wayland app_id must be the app ID.
+    yambuck_gui_lib::configure_app_identity();
+
     let args = std::env::args().collect::<Vec<String>>();
     // The privileged helper re-executes this binary through pkexec with its
     // own internal arguments, so it runs before regular argument parsing.
