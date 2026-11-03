@@ -22,10 +22,19 @@ canonical: https://yambuck.com/
     <span class="status">Alpha Preview</span>
   </div>
   <p>Install Yambuck once, then open <code>.yambuck</code> packages with a simple guided installer.</p>
+  <div class="install-variants" role="group" aria-label="Install type">
+    <button type="button" class="install-variant-btn active" data-variant="user" aria-pressed="true">User Install</button>
+    <button type="button" class="install-variant-btn" data-variant="system" aria-pressed="false">System Install</button>
+  </div>
+  <p class="command-hint">Open <strong>Terminal</strong> and run:</p>
   <div class="command-shell">
     <code id="install-command">curl -sf https://yambuck.com/install.sh | bash</code>
     <button id="copy-command" type="button">Copy</button>
   </div>
+  <p class="command-note" id="install-variant-note">Installs Yambuck for your account in <code>~/.local/bin</code>. No password needed.</p>
+  <p class="command-note">
+    Manual download: <a href="https://github.com/yambuck/yambuck/releases/latest">latest release on GitHub</a>.
+  </p>
   <p class="command-note">
     Yambuck is in alpha preview. Core flows work, with ongoing reliability improvements.
   </p>
@@ -110,6 +119,34 @@ canonical: https://yambuck.com/
 <script>
   const copyButton = document.getElementById("copy-command");
   const command = document.getElementById("install-command");
+  const variantNote = document.getElementById("install-variant-note");
+  const variantButtons = document.querySelectorAll(".install-variant-btn");
+
+  // Install commands per the Release and Update Standard (docs/install.sh options).
+  const installVariants = {
+    user: {
+      command: "curl -sf https://yambuck.com/install.sh | bash",
+      note: "Installs Yambuck for your account in <code>~/.local/bin</code>. No password needed.",
+    },
+    system: {
+      command: "curl -sf https://yambuck.com/install.sh | bash -s -- --system",
+      note: "Installs Yambuck for all users in <code>/usr/local/bin</code>. Asks for your password.",
+    },
+  };
+
+  variantButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const variant = installVariants[button.dataset.variant];
+      if (!variant || !command) return;
+      variantButtons.forEach((other) => {
+        const active = other === button;
+        other.classList.toggle("active", active);
+        other.setAttribute("aria-pressed", String(active));
+      });
+      command.textContent = variant.command;
+      if (variantNote) variantNote.innerHTML = variant.note;
+    });
+  });
   const previewImage = document.getElementById("preview-shot");
   const previewCaption = document.getElementById("preview-caption");
   const previewPrev = document.getElementById("preview-prev");
