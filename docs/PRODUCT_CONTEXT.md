@@ -84,7 +84,7 @@ The direction is set. The work now is reliability, correctness, and cross-enviro
 - Do not lower spec to match temporary implementation gaps.
 - If implementation is below spec, update TODO and uplift code.
 - If implementation clearly exceeds spec in a durable, testable way, uplift spec to that higher bar.
-- `TODO.md` is the single active queue for open work; completed items should be removed.
+- `docs/TODO.md` is the single active queue for open work; completed items should be removed.
 
 ## Source of Truth Map
 
@@ -97,4 +97,4 @@ The direction is set. The work now is reliability, correctness, and cross-enviro
   - `docs/UPDATES_SPEC.md`
   - `docs/RELEASE.md`
   - `docs/UNINSTALL.md`
-- Active implementation backlog: `TODO.md`
+- Active implementation backlog: `docs/TODO.md`

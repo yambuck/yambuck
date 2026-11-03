@@ -111,7 +111,7 @@ Use one owner document per topic. Do not duplicate normative rules across docs.
 - `docs/SPEC.md`: runtime/application technical contract (installer behavior, ownership model, update behavior, platform behavior).
 - `docs/RELEASE.md`: release procedure (owner of release/update operations, under the Release and Update Standard).
 - `docs/PACKAGE_SPEC.md`: package-authoring contract for `.yambuck` files (manifest/media/layout validation rules).
-- `TODO.md`: single active work queue (open tasks only) and idea parking lot.
+- `docs/TODO.md`: single active work queue (open tasks only) and idea parking lot.
 
 When updating docs:
 
@@ -127,9 +127,9 @@ When updating docs:
 
 ## Execution Hygiene (Single Queue)
 
-- Use `TODO.md` as the single active planning queue.
-- Keep completed items out of `TODO.md`; once done, remove them.
-- Keep `TODO.md` split into:
+- Use `docs/TODO.md` as the single active planning queue.
+- Keep completed items out of `docs/TODO.md`; once done, remove them.
+- Keep `docs/TODO.md` split into:
   - `Now` (current priorities)
   - `Next` (queued work)
   - `Ideas / Parking Lot` (uncommitted ideas)
@@ -143,4 +143,4 @@ When starting a fresh chat/agent session for implementation work, read in this o
 1. `docs/PRODUCT_CONTEXT.md`
 2. `docs/SPEC.md`
 3. `docs/PACKAGE_SPEC.md`
-4. `TODO.md`
+4. `docs/TODO.md`

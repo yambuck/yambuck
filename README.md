@@ -84,7 +84,7 @@ See the full screenshot gallery: `docs/screenshots/index.html`
 - Product direction and guardrails: `docs/PRODUCT_CONTEXT.md`
 - Installer/runtime spec: `docs/SPEC.md`
 - `.yambuck` packaging spec: `docs/PACKAGE_SPEC.md`
-- Current work queue: `TODO.md`
+- Current work queue: `docs/TODO.md`
 
 ## Useful Dev Commands
 

@@ -23,4 +23,4 @@ It is intentionally simple so failures are easier to attribute to Yambuck flow/r
 ## Notes
 
 - This app is a test/reference artifact, not a product surface.
-- Packaging and validation behavior is defined at the repo level in `docs/SPEC.md` and `TODO.md`.
+- Packaging and validation behavior is defined at the repo level in `docs/SPEC.md` and `docs/TODO.md`.

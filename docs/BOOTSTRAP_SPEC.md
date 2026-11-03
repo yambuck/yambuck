@@ -106,4 +106,4 @@ Trust and safety constraints:
 
 ## Open Gaps Tracking
 
-Any implementation gaps against this spec should be tracked in `TODO.md`.
+Any implementation gaps against this spec should be tracked in `docs/TODO.md`.

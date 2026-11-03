@@ -48,4 +48,4 @@ Yambuck does not use full inline-only styling as the default architecture.
 
 ## Open Gaps Tracking
 
-Any open implementation gaps against this architecture should be tracked in `TODO.md`.
+Any open implementation gaps against this architecture should be tracked in `docs/TODO.md`.
