@@ -103,8 +103,15 @@ pub fn uninstall_installed_app(
     installed_apps::uninstall_installed_app(app_id, scope, remove_user_data)
 }
 
-pub fn launch_installed_app(app_id: &str, scope: InstallScope) -> Result<(), YambuckError> {
-    installed_apps::launch_installed_app(app_id, scope)
+/// Starts an installed app. `child_environment` lists variables to set
+/// (`Some`) or remove (`None`) for it, so the host's own environment
+/// workarounds don't leak into the launched app.
+pub fn launch_installed_app(
+    app_id: &str,
+    scope: InstallScope,
+    child_environment: &[(String, Option<String>)],
+) -> Result<(), YambuckError> {
+    installed_apps::launch_installed_app(app_id, scope, child_environment)
 }
 
 pub fn preflight_install_check(app_id: &str) -> Result<PreflightCheckResult, YambuckError> {

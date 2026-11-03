@@ -3,4 +3,5 @@ pub mod elevation;
 pub mod identity;
 pub mod launch_args;
 pub mod logging;
+pub mod startup_env;
 pub mod system_info;

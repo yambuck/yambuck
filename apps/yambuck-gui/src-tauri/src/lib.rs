@@ -769,9 +769,12 @@ pub(crate) fn complete_install_impl(
     Ok(installed_app)
 }
 
-/// Sets the GTK prgname / Wayland app_id to the app ID (see support::identity).
-pub fn configure_app_identity() {
+/// Linux start-up (App Standard section 2, Release Standard section 10): the
+/// GTK prgname / Wayland app_id, then the WebKitGTK and GDK environment.
+/// Must run first in `main`, before Tauri, GTK or any portal call.
+pub fn configure_linux_startup() {
     support::identity::configure_app_identity();
+    support::startup_env::configure_linux_session_environment();
 }
 
 pub fn maybe_run_elevated_mode(args: &[String]) -> Option<i32> {
@@ -781,7 +784,12 @@ pub fn maybe_run_elevated_mode(args: &[String]) -> Option<i32> {
 pub(crate) fn launch_installed_app_impl(app_id: &str, scope: &str) -> Result<(), String> {
     let install_scope =
         yambuck_core::InstallScope::try_from(scope).map_err(|error| error.to_string())?;
-    yambuck_core::launch_installed_app(app_id, install_scope).map_err(|error| error.to_string())
+    yambuck_core::launch_installed_app(
+        app_id,
+        install_scope,
+        &support::startup_env::child_environment(),
+    )
+    .map_err(|error| error.to_string())
 }
 
 pub(crate) fn preflight_install_check_impl(app_id: &str) -> Result<PreflightCheckResult, String> {
@@ -916,10 +924,10 @@ pub(crate) fn open_logs_directory_impl() -> Result<(), String> {
 
     std::fs::create_dir_all(&log_dir).map_err(|error| error.to_string())?;
 
-    std::process::Command::new("xdg-open")
-        .arg(&log_dir)
-        .spawn()
-        .map_err(|error| error.to_string())?;
+    let mut command = std::process::Command::new("xdg-open");
+    command.arg(&log_dir);
+    support::startup_env::restore_for_child(&mut command);
+    command.spawn().map_err(|error| error.to_string())?;
 
     Ok(())
 }

@@ -141,7 +141,11 @@ pub fn uninstall_installed_app(
     })
 }
 
-pub fn launch_installed_app(app_id: &str, scope: InstallScope) -> Result<(), YambuckError> {
+pub fn launch_installed_app(
+    app_id: &str,
+    scope: InstallScope,
+    child_environment: &[(String, Option<String>)],
+) -> Result<(), YambuckError> {
     if app_id.trim().is_empty() {
         return Err(YambuckError::InvalidAppId);
     }
@@ -153,10 +157,15 @@ pub fn launch_installed_app(app_id: &str, scope: InstallScope) -> Result<(), Yam
         return Err(YambuckError::LaunchFailed);
     }
 
-    std::process::Command::new(&executable_path)
-        .current_dir(executable_path.parent().unwrap_or_else(|| Path::new("/")))
-        .spawn()
-        .map_err(|_| YambuckError::LaunchFailed)?;
+    let mut command = std::process::Command::new(&executable_path);
+    command.current_dir(executable_path.parent().unwrap_or_else(|| Path::new("/")));
+    for (name, value) in child_environment {
+        match value {
+            Some(value) => command.env(name, value),
+            None => command.env_remove(name),
+        };
+    }
+    command.spawn().map_err(|_| YambuckError::LaunchFailed)?;
 
     Ok(())
 }
