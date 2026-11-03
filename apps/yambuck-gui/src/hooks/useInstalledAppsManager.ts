@@ -16,7 +16,7 @@ import type {
 } from "../types/app";
 
 type UseInstalledAppsManagerOptions = {
-  onToast: (tone: "info" | "success" | "warning" | "error", message: string, durationMs?: number) => void;
+  onToast: (tone: "info" | "success" | "warning" | "error", message: string) => void;
 };
 
 export const useInstalledAppsManager = ({ onToast }: UseInstalledAppsManagerOptions) => {

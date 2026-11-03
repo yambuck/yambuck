@@ -119,7 +119,7 @@ type ScreenshotSlot = {
 };
 
 type PackageBuilderPageProps = {
-  onToast: (tone: ToastTone, message: string, durationMs?: number) => void;
+  onToast: (tone: ToastTone, message: string) => void;
 };
 
 const defaultVariantForTarget = (os: BuilderOs, desktopEnvironment: BuilderTarget["desktopEnvironment"]): string => {

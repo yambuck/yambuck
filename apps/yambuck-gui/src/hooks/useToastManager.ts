@@ -1,5 +1,22 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { ToastItem, ToastTone } from "../components/ui/ToastHost";
+import { logUiEvent } from "../lib/tauri/api";
+
+// App Standard section 6: confirmations get out of the way, problems stay
+// long enough to read and act on. Hovering a toast pauses it.
+const toastDurationMs: Record<ToastTone, number> = {
+  info: 3000,
+  success: 3000,
+  warning: 10000,
+  error: 10000,
+};
+
+const toastLogLevel: Record<ToastTone, "INFO" | "WARN" | "ERROR"> = {
+  info: "INFO",
+  success: "INFO",
+  warning: "WARN",
+  error: "ERROR",
+};
 
 export const useToastManager = () => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -48,7 +65,10 @@ export const useToastManager = () => {
     startedAtRef.current.clear();
   }, []);
 
-  const pushToast = (tone: ToastTone, toastMessage: string, durationMs = 3600) => {
+  const pushToast = (tone: ToastTone, toastMessage: string) => {
+    // Every toast is also logged, so the session log shows what the user saw.
+    void logUiEvent(toastLogLevel[tone], `toast.${tone}: ${toastMessage}`).catch(() => {});
+    const durationMs = toastDurationMs[tone];
     const id = Date.now() + Math.floor(Math.random() * 10000);
     setToasts((prev) => {
       const kept = prev.slice(-2);
