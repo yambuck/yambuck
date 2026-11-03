@@ -1,4 +1,4 @@
-import { IconMinus, IconSettings, IconSquare, IconX } from "@tabler/icons-preact";
+import { IconCopy, IconMinus, IconSettings, IconSquare, IconX } from "@tabler/icons-preact";
 import { logUiAction } from "../../lib/ui-log";
 import { appText } from "../../i18n/app";
 
@@ -52,7 +52,7 @@ export const WindowControls = ({
         title={isMaximized ? appText("window.restoreTitle") : appText("window.maximizeTitle")}
         aria-label={isMaximized ? appText("window.restoreAria") : appText("window.maximizeAria")}
       >
-        <IconSquare size={12} stroke={2.2} />
+        {isMaximized ? <IconCopy size={12} stroke={2.2} /> : <IconSquare size={12} stroke={2.2} />}
       </button>
       <button
         class="window-btn close"

@@ -1,5 +1,6 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "preact/hooks";
+import { logUiError } from "../lib/ui-log";
 
 type UseWindowControlsOptions = {
   onError: (message: string) => void;
@@ -53,8 +54,8 @@ export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
 
     try {
       await getCurrentWindow().startDragging();
-    } catch {
-      // no-op if drag is unavailable
+    } catch (error) {
+      logUiError("window-start-dragging-failed", { error: String(error) });
     }
   };
 
@@ -127,8 +128,8 @@ export const useWindowControls = ({ onError }: UseWindowControlsOptions) => {
 
     try {
       await getCurrentWindow().startResizeDragging(direction);
-    } catch {
-      // no-op if resize drag is unavailable
+    } catch (error) {
+      logUiError("window-start-resize-dragging-failed", { direction, error: String(error) });
     }
   };
 
