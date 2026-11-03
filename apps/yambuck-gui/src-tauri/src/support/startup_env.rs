@@ -51,3 +51,32 @@ fn is_wayland_session() -> bool {
     std::env::var("XDG_SESSION_TYPE").is_ok_and(|value| value.eq_ignore_ascii_case("wayland"))
         || std::env::var_os("WAYLAND_DISPLAY").is_some_and(|value| !value.is_empty())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{child_environment, configure_linux_session_environment};
+
+    // The only test that touches these variables, so it can't race another.
+    #[test]
+    fn overrides_are_set_and_remembered_for_children() {
+        std::env::set_var("WEBKIT_DISABLE_GPU_SANDBOX", "user-value");
+        std::env::remove_var("WEBKIT_DISABLE_DMABUF_RENDERER");
+
+        configure_linux_session_environment();
+
+        assert_eq!(
+            std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").as_deref(),
+            Ok("1")
+        );
+        assert_eq!(
+            std::env::var("WEBKIT_DISABLE_GPU_SANDBOX").as_deref(),
+            Ok("1")
+        );
+        let restore = child_environment();
+        assert!(restore.contains(&("WEBKIT_DISABLE_DMABUF_RENDERER".to_string(), None)));
+        assert!(restore.contains(&(
+            "WEBKIT_DISABLE_GPU_SANDBOX".to_string(),
+            Some("user-value".to_string())
+        )));
+    }
+}
