@@ -9,10 +9,11 @@ canonical: https://yambuck.com/
     {% include brand.html home=true %}
     <div class="hero-row">
       <div class="hero-copy">
-        <h1>Simple Linux app installs.</h1>
+        <span class="hero-tile"><img src="{{ '/favicon.svg' | relative_url }}" alt="" width="64" height="64" /></span>
+        <h1>Yambuck</h1>
         <p class="tagline">
-          Yambuck is a GUI installer for Linux software. Instead of distro-specific app stores and
-          package formats, it gives users one consistent install experience across distros.
+          Simple Linux app installs. One guided installer for Linux software that works the same
+          on every distro, instead of distro-specific app stores and package formats.
         </p>
       </div>
       {% include hero-art.html %}
@@ -21,12 +22,7 @@ canonical: https://yambuck.com/
 </header>
 
 <main class="page">
-  <section class="panel install" aria-labelledby="install-title">
-    <div class="panel-header">
-      <h2 id="install-title">Install Yambuck</h2>
-      <span class="status">Alpha Preview</span>
-    </div>
-    <p class="panel-lede">Install Yambuck once, then open <code>.yambuck</code> packages with a simple guided installer.</p>
+  <section class="panel install" aria-label="Install Yambuck">
     <div class="install-variants" role="group" aria-label="Install type">
       <button type="button" class="install-variant-btn active" data-variant="user" aria-pressed="true">User Install</button>
       <button type="button" class="install-variant-btn" data-variant="system" aria-pressed="false">System Install</button>
@@ -37,10 +33,13 @@ canonical: https://yambuck.com/
       <button id="copy-command" class="copy-btn" type="button">Copy</button>
     </div>
     <p class="command-note command-note-center" id="install-variant-note">Installs Yambuck for your account in <code>~/.local/bin</code>. No password needed.</p>
+    <div class="install-manual">
+      <a class="manual-btn" href="https://github.com/yambuck/yambuck/releases/latest">
+        <svg class="manual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
+        <span>Manual Download</span>
+      </a>
+    </div>
     <div class="panel-foot">
-      <p class="command-note">
-        Manual download: <a href="https://github.com/yambuck/yambuck/releases/latest">latest release on GitHub</a>.
-      </p>
       <p class="command-note">
         Yambuck is in alpha preview. Core flows work, with ongoing reliability improvements.
       </p>

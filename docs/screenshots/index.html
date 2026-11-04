@@ -10,12 +10,12 @@ body_class: screenshots-page
     {% include brand.html %}
     <div class="hero-row">
       <div class="hero-copy">
+        <nav class="crumb" aria-label="Breadcrumb">
+          <a href="{{ '/' | relative_url }}">&larr; Back to Home</a>
+        </nav>
         <h1>Screenshot Gallery</h1>
         <p class="tagline">
           End-to-end alpha flow: package discovery, guided install, launch, and installed-app management.
-        </p>
-        <p class="crumb">
-          <a href="{{ '/index.html' | relative_url }}">Back to install page</a>
         </p>
       </div>
       {% include hero-art.html %}
