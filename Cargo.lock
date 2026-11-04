@@ -1168,7 +1168,7 @@ dependencies = [
 
 [[package]]
 name = "example-app"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "serde",
  "serde_json",
@@ -5974,7 +5974,7 @@ dependencies = [
 
 [[package]]
 name = "yambuck-gui"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "chrono",
  "clap",
