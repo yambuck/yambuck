@@ -28,7 +28,7 @@ Yambuck's own rules, then Yambuck's variations from both standards.
   for such lines.**
 - Use Conventional Commit messages (`feat:`, `fix:`, `docs:`, `chore:` ...).
 - Commit or push only when asked. Work on `dev`; `main` only moves by
-  release promotion (GitHub Pages serves `yambuck.com` from `main:/docs`).
+  release promotion or a site-only update (Release Standard §3; GitHub Pages serves `yambuck.com` from `main:/docs`).
 
 ### Philosophy
 
