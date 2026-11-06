@@ -216,7 +216,7 @@ When starting a fresh chat/agent session for implementation work, read in this o
   settings file before; it holds the log level). There are no renamed fields
   yet, so no `migrate_legacy_fields` step. The builder warning's "don't show
   again" flag is a per-webview convenience kept in `localStorage`.
-- **Logs:** session log lines are `[<RFC 3339 time>] [<LEVEL>] <message>`
+- **Logs:** session log lines are `[<RFC 3339 time>] LEVEL: message`
   (the Time Standard above). Settings -> Debug also shows a preview of this
   session's log under the standard Logs block. Versions up to 0.3.8 logged to
   `~/.local/share/yambuck/logs`; the app and `uninstall.sh` remove that folder.

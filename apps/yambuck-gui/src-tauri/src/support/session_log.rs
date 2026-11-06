@@ -2,8 +2,8 @@
 //!
 //! `~/.config/yambuck/debug/session.log` holds this run's log; at start-up the
 //! previous run's log becomes `last-session.log`, so the run before a crash
-//! or restart is kept. Lines use the Yambuck time standard (RFC 3339 local
-//! time with milliseconds and offset). Everything logs through the `log`
+//! or restart is kept. Lines are `[<time>] LEVEL: message`, the time in the
+//! Yambuck time standard (RFC 3339 local time with milliseconds and offset). Everything logs through the `log`
 //! crate; the level is chosen in Settings -> Debug.
 
 use chrono::{Local, SecondsFormat};
@@ -56,7 +56,7 @@ fn timestamp() -> String {
 }
 
 fn format_line(level: &str, message: &str) -> String {
-    format!("[{}] [{level}] {message}", timestamp())
+    format!("[{}] {level}: {message}", timestamp())
 }
 
 fn append_line(line: &str) {
@@ -201,7 +201,7 @@ mod tests {
         let fraction = timestamp.split_once('.').unwrap().1;
         assert!(fraction[..3].chars().all(|c| c.is_ascii_digit()));
         assert!(matches!(&fraction[3..4], "+" | "-"), "{timestamp}");
-        assert!(line.ends_with("] [INFO] hello"));
+        assert!(line.ends_with("] INFO: hello"), "{line}");
     }
 
     #[test]

@@ -79,7 +79,6 @@ Trust and safety constraints:
 - `--no-relaunch`
 - `--insecure-skip-verify`
 - `--help`
-- `--channel <name>`: accepted and ignored, for older commands
 
 ## Environment Overrides
 

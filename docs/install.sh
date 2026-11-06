@@ -371,12 +371,6 @@ while [[ $# -gt 0 ]]; do
       version="$2"
       shift
       ;;
-    # Accepted and ignored so older commands keep working: there is only one
-    # channel now, GitHub's latest release.
-    --channel)
-      [[ $# -ge 2 ]] || fail "--channel requires a value"
-      shift
-      ;;
     --yes) non_interactive=true ;;
     --insecure-skip-verify) skip_verify=true ;;
     -h|--help) usage; exit 0 ;;
