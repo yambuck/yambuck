@@ -454,6 +454,16 @@ h3 {
 
 /* What it does (same as the Rusty G6 and SomeDrive pages) */
 
+/* "What it does": one paragraph (what it is, what it does, why it exists),
+   then the cards (App Standard, Install Page). */
+.features .features-lead {
+  max-width: 72ch;
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
 .features ul {
   margin: 0;
   padding: 0;
