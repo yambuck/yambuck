@@ -1,111 +1,83 @@
-<div align="center">
+<p align="center">
+  <img src="apps/yambuck-gui/src-tauri/icons/128x128.png" alt="" width="96" height="96" />
+</p>
 
-![Yambuck Mark](assets/branding/yambuck-icon-mark.svg)
+<h1 align="center">Yambuck</h1>
 
-# Yambuck
+<p align="center">Simple Linux app installs.<br />One guided installer for Linux software that works the same on every distro, instead of distro-specific app stores and package formats.</p>
 
-**A Linux-first installer that makes direct-download apps feel simple and predictable.**
+<p align="center">
+  <a href="https://github.com/yambuck/yambuck/releases/latest"><img src="https://img.shields.io/github/v/release/yambuck/yambuck?label=release&color=1f8f9c" alt="Latest release" /></a>
+  <img src="https://img.shields.io/badge/platform-Linux%20x64-1f8f9c" alt="Linux x64" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-1f8f9c" alt="AGPL-3.0" /></a>
+</p>
 
-[![Status](https://img.shields.io/badge/Status-Alpha%20Preview-blue)](https://github.com/yambuck/yambuck)
-[![Platform](https://img.shields.io/badge/Platform-Linux-brightgreen)](https://github.com/yambuck/yambuck)
-[![UI](https://img.shields.io/badge/Interface-GUI--first-aqua)](https://github.com/yambuck/yambuck)
-[![Core](https://img.shields.io/badge/Core-Rust%20%2B%20Tauri-orange)](https://github.com/yambuck/yambuck)
-[![License](https://img.shields.io/badge/License-AGPLv3-yellow.svg)](LICENSE)
+<p align="center">
+  <a href="https://yambuck.com/">Website</a> ·
+  <a href="https://github.com/yambuck/yambuck/releases/latest">Downloads</a> ·
+  <a href="docs/PACKAGE_SPEC.md">Package format</a> ·
+  <a href="https://github.com/yambuck/yambuck/issues">Report an issue</a>
+</p>
 
-</div>
+## Install
 
-Yambuck exists because Linux app installs are still fragmented when software is distributed as direct downloads. Users are often forced to choose between `.deb`, `.rpm`, `AppImage`, and architecture-specific builds before they can even begin. A `.deb` may work on Debian-based systems but not Fedora; an `.rpm` is the reverse. The result is too many decisions up front and an install experience that changes from system to system.
-
-Yambuck is built for two groups: small developers who want direct distribution without the overhead of distro repositories, and users who want a dead-simple install path regardless of distro. The goal is one package format and one guided flow, with a richer preview than typical downloaded package flows — including app metadata, icon, and screenshots before install. Install is simple, and uninstall is just as simple from the same place.
-
-For me, this started while I was building small Linux GUI utilities to make my own move from Windows easier — including a dictation app and a GUI tool for configuring my USB audio DAC. The more I shared those tools, the more obvious the problem became: people should not need distro-specific packaging knowledge just to install a simple app, especially if they are new to Linux. Even though `.deb` is common and often the best option available today, it still does not deliver a clean, consistent install experience across every distro and desktop setup. Yambuck is my attempt to close that gap with one predictable, beginner-friendly install and uninstall flow for direct-download Linux software.
-
-At a glance, the flow is:
-
-- download a `.yambuck` package
-- open it in a guided GUI
-- review app details and screenshots
-- choose install scope
-- install and manage it cleanly from one place
-- uninstall just as simply
-
-## Quick Start
-
-**Install Yambuck:**
+**Linux** (just for you, in `~/.local/bin`, no password needed)
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash
 ```
 
-Install for all users (`/usr/local/bin`, asks for your password):
+**Linux** (all users, in `/usr/local/bin`, asks for your password)
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/install.sh | bash -s -- --system
 ```
 
-Yambuck updates itself from the app (Settings → Check for Updates); re-running the install command does the same.
+Prefer the files? The [latest release](https://github.com/yambuck/yambuck/releases/latest) has the Linux x64 `.tar.gz` and `example-app.yambuck`, a demo package to try the installer. Yambuck is in alpha preview: core flows work, with ongoing reliability improvements. To remove it, see the [uninstall instructions](https://yambuck.com/uninstall.html).
 
-Uninstall Yambuck (safe default, keeps managed apps):
+## What it does
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash
-```
+Yambuck is one package format and one install flow for Linux apps. Today an app has to ship separately for every distro and package manager; with Yambuck a developer packages once, and anyone on any distro installs it by opening one file.
 
-Full purge (remove Yambuck and Yambuck-managed apps):
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://yambuck.com/uninstall.sh | bash -s -- --purge-managed-apps --yes
-```
-
-## Current Status
-
-Yambuck is in alpha preview with a working end-to-end prototype flow and active hardening.
-
-Today, the active product surface is GUI-first (`yambuck-gui`), with CLI planned as a secondary interface.
-
-Reference package for exploratory testing: `example-app.yambuck` from the latest release.
-
-## What Works Today
-
-- package inspection and rich preview
-- guided install flow with scope selection (`Just for me` and `All users`)
-- installed-apps management and uninstall flow
-- in-app updates from GitHub releases (user and system installs)
-- ownership-aware install tracking for deterministic management behavior
+- Installs an app from a single `.yambuck` file, with a guided installer that shows its details and screenshots first
+- Works the same on every Linux distro, with no app store or package format to learn
+- Keeps track of what you've installed and uninstalls it cleanly from one place
 
 ## Screenshots
 
-![Yambuck installer preview](docs/screenshots/yambuck-screenshot-v0.2.0-preview.png)
+<p align="center">
+  <img src="docs/screenshots/yambuck-screenshot-v0.2.0-preview.png" alt="Installer preview" width="400" />
+  <img src="docs/screenshots/yambuck-screenshot-v0.2.0-installer-6.png" alt="Install scope" width="400" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/yambuck-screenshot-v0.2.0-installed-apps.png" alt="Installed apps list" width="400" />
+  <img src="docs/screenshots/yambuck-screenshot-v0.2.0-installed-app-details-1-1.png" alt="Installed app details" width="400" />
+</p>
 
-See the full screenshot gallery: `docs/screenshots/index.html`
+[More screenshots](https://yambuck.com/screenshots/)
 
-## Where to Look Next
+## For developers
 
-- Product direction and guardrails: `docs/PRODUCT_CONTEXT.md`
-- Installer/runtime spec: `docs/SPEC.md`
-- `.yambuck` packaging spec: `docs/PACKAGE_SPEC.md`
-- Current work queue: `docs/TODO.md`
+Package once, distribute directly, and let users install with a familiar GUI flow. A `.yambuck` file holds your app with its metadata, icon and screenshots. The [package spec](docs/PACKAGE_SPEC.md) describes the format, and `apps/example-app` is a working example.
 
-## Useful Dev Commands
+## Build from source
 
-- Run GUI app with hot reload: `npm --prefix apps/yambuck-gui run tauri dev`
-- Run frontend only: `npm --prefix apps/yambuck-gui run dev`
-- Build frontend bundle: `npm --prefix apps/yambuck-gui run build`
-- Check Rust/Tauri compile health: `cargo check --workspace`
-- Build example package: `./scripts/build-example-app-yambuck.sh`
-- Run example smoke flow: `./scripts/smoke-example-app.sh`
-- Build the release tarball in the Ubuntu 22.04 container (needs podman): `npm run release:linux && node scripts/package-release.mjs`
-- Release procedure: `docs/RELEASE.md`
+```bash
+npm --prefix apps/yambuck-gui install
+npm --prefix apps/yambuck-gui run tauri dev   # run in development
+./scripts/build-example-app-yambuck.sh        # build example-app.yambuck
+npm run release:linux                         # build the release in an Ubuntu 22.04 container (needs podman)
+```
 
-## Project Layout
+The release procedure is in [docs/RELEASE.md](docs/RELEASE.md). Contributor notes are in [AGENTS.md](AGENTS.md).
 
-- `crates/yambuck-core`: package parsing, install/uninstall, metadata, verification
-- `apps/yambuck-gui`: installer and installed-apps experience
-- `apps/example-app`: reference app used to generate/validate the example `.yambuck` package
-- `yambuck-cli`: planned secondary interface
+## License
 
-## Brand Files
+[GNU AGPLv3](LICENSE).
 
-- `assets/branding/yambuck-icon-app.svg`: app icon source with background
-- `assets/branding/yambuck-icon-mark.svg`: docs/web mark
-- Regenerate Tauri icons: `npm --prefix apps/yambuck-gui run tauri icon src-tauri/icons/icon-source.svg`
+---
+
+<p align="center">
+  Yambuck is one of the free apps by <a href="https://brumley.info">Jack Brumley</a>:<br />
+  <a href="https://voquill.org">Voquill</a> · <a href="https://brumley.info/rusty-g6/">Rusty G6</a> · <a href="https://somedrive.org/">SomeDrive</a> · <b>Yambuck</b> · <a href="https://brumley.info/rawtap/">RawTap</a> · <a href="https://bmuster.com/">BMuster</a>
+</p>
